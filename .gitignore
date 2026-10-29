@@ -1,0 +1,11 @@
+*.xlsx
+*.xls
+*.xlsm
+*.bak
+*~
+!data/*.xlsx
+data/~$*.xlsx
+.DS_Store
+Thumbs.db
+__pycache__/
+*.pyc
