@@ -8,7 +8,9 @@ Rules:
   - class name = xlsx filename stem (data/Z1.xlsx -> Z1)
   - only the first worksheet of each class file is read
   - worksheet name is ignored
-  - headers: 日期 / 周次 / 星期 / 节次 / 实验名称 / 实验地点
+  - base headers: 节次 / 实验名称 / 实验地点
+  - time: 日期, or 周次+星期; either group is enough, both allowed
+  - per row: valid 周次+星期 wins, otherwise fall back to 日期
   - shared week1 comes from data/设置.json
 
 The default data is written into the inert <template id="defaultData"> JSON,
@@ -184,7 +186,9 @@ def read_class_file(path, class_id):
             fail("%s 找不到表头（需要：%s）" % (path.name, "、".join(REQUIRED)))
 
         has_date = "日期" in header_map
-        if not has_date and not ("周次" in header_map and "星期" in header_map):
+        has_week = "周次" in header_map
+        has_weekday = "星期" in header_map
+        if not has_date and not (has_week and has_weekday):
             fail("%s 需要“日期”列，或同时有“周次”和“星期”列" % path.name)
 
         experiments = []
@@ -197,18 +201,18 @@ def read_class_file(path, class_id):
                 col = header_map.get(name)
                 return values[col] if col is not None and col < len(values) else None
 
+            d = None
             if has_date:
                 d = cell_date(at("日期"), wb.epoch)
-                if d is None:
-                    fail("%s 第 %d 行日期无法识别" % (path.name, row_number))
-            else:
-                week = parse_week(at("周次"))
-                weekday = parse_weekday(at("星期"))
-                if week is None:
-                    fail("%s 第 %d 行周次无法识别" % (path.name, row_number))
-                if weekday is None:
-                    fail("%s 第 %d 行星期无法识别" % (path.name, row_number))
+
+            # 周次+星期优先；不完整/无法识别时回退到日期。
+            week = parse_week(at("周次")) if has_week else None
+            weekday = parse_weekday(at("星期")) if has_weekday else None
+            if week is not None and weekday is not None:
                 d = SETTINGS_WEEK1 + timedelta(days=(week - 1) * 7 + (weekday - 1))
+
+            if d is None:
+                fail("%s 第 %d 行：日期无法识别，且周次+星期不完整/无效" % (path.name, row_number))
 
             period = clean_field(at("节次"), "%s 第 %d 行节次" % (path.name, row_number), MAX_PERIOD_LEN, True)
             name = clean_field(at("实验名称"), "%s 第 %d 行实验名称" % (path.name, row_number), MAX_NAME_LEN, True)
