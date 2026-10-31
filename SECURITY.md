@@ -6,7 +6,7 @@
 
 | 文件 | 说明 |
 | --- | --- |
-| `data/*.xlsx` | 每班一个 xlsx（当前 `Z1.xlsx` 只有表头，`Z2.xlsx` 24 条）；文件名去掉 `.xlsx` 就是班级名 |
+| `data/*.xlsx` | 每班一个 xlsx（当前 `Z1.xlsx` 0 条、`Z2.xlsx` 24 条、`Z5.xlsx` 10 条）；文件名去掉 `.xlsx` 就是班级名 |
 | `data/设置.json` | 全局设置：`{"version":1,"week1":"2026-08-31"}` |
 | `build-html.py` | 用 Python + openpyxl 读 `data/`，写入 `<template id="defaultData">`，生成源文件和 `index.html`，再运行 verify |
 | `requirements.txt` | 构建依赖：`openpyxl>=3.1,<4`；网页运行不需要 |
@@ -98,7 +98,13 @@
   - 空班导出仅表头、Z2 导出 24 行（90 项回归时；当前 Z2 24 条对应 25 行）、文件名 `${班级}.xlsx`；
   - week1 全局、旧单班数据迁移到 Z2、旧键清理；
   - 无 JSON 入口、CSP/Trusted Types、无外部资源、无 style/内联事件。
-- 以上 90 项回归在 Z1 空、Z2 23 条的数据上跑通；当前 `data/` 为 Z1 空、Z2 24 条（只多一条数据）。删除按钮已改为“锁定+404”：本地 `file://` 与 HTTP 点击后 URL 变为 `404.html`、标题为“404 · 页面走丢了”、原 app 消失；frame-buster 保持移除，避免在非删除时机跳 404。build 当前 2 个班、24 条。
+- 以上 90 项回归在 Z1 空、Z2 23 条的数据上跑通；当前 `data/` 为 Z1 空、Z2 24 条、Z5 10 条。删除按钮已改为“锁定+404”：本地 `file://` 与 HTTP 点击后 URL 变为 `404.html`、标题为“404 · 页面走丢了”、原 app 消失；frame-buster 保持移除，避免在非删除时机跳 404。build 当前 3 个班、34 条。
+- UI 筛选/手机布局回归：
+  - 顶部“已结束仅显示本周”默认勾选；
+  - Z2 当前显示 14 / 共 24，取消勾选显示 24 / 24，刷新后恢复勾选；
+  - Z5 全部在未来，显示 10 / 10；
+  - 390px / 820px / 900px 宽度下无横向滚动，表格变成两行列表；941px 起恢复桌面表格；
+  - 筛选只影响显示，导出仍导出该班全部数据。
 - 日期/周次规则回归（本轮新增，build 与页面导入都跑过）：
   - 只有日期列：通过；
   - 只有周次+星期列：通过并按 week1 推算日期；
@@ -184,8 +190,8 @@ python verify-csp.py
 
 当前哈希（以 `verify-csp.py` 输出为准）：
 
-- script: `Ast5b1uIh6iwCSKju7nqepG0kqOOcJ9Sgvyh5QDCV4k=`
-- style:  `NztQ3QE8N0GUkv+50Dixon009tdFKCwbSUlWb26GPqk=`
+- script: `HSFC94HPEU83Aj7BpFpqJdI9xnvW6F32qVlr79eJte0=`
+- style:  `y/8VjGEDHMOS8fQsoJ9Njuv9p316TkC1tLUAcRBsrTc=`
 
 ## 5. 部署到 GitHub Pages
 
@@ -195,8 +201,8 @@ python verify-csp.py
 4. GitHub 仓库设置开启 2FA、分支保护；静态站点优先直接分支部署，不使用 Actions；如必须用 Actions，固定 action SHA、最小权限、不要存长期凭据。
 5. Settings → Pages → Deploy from a branch → 根目录；开启 **Enforce HTTPS**。
 6. 部署后检查：
-   - 班级下拉出现 Z1/Z2（以及 `data/` 里新增的班）；
-   - Z1 显示空表，Z2 显示 24 条；
+   - 班级下拉出现 Z1/Z2/Z5（以及 `data/` 里新增的班）；
+   - Z1 显示空表，Z2 显示 24 条，Z5 显示 10 条；
    - 删除按钮：点击后锁定所有交互并跳转 `404.html`（Z1/Z2 都一样，这是预期行为）；
    - 切换班级、添加、导入、导出、恢复当前班、week1 正常；
    - Console 无 CSP/Trusted Types 报错；

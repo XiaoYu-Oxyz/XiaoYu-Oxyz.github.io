@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Ast5b1uIh6iwCSKju7nqepG0kqOOcJ9Sgvyh5QDCV4k='; script-src-elem 'sha256-Ast5b1uIh6iwCSKju7nqepG0kqOOcJ9Sgvyh5QDCV4k='; script-src-attr 'none'; style-src 'sha256-NztQ3QE8N0GUkv+50Dixon009tdFKCwbSUlWb26GPqk='; style-src-elem 'sha256-NztQ3QE8N0GUkv+50Dixon009tdFKCwbSUlWb26GPqk='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-HSFC94HPEU83Aj7BpFpqJdI9xnvW6F32qVlr79eJte0='; script-src-elem 'sha256-HSFC94HPEU83Aj7BpFpqJdI9xnvW6F32qVlr79eJte0='; script-src-attr 'none'; style-src 'sha256-y/8VjGEDHMOS8fQsoJ9Njuv9p316TkC1tLUAcRBsrTc='; style-src-elem 'sha256-y/8VjGEDHMOS8fQsoJ9Njuv9p316TkC1tLUAcRBsrTc='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>实验课提醒</title>
 <style>
@@ -44,6 +44,15 @@
   .class-picker select:disabled {
     background: #f6f8fa; color: #8c959f; cursor: not-allowed;
   }
+  .recent-filter {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 13px; color: #57606a; white-space: nowrap; cursor: pointer;
+  }
+  .recent-filter input {
+    width: 16px; height: 16px; margin: 0;
+    accent-color: #0969da; cursor: pointer;
+  }
+  .recent-count { font-size: 12px; color: #8c959f; white-space: nowrap; }
   .import-btn {
     padding: 8px 16px; font-size: 14px; font-weight: 600; line-height: 1.4;
     color: #fff; background: #0969da; border: none; border-radius: 8px;
@@ -120,6 +129,7 @@
   }
   tbody td { padding: 11px 12px; border-bottom: 1px solid #eaeef2; }
   tbody tr:hover td { filter: brightness(0.97); }
+  .cell-mobile { display: none; }
 
   .row-today td {
     background: #ffe9e8; color: #a40e26; font-weight: 700;
@@ -379,6 +389,54 @@
     transition: background .15s;
   }
   .status-action:hover { background: #fff; }
+
+  /* ---------- 手机端：隐藏表头，每行变成紧凑两行 ---------- */
+  @media (max-width: 940px) {
+    body { padding: 12px 8px; }
+    .wrap { padding: 14px; border-radius: 10px; }
+    .head-row { gap: 8px; }
+    .head-title { width: 100%; gap: 8px; }
+    .head-actions { width: 100%; gap: 6px; }
+    .head-actions .add-btn,
+    .head-actions .import-btn,
+    .head-actions .ghost-btn,
+    .head-actions .delete-btn { padding-left: 10px; padding-right: 10px; }
+    .recent-filter { font-size: 12.5px; }
+    .recent-count { flex: 1 0 100%; }
+    .legend { font-size: 12px; gap: 10px; margin-bottom: 10px; }
+    .clock { margin-bottom: 12px; }
+    .table-wrap { overflow-x: visible; }
+    table { min-width: 0; width: 100%; display: block; }
+    thead { display: none; }
+    tbody { display: block; }
+    tbody tr {
+      display: block; margin-bottom: 10px; border: 1px solid #eaeef2;
+      border-radius: 10px; overflow: hidden; background: #fff;
+    }
+    tbody tr td { display: none; }
+    tbody tr td.cell-mobile { display: block; padding: 10px 12px; }
+    tbody tr.row-today { background: #ffe9e8; border-color: #ffc9c7; }
+    tbody tr.row-tomorrow { background: #e6f9ea; border-color: #c3f0cd; }
+    tbody tr.row-past { background: #f6f8fa; }
+    tbody tr.row-today td.cell-mobile { color: #a40e26; font-weight: 700; }
+    tbody tr.row-tomorrow td.cell-mobile { color: #1a7f37; font-weight: 700; }
+    tbody tr.row-past td.cell-mobile { color: #6e7781; }
+    tbody tr.row-past .m-name { color: #6e7781; }
+    .cell-mobile .m-line1 {
+      display: flex; align-items: center; flex-wrap: wrap; gap: 2px 6px;
+      font-size: 12.5px; color: #57606a; line-height: 1.6;
+    }
+    .cell-mobile .m-line2 {
+      display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 8px;
+      margin-top: 3px; line-height: 1.5; overflow-wrap: anywhere;
+    }
+    .cell-mobile .m-name { font-size: 15px; font-weight: 700; color: #24292f; }
+    .cell-mobile .m-place { font-size: 13px; color: #57606a; }
+    .cell-mobile .tag { margin-left: 0; }
+    tbody tr.empty-row { border: 0; background: transparent; }
+    tbody tr.empty-row td { display: block; padding: 28px 12px; }
+    .empty-row td { line-height: 1.8; }
+  }
 </style>
 </head>
 <body>
@@ -391,6 +449,11 @@
         <span>班级：</span>
         <select id="classSelect" aria-label="选择班级"></select>
       </label>
+      <label class="recent-filter" title="隐藏本周一之前已结束的实验；今天及未来始终显示">
+        <input type="checkbox" id="recentFilter" checked>
+        <span>已结束仅显示本周</span>
+      </label>
+      <span class="recent-count" id="recentCount"></span>
     </div>
     <div class="head-actions">
       <button class="add-btn"    id="addBtn"        type="button">添加实验</button>
@@ -743,6 +806,13 @@ function startOfDay(d) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
+function startOfWeekMonday(d) {
+  const x = startOfDay(d);
+  const offset = (x.getDay() + 6) % 7; // 星期一 = 0
+  x.setDate(x.getDate() - offset);
+  return x;
+}
+
 function dayDiff(a, b) {
   return Math.round((startOfDay(a) - startOfDay(b)) / 86400000);
 }
@@ -1013,12 +1083,28 @@ function syncClassSelect() {
    5. 渲染表格
    ============================================================ */
 let deleteMode = false;        // 是否处于删除模式
+let recentOnly = true;         // 是否仅显示本周及以后（每次打开默认勾选）
 const markedIndices = new Set(); // 删除模式下，已标记待删除的实验下标
+
+function updateRecentCount(visible, total) {
+  const el = document.getElementById('recentCount');
+  if (el) el.textContent = `显示 ${visible} / 共 ${total}`;
+}
 
 function render() {
   const today = startOfDay(new Date());
   const tbody = document.getElementById('tbody');
   const frag = document.createDocumentFragment();
+
+  const allRows = experiments
+    .map((e, i) => ({ ...e, _date: parseDate(e.date), _idx: i }))
+    .sort((a, b) => (a._date - b._date) || (a._idx - b._idx));
+  const weekStart = startOfWeekMonday(today);
+  const rows = recentOnly
+    ? allRows.filter(e => e._date >= weekStart)
+    : allRows;
+
+  updateRecentCount(rows.length, allRows.length);
 
   if (!experiments.length) {
     const tr = document.createElement('tr');
@@ -1034,9 +1120,20 @@ function render() {
     return;
   }
 
-  const rows = experiments
-    .map((e, i) => ({ ...e, _date: parseDate(e.date), _idx: i }))
-    .sort((a, b) => (a._date - b._date) || (a._idx - b._idx));
+  if (!rows.length) {
+    const hidden = allRows.length;
+    const tr = document.createElement('tr');
+    tr.className = 'empty-row';
+    const td = document.createElement('td');
+    td.colSpan = 7;
+    td.appendChild(document.createTextNode(`本周一及以后没有实验；已隐藏 ${hidden} 条更早记录。`));
+    td.appendChild(document.createElement('br'));
+    td.appendChild(document.createTextNode('取消勾选「已结束仅显示本周」可查看全部'));
+    tr.appendChild(td);
+    frag.appendChild(tr);
+    tbody.replaceChildren(frag);
+    return;
+  }
 
   rows.forEach(e => {
     const diff = dayDiff(e._date, today);
@@ -1104,6 +1201,33 @@ function render() {
     const placeTd = document.createElement('td');
     placeTd.textContent = e.place;
     tr.appendChild(placeTd);
+
+    const mobileTd = document.createElement('td');
+    mobileTd.className = 'cell-mobile';
+    const mLine1 = document.createElement('div');
+    mLine1.className = 'm-line1';
+    mLine1.appendChild(document.createTextNode(
+      `${e.date} ${WEEK_NAMES[e._date.getDay()]} · ${wk === null ? '—' : '第' + wk + '周'} · ${e.period}`
+    ));
+    if (tagClass) {
+      const mobileTag = document.createElement('span');
+      mobileTag.className = tagClass;
+      mobileTag.textContent = tagText;
+      mLine1.appendChild(mobileTag);
+    }
+    const mLine2 = document.createElement('div');
+    mLine2.className = 'm-line2';
+    const mName = document.createElement('span');
+    mName.className = 'm-name';
+    mName.textContent = e.name;
+    const mPlace = document.createElement('span');
+    mPlace.className = 'm-place';
+    mPlace.textContent = `地点：${e.place}`;
+    mLine2.appendChild(mName);
+    mLine2.appendChild(mPlace);
+    mobileTd.appendChild(mLine1);
+    mobileTd.appendChild(mLine2);
+    tr.appendChild(mobileTd);
 
     frag.appendChild(tr);
   });
@@ -1903,6 +2027,7 @@ const deleteModeBtn = document.getElementById('deleteModeBtn');
 const fileInput  = document.getElementById('fileInput');
 const statusEl   = document.getElementById('importStatus');
 const week1Input = document.getElementById('week1Input');
+const recentFilter = document.getElementById('recentFilter');
 const clockEl    = document.getElementById('clock');
 
 function showStatus(type, msg, action) {
@@ -1949,6 +2074,11 @@ function updateClock() {
    10. 第 1 周星期一
    ============================================================ */
 week1Input.value = toDateStr(week1Start);
+
+recentFilter.addEventListener('change', () => {
+  recentOnly = recentFilter.checked;
+  render();
+});
 
 week1Input.addEventListener('change', () => {
   const v = week1Input.value;
