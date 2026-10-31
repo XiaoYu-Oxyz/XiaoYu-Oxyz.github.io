@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-HSFC94HPEU83Aj7BpFpqJdI9xnvW6F32qVlr79eJte0='; script-src-elem 'sha256-HSFC94HPEU83Aj7BpFpqJdI9xnvW6F32qVlr79eJte0='; script-src-attr 'none'; style-src 'sha256-y/8VjGEDHMOS8fQsoJ9Njuv9p316TkC1tLUAcRBsrTc='; style-src-elem 'sha256-y/8VjGEDHMOS8fQsoJ9Njuv9p316TkC1tLUAcRBsrTc='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-+3xPlAAKLNQU1PXAeSwaU9XukjmuMK+RF1jW/WMisis='; script-src-elem 'sha256-+3xPlAAKLNQU1PXAeSwaU9XukjmuMK+RF1jW/WMisis='; script-src-attr 'none'; style-src 'sha256-2DqPerEEmgOOHr+KTcEEbWEwG5V39SyXYeEULqr9mik='; style-src-elem 'sha256-2DqPerEEmgOOHr+KTcEEbWEwG5V39SyXYeEULqr9mik='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>实验课提醒</title>
 <style>
@@ -120,12 +120,14 @@
   .dot-tomorrow { background: #d3f5d9; border: 1px solid #2da44e; }
   .dot-past     { background: #eaeef2; border: 1px solid #d0d7de; }
 
-  .table-wrap { overflow-x: auto; }
+  .table-wrap { overflow: visible; }
   table { width: 100%; min-width: 860px; border-collapse: collapse; font-size: 14px; }
   thead th {
+    position: sticky; top: 0; z-index: 5;
     background: #f0f3f6; text-align: left; padding: 11px 12px;
     font-weight: 600; color: #424a53; white-space: nowrap;
     border-bottom: 2px solid #d8dee4;
+    box-shadow: inset 0 -2px 0 #d8dee4, 0 2px 7px rgba(36,41,47,.08);
   }
   tbody td { padding: 11px 12px; border-bottom: 1px solid #eaeef2; }
   tbody tr:hover td { filter: brightness(0.97); }
@@ -156,12 +158,31 @@
   }
   .delete-btn.active:hover { background: #a40e26; border-color: #a40e26; }
 
+  .edit-btn {
+    width: 88px; padding: 8px 0; text-align: center;
+    font-size: 13px; font-weight: 600; line-height: 1.4;
+    color: #0969da; background: #f5f9ff; border: 1px solid #b6d4fb; border-radius: 8px;
+    cursor: pointer; font-family: inherit; white-space: nowrap;
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  .edit-btn:hover { background: #eaf3ff; border-color: #7ab0f5; }
+  .edit-btn.active {
+    color: #fff; background: #0969da; border-color: #0969da;
+    box-shadow: 0 1px 4px rgba(9,105,218,.25);
+  }
+  .edit-btn.active:hover { background: #0757b8; border-color: #0757b8; }
+
   .ghost-btn:disabled, .ghost-btn:disabled:hover,
-  .add-btn:disabled, .add-btn:disabled:hover {
+  .add-btn:disabled, .add-btn:disabled:hover,
+  .edit-btn:disabled, .edit-btn:disabled:hover {
     opacity: .45; cursor: not-allowed;
   }
   .ghost-btn:disabled:hover { background: #fff; }
   .add-btn:disabled:hover { background: #2da44e; }
+  .edit-btn:disabled:hover { background: #f5f9ff; }
+  .delete-btn:disabled, .delete-btn:disabled:hover {
+    opacity: .45; cursor: not-allowed; background: #fff;
+  }
 
   /* 左侧删除标记列：始终占位，进入删除模式只显示/隐藏图标，表格不位移、行高不变 */
   th.col-mark { width: 46px; }
@@ -194,6 +215,25 @@
   .mark-btn.is-marked { border-color: #2da44e; color: #2da44e; }
   .mark-btn.is-marked:hover { background: #e6f9ea; }
   .mark-btn.is-marked::after { display: block; }
+
+  .edit-row-btn {
+    width: 24px; height: 24px; padding: 0;
+    border: 2px solid #0969da; border-radius: 6px;
+    background: #fff; color: #0969da;
+    font-family: inherit; font-size: 15px; font-weight: 700; line-height: 1;
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    vertical-align: middle;
+    visibility: hidden; pointer-events: none;
+    transition: background .15s, border-color .15s, color .15s, transform .1s;
+  }
+  body.editing .edit-row-btn { visibility: visible; pointer-events: auto; }
+  .edit-row-btn svg {
+    width: 16px; height: 16px; display: block; fill: currentColor; pointer-events: none;
+  }
+  .edit-row-btn:hover { background: #eaf3ff; border-color: #0757b8; }
+  .edit-row-btn:active { transform: scale(.9); }
+  .edit-row-btn:focus-visible { outline: 2px solid #0969da; outline-offset: 2px; }
 
   tbody tr.row-marked td {
     background: #f7f8fa; color: #b0b8c1;
@@ -400,21 +440,40 @@
     .head-actions .add-btn,
     .head-actions .import-btn,
     .head-actions .ghost-btn,
+    .head-actions .edit-btn,
     .head-actions .delete-btn { padding-left: 10px; padding-right: 10px; }
     .recent-filter { font-size: 12.5px; }
     .recent-count { flex: 1 0 100%; }
     .legend { font-size: 12px; gap: 10px; margin-bottom: 10px; }
     .clock { margin-bottom: 12px; }
-    .table-wrap { overflow-x: visible; }
+    .table-wrap { overflow: visible; }
     table { min-width: 0; width: 100%; display: block; }
     thead { display: none; }
     tbody { display: block; }
     tbody tr {
-      display: block; margin-bottom: 10px; border: 1px solid #eaeef2;
+      position: relative;
+      display: flex; align-items: stretch;
+      margin-bottom: 10px; border: 1px solid #eaeef2;
       border-radius: 10px; overflow: hidden; background: #fff;
     }
     tbody tr td { display: none; }
-    tbody tr td.cell-mobile { display: block; padding: 10px 12px; }
+    tbody tr td.cell-mobile {
+      display: block; flex: 1 1 100%; min-width: 0; width: 100%;
+      padding: 10px 12px;
+    }
+    body.deleting tbody tr td.cell-mark,
+    body.editing tbody tr td.cell-mark {
+      display: flex; align-items: center; justify-content: center;
+      position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+      width: 24px; height: 24px; padding: 0; line-height: 0; z-index: 2;
+    }
+    body.deleting tbody tr .mark-btn,
+    body.editing tbody tr .edit-row-btn {
+      width: 20px; height: 20px;
+    }
+    body.editing tbody tr .edit-row-btn svg { width: 13px; height: 13px; }
+    body.deleting tbody tr .mark-btn::before { width: 9px; height: 2px; }
+    body.deleting tbody tr .mark-btn::after { width: 2px; height: 9px; }
     tbody tr.row-today { background: #ffe9e8; border-color: #ffc9c7; }
     tbody tr.row-tomorrow { background: #e6f9ea; border-color: #c3f0cd; }
     tbody tr.row-past { background: #f6f8fa; }
@@ -457,7 +516,8 @@
     </div>
     <div class="head-actions">
       <button class="add-btn"    id="addBtn"        type="button">添加实验</button>
-      <button class="delete-btn" id="deleteModeBtn" type="button" title="删除实验">删除实验</button>
+      <button class="edit-btn"   id="editModeBtn"   type="button" title="进入编辑模式：点行首铅笔修改实验">编辑实验</button>
+      <button class="delete-btn" id="deleteModeBtn" type="button" title="进入删除模式：点行首圆圈标记，再点完成统一删除">删除实验</button>
       <button class="import-btn" id="importBtn"     type="button">导入 Excel（.xlsx）</button>
       <button class="ghost-btn"  id="exportBtn"     type="button">导出 Excel（.xlsx）</button>
       <button class="ghost-btn"  id="restoreBtn"    type="button">恢复默认数据</button>
@@ -1045,7 +1105,7 @@ function addExtraClass(id) {
 }
 
 function switchClass(id) {
-  if (deleteMode) {
+  if (deleteMode || editMode) {
     syncClassSelect();
     return false;
   }
@@ -1074,7 +1134,7 @@ function syncClassSelect() {
     if (id === selectedClass) option.selected = true;
     classSelect.appendChild(option);
   });
-  classSelect.disabled = deleteMode;
+  classSelect.disabled = deleteMode || editMode;
   classSelect.value = selectedClass;
 }
 
@@ -1083,7 +1143,11 @@ function syncClassSelect() {
    5. 渲染表格
    ============================================================ */
 let deleteMode = false;        // 是否处于删除模式
+let editMode = false;          // 是否处于编辑模式
+let editChangedInMode = false; // 本次编辑模式内是否保存过修改
 let recentOnly = true;         // 是否仅显示本周及以后（每次打开默认勾选）
+let filterBeforeMode = true;   // 进入编辑/删除模式前的筛选状态
+let filterStateSaved = false;  // 是否已保存模式前的筛选状态
 const markedIndices = new Set(); // 删除模式下，已标记待删除的实验下标
 
 function updateRecentCount(visible, total) {
@@ -1161,13 +1225,30 @@ function render() {
     markTd.className = 'cell-mark';
     const markBtn = document.createElement('button');
     markBtn.type = 'button';
-    markBtn.className = 'mark-btn' + (marked ? ' is-marked' : '');
-    markBtn.dataset.action = 'mark';
     markBtn.dataset.idx = String(e._idx);
-    markBtn.setAttribute('aria-pressed', marked ? 'true' : 'false');
-    const markTitle = marked ? '取消删除标记' : '标记为待删除';
-    markBtn.title = markTitle;
-    markBtn.setAttribute('aria-label', markTitle);
+
+    if (editMode) {
+      markBtn.className = 'edit-row-btn';
+      markBtn.dataset.action = 'edit';
+      const pencil = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      pencil.setAttribute('viewBox', '0 0 24 24');
+      pencil.setAttribute('aria-hidden', 'true');
+      pencil.setAttribute('focusable', 'false');
+      const pencilPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      pencilPath.setAttribute('d', 'M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a.996.996 0 0 0 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z');
+      pencil.appendChild(pencilPath);
+      markBtn.appendChild(pencil);
+      markBtn.title = '编辑这条实验';
+      markBtn.setAttribute('aria-label', '编辑这条实验');
+    } else {
+      markBtn.className = 'mark-btn' + (marked ? ' is-marked' : '');
+      markBtn.dataset.action = 'mark';
+      markBtn.setAttribute('aria-pressed', marked ? 'true' : 'false');
+      const markTitle = marked ? '取消删除标记' : '标记为待删除';
+      markBtn.title = markTitle;
+      markBtn.setAttribute('aria-label', markTitle);
+    }
+
     markTd.appendChild(markBtn);
     tr.appendChild(markTd);
 
@@ -1207,7 +1288,7 @@ function render() {
     const mLine1 = document.createElement('div');
     mLine1.className = 'm-line1';
     mLine1.appendChild(document.createTextNode(
-      `${e.date} ${WEEK_NAMES[e._date.getDay()]} · ${wk === null ? '—' : '第' + wk + '周'} · ${e.period}`
+      `${e.date} · ${wk === null ? '—' : '第' + wk + '周'} · ${WEEK_NAMES[e._date.getDay()]} · ${e.period}`
     ));
     if (tagClass) {
       const mobileTag = document.createElement('span');
@@ -2023,6 +2104,7 @@ const exportBtn  = document.getElementById('exportBtn');
 const classSelect = document.getElementById('classSelect');
 const restoreBtn = document.getElementById('restoreBtn');
 const addBtn     = document.getElementById('addBtn');
+const editModeBtn = document.getElementById('editModeBtn');
 const deleteModeBtn = document.getElementById('deleteModeBtn');
 const fileInput  = document.getElementById('fileInput');
 const statusEl   = document.getElementById('importStatus');
@@ -2120,6 +2202,8 @@ const modalMask   = document.getElementById('modalMask');
 const modalClose  = document.getElementById('modalClose');
 const modalCancel = document.getElementById('modalCancel');
 const modalSubmit = document.getElementById('modalSubmit');
+const modalTitle  = document.getElementById('modalTitle');
+let editingIndex = null;
 const formDate    = document.getElementById('formDate');
 const formWeek    = document.getElementById('formWeek');
 const formWeekday = document.getElementById('formWeekday');
@@ -2224,7 +2308,10 @@ function resetForm() {
 }
 
 function openModal() {
+  editingIndex = null;
   resetForm();
+  modalTitle.textContent = '添加实验';
+  modalSubmit.textContent = '确认添加';
   modalMask.classList.add('show');
   // 打开后聚焦当前可编辑的那一侧
   setTimeout(() => {
@@ -2232,8 +2319,46 @@ function openModal() {
   }, 0);
 }
 
+function openEditModal(idx) {
+  const item = experiments[idx];
+  if (!item) return;
+
+  resetForm();
+  editingIndex = idx;
+  modalTitle.textContent = '编辑实验';
+  modalSubmit.textContent = '保存修改';
+
+  const d = parseDate(item.date);
+  const w = weekNoOf(d);
+  if (!isNaN(d.getTime()) && w !== null) {
+    // 编辑默认周次+星期模式；日期自动同步
+    document.querySelector('input[name="dateMode"][value="week"]').checked = true;
+    formWeek.value = String(w);
+    formWeekday.value = String(d.getDay() === 0 ? 7 : d.getDay());
+    updateDateFromWeek();
+  } else {
+    document.querySelector('input[name="dateMode"][value="date"]').checked = true;
+    formDate.value = item.date;
+    updateWeekFromDate();
+  }
+
+  formPeriod.value = item.period;
+  formName.value = item.name;
+  formPlace.value = item.place;
+  syncDateModeUI();
+  showFormError('');
+
+  modalMask.classList.add('show');
+  setTimeout(() => {
+    try { (currentDateMode() === 'week' ? formWeek : formDate).focus(); } catch (e) {}
+  }, 0);
+}
+
 function closeModal() {
   modalMask.classList.remove('show');
+  editingIndex = null;
+  modalTitle.textContent = '添加实验';
+  modalSubmit.textContent = '确认添加';
 }
 
 addBtn.addEventListener('click', openModal);
@@ -2293,22 +2418,53 @@ modalSubmit.addEventListener('click', () => {
     return;
   }
 
-  experiments.push({ date: toDateStr(dt), period, name, place });
-
-  const savedOk = saveExperiments();
-  if (savedOk) usingSaved = true;
-
-  render();
-  updateClock();
-  closeModal();
-
+  const isEditing = editingIndex !== null;
+  const editIdx = editingIndex;
+  const item = { date: toDateStr(dt), period, name, place };
   const where = `${toDateStr(dt)} ${period} · ${name}（${place}）`;
-  showStatus(
-    savedOk ? 'ok' : 'warn',
-    savedOk
-      ? `已添加实验：${where}，已自动保存`
-      : `已添加实验：${where}，但本地保存失败（刷新后会恢复）`
-  );
+  let savedOk = false;
+
+  if (isEditing) {
+    const before = experiments[editIdx] ? { ...experiments[editIdx] } : null;
+    if (!before) {
+      showFormError('这条实验已不存在，请关闭后重试');
+      return;
+    }
+
+    experiments[editIdx] = item;
+    editChangedInMode = true;
+    lastEditedByClass.set(selectedClass, { index: editIdx, before });
+    lastDeletedByClass.delete(selectedClass);
+
+    savedOk = saveExperiments();
+    if (savedOk) usingSaved = true;
+
+    render();
+    updateClock();
+    closeModal();
+    showStatus(
+      savedOk ? 'ok' : 'warn',
+      `已更新实验：${where}` +
+        (savedOk ? '' : '；本地保存失败（刷新后会恢复）'),
+      { label: '撤销', onClick: undoLastEdit }
+    );
+  } else {
+    experiments.push(item);
+    lastEditedByClass.delete(selectedClass);
+
+    savedOk = saveExperiments();
+    if (savedOk) usingSaved = true;
+
+    render();
+    updateClock();
+    closeModal();
+    showStatus(
+      savedOk ? 'ok' : 'warn',
+      savedOk
+        ? `已添加实验：${where}，已自动保存`
+        : `已添加实验：${where}，但本地保存失败（刷新后会恢复）`
+    );
+  }
 });
 
 
@@ -2365,16 +2521,38 @@ confirmMask.addEventListener('click', (e) => {
    13. 删除实验（批量标记模式）
    ============================================================ */
 const lastDeletedByClass = new Map(); // 当前页面会话内，按班保留最近一次删除批次
+const lastEditedByClass = new Map();  // 当前页面会话内，按班保留最近一次编辑
+
+function beginModeFilter() {
+  if (!filterStateSaved) {
+    filterBeforeMode = recentFilter.checked;
+    filterStateSaved = true;
+  }
+  recentOnly = false;
+  recentFilter.checked = false;
+  recentFilter.disabled = false;
+}
+
+function endModeFilter() {
+  if (!filterStateSaved) return;
+  filterStateSaved = false;
+  recentFilter.disabled = false;
+  recentFilter.checked = filterBeforeMode;
+  recentOnly = filterBeforeMode;
+}
 
 function syncHeaderActions() {
+  const anyMode = deleteMode || editMode;
   [addBtn, importBtn, exportBtn].forEach(btn => {
-    btn.disabled = deleteMode;
+    btn.disabled = anyMode;
   });
-  classSelect.disabled = deleteMode;
-  week1Input.disabled = deleteMode;
+  classSelect.disabled = anyMode;
+  week1Input.disabled = anyMode;
+  deleteModeBtn.disabled = editMode;
+  editModeBtn.disabled = deleteMode;
 
   const built = isBuiltClass(selectedClass);
-  restoreBtn.disabled = deleteMode || !built;
+  restoreBtn.disabled = anyMode || !built;
   restoreBtn.title = built
     ? '恢复当前班的默认数据'
     : '本地新建班级尚未 build，无法恢复默认';
@@ -2382,6 +2560,8 @@ function syncHeaderActions() {
 
 function setDeleteModeUI(on) {
   deleteMode = on;
+  if (on) beginModeFilter();
+  else endModeFilter();
   if (!on) markedIndices.clear();
 
   document.body.classList.toggle('deleting', on);
@@ -2397,6 +2577,7 @@ function setDeleteModeUI(on) {
 }
 
 function enterDeleteMode() {
+  if (editMode) return;
   if (!experiments.length) {
     showStatus('warn', `${selectedClass} 当前没有实验可删除`);
     return;
@@ -2404,6 +2585,53 @@ function enterDeleteMode() {
 
   setDeleteModeUI(true);
   render();
+}
+
+function setEditModeUI(on) {
+  editMode = on;
+  if (on) {
+    editChangedInMode = false;
+    beginModeFilter();
+  } else {
+    endModeFilter();
+  }
+
+  document.body.classList.toggle('editing', on);
+  editModeBtn.textContent = on ? '完成' : '编辑实验';
+  editModeBtn.classList.toggle('active', on);
+  editModeBtn.setAttribute('aria-pressed', String(on));
+  editModeBtn.title = on
+    ? '完成编辑：退出编辑模式'
+    : '进入编辑模式：点行首铅笔修改实验';
+
+  if (!on) {
+    editingIndex = null;
+    if (modalMask && modalMask.classList.contains('show')) closeModal();
+  }
+
+  syncClassSelect();
+  syncHeaderActions();
+}
+
+function enterEditMode() {
+  if (deleteMode) return;
+  if (!experiments.length) {
+    showStatus('warn', `${selectedClass} 当前没有实验可编辑`);
+    return;
+  }
+
+  setEditModeUI(true);
+  render();
+}
+
+function exitEditMode() {
+  if (!editMode) return;
+  const changed = editChangedInMode;
+  setEditModeUI(false);
+  render();
+  if (!changed) {
+    showStatus('ok', '已退出编辑模式，未编辑任何实验');
+  }
 }
 
 function finishDeleteMode() {
@@ -2434,6 +2662,7 @@ function finishDeleteMode() {
     (savedOk ? '' : '；本地保存失败，刷新后会恢复');
 
   lastDeletedByClass.set(selectedClass, { items: picked, message });
+  lastEditedByClass.delete(selectedClass);
 
   render();
   updateClock();
@@ -2468,6 +2697,27 @@ function undoLastDelete() {
   );
 }
 
+function undoLastEdit() {
+  const batch = lastEditedByClass.get(selectedClass);
+  if (!batch) return;
+  lastEditedByClass.delete(selectedClass);
+
+  if (batch.index >= 0 && batch.index < experiments.length) {
+    experiments[batch.index] = { ...batch.before };
+  }
+
+  const savedOk = saveExperiments();
+  if (savedOk) usingSaved = true;
+
+  render();
+  updateClock();
+
+  showStatus(
+    savedOk ? 'ok' : 'warn',
+    '已撤销编辑' + (savedOk ? '' : '；本地保存失败')
+  );
+}
+
 function showUndoForCurrentClass() {
   const batch = lastDeletedByClass.get(selectedClass);
   if (batch) {
@@ -2480,48 +2730,29 @@ function showUndoForCurrentClass() {
   }
 }
 
-let pageLocked = false;
-
-function lockPageAndGo404() {
-  if (pageLocked) return;
-  pageLocked = true;
-
-  document.querySelectorAll('button, input, select, textarea, a, [tabindex]').forEach(el => {
-    try { el.disabled = true; } catch (e) {}
-    if (el.tagName === 'A') el.removeAttribute('href');
-    el.setAttribute('tabindex', '-1');
-  });
-  document.body.classList.add('locked');
-
-  const block = (ev) => {
-    ev.preventDefault();
-    ev.stopImmediatePropagation();
-  };
-  ['click', 'pointerdown', 'mousedown', 'touchstart', 'keydown', 'keyup',
-   'submit', 'change', 'input', 'focusin'].forEach(type => {
-    document.addEventListener(type, block, true);
-  });
-
-  try {
-    window.location.replace('./404.html');
-  } catch (e) {
-    try { window.location.href = './404.html'; } catch (e2) {}
-  }
-}
-
-deleteModeBtn.addEventListener('click', (e) => {
-  if (e) {
-    e.preventDefault();
-    e.stopPropagation();
-  }
-  lockPageAndGo404();
+deleteModeBtn.addEventListener('click', () => {
+  if (editMode) return;
+  if (deleteMode) finishDeleteMode();
+  else enterDeleteMode();
 });
 
-// 删除模式下，点左侧圆圈切换该行的待删除标记
+editModeBtn.addEventListener('click', () => {
+  if (deleteMode) return;
+  if (editMode) exitEditMode();
+  else enterEditMode();
+});
+
+// 删除模式点左侧圆圈；编辑模式点左侧铅笔
 document.getElementById('tbody').addEventListener('click', (ev) => {
+  const target = ev.target;
+  if (editMode) {
+    const editBtn = target && target.closest ? target.closest('button[data-action="edit"]') : null;
+    if (!editBtn) return;
+    openEditModal(Number(editBtn.dataset.idx));
+    return;
+  }
   if (!deleteMode) return;
 
-  const target = ev.target;
   const btn = target && target.closest ? target.closest('button[data-action="mark"]') : null;
   if (!btn) return;
 
@@ -2836,6 +3067,7 @@ importConfirmBtn.addEventListener('click', () => {
   }
 
   lastDeletedByClass.delete(targetId);
+  lastEditedByClass.delete(targetId);
   const savedOk = saveExperiments();
   if (savedOk) usingSaved = true;
 
@@ -2975,6 +3207,7 @@ restoreBtn.addEventListener('click', async () => {
   experiments = defaults.map(e => ({ ...e }));
   usingSaved = false;
   lastDeletedByClass.delete(selectedClass);
+  lastEditedByClass.delete(selectedClass);
   removeClassStored(selectedClass);
   if (selectedClass === MIGRATION_CLASS) {
     try { localStorage.removeItem(OLD_SINGLE_STORAGE_KEY); } catch (e) {}
