@@ -35,6 +35,7 @@ SOURCE = BASE / "实验提醒.html"
 DEPLOY = BASE / "index.html"
 
 TEMPLATE_RE = re.compile(r'(<template id="defaultData">)([\s\S]*?)(</template>)')
+META_SHEET_NAME = "班级信息"
 REQUIRED = ["节次", "实验名称", "实验地点"]
 WEEKDAY_MAP = {
     "星期一": 1, "周一": 1, "礼拜一": 1, "一": 1, "1": 1,
@@ -52,8 +53,6 @@ MAX_PERIOD_LEN = 100
 MAX_NAME_LEN = 200
 MAX_PLACE_LEN = 200
 MAX_NOTE_LEN = 500
-
-SETTINGS_WEEK1 = None
 
 
 def fail(message):
@@ -165,10 +164,73 @@ def read_settings():
         fail("%s 的 week1 不是有效日期" % SETTINGS.name)
     if parsed.isoformat() != week1:
         fail("%s 的 week1 必须零填充且是有效日期" % SETTINGS.name)
+    if parsed.weekday() != 0:
+        fail("%s 的 week1 必须是星期一" % SETTINGS.name)
     return {"version": 1, "week1": week1}
 
 
-def read_class_file(path, class_id):
+def latest_data_commit_date():
+    """Return the date of the latest commit touching data/, or empty string."""
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(BASE), "log", "-1", "--format=%cs", "--", "data"],
+            capture_output=True, text=True, check=False
+        )
+    except OSError:
+        return ""
+    text = (result.stdout or "").strip()
+    if result.returncode != 0 or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", text):
+        return ""
+    try:
+        parsed = date.fromisoformat(text)
+    except ValueError:
+        return ""
+    return parsed.isoformat() if parsed.isoformat() == text else ""
+
+
+def read_class_meta(path, class_id):
+    """Read optional 班级信息 sheet; return dict (empty when absent)."""
+    try:
+        wb = load_workbook(filename=str(path), read_only=True, data_only=True)
+    except Exception as exc:
+        fail("%s 无法读取：%s" % (path.name, exc))
+    try:
+        if META_SHEET_NAME not in wb.sheetnames:
+            return {}
+        ws = wb[META_SHEET_NAME]
+        meta = {}
+        for row in ws.iter_rows(values_only=True):
+            values = list(row)
+            if not values:
+                continue
+            key = cell_text(values[0])
+            if not key:
+                continue
+            value = cell_text(values[1]) if len(values) > 1 else ""
+            meta[key] = value
+
+        meta_class = meta.get("班级", "")
+        if meta_class and meta_class != class_id:
+            fail("%s 的班级信息为 %s，与文件名班级 %s 不一致，已阻止构建" % (path.name, meta_class, class_id))
+
+        week1 = meta.get("week1", "")
+        if week1:
+            if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", week1):
+                fail("%s 的班级信息 week1 必须是 YYYY-MM-DD" % path.name)
+            try:
+                parsed = date.fromisoformat(week1)
+            except ValueError:
+                fail("%s 的班级信息 week1 不是有效日期" % path.name)
+            if parsed.isoformat() != week1:
+                fail("%s 的班级信息 week1 必须零填充" % path.name)
+            if parsed.weekday() != 0:
+                fail("%s 的班级信息 week1 必须是星期一" % path.name)
+        return meta
+    finally:
+        wb.close()
+
+
+def read_class_file(path, class_id, week1_start):
     try:
         wb = load_workbook(filename=str(path), read_only=True, data_only=True)
     except Exception as exc:
@@ -176,7 +238,7 @@ def read_class_file(path, class_id):
     try:
         if not wb.worksheets:
             fail("%s 没有工作表" % path.name)
-        ws = wb.worksheets[0]
+        ws = wb["实验安排"] if "实验安排" in wb.sheetnames else wb.worksheets[0]
         rows = list(ws.iter_rows(values_only=True))
         if not rows:
             fail("%s 是空工作表" % path.name)
@@ -220,7 +282,7 @@ def read_class_file(path, class_id):
             week = parse_week(at("周次")) if has_week else None
             weekday = parse_weekday(at("星期")) if has_weekday else None
             if week is not None and weekday is not None:
-                d = SETTINGS_WEEK1 + timedelta(days=(week - 1) * 7 + (weekday - 1))
+                d = week1_start + timedelta(days=(week - 1) * 7 + (weekday - 1))
 
             if d is None:
                 fail("%s 第 %d 行：日期无法识别，且周次+星期不完整/无效" % (path.name, row_number))
@@ -278,17 +340,21 @@ def safe_json(data):
 
 
 def main():
-    global SETTINGS_WEEK1
-
     settings = read_settings()
-    SETTINGS_WEEK1 = date.fromisoformat(settings["week1"])
 
     classes = []
     for class_id, path in scan_class_files():
-        experiments = read_class_file(path, class_id)
-        classes.append({"id": class_id, "experiments": experiments})
+        meta = read_class_meta(path, class_id)
+        class_week1 = meta.get("week1") or settings["week1"]
+        experiments = read_class_file(path, class_id, date.fromisoformat(class_week1))
+        classes.append({"id": class_id, "week1": class_week1, "experiments": experiments})
 
-    payload = {"version": 2, "week1": settings["week1"], "classes": classes}
+    payload = {
+        "version": 2,
+        "week1": settings["week1"],
+        "updatedAt": latest_data_commit_date(),
+        "classes": classes,
+    }
 
     if not SOURCE.exists():
         fail("找不到 %s" % SOURCE.name)

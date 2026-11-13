@@ -1,0 +1,17 @@
+{
+  "format": "crsecue-class-backup",
+  "version": 1,
+  "class": "Z1",
+  "week1": "2026-09-07",
+  "updatedAt": "2026-11-06",
+  "count": 1,
+  "experiments": [
+    {
+      "date": "2026-11-16",
+      "period": "第3-4节",
+      "name": "UI冒烟实验",
+      "place": "A101",
+      "note": "自动测试数据"
+    }
+  ]
+}

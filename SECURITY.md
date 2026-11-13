@@ -9,7 +9,7 @@
 | `data/*.xlsx` | 每班一个 xlsx（当前 `Z1.xlsx` 25 条、`Z2.xlsx` 27 条、`Z5.xlsx` 13 条）；文件名去掉 `.xlsx` 就是班级名 |
 | `data/设置.json` | 全局设置：`{"version":1,"week1":"2026-08-31"}` |
 | `build-html.py` | 用 Python + openpyxl 读 `data/`，写入 `<template id="defaultData">`，生成源文件和 `index.html`，再运行 verify |
-| `requirements.txt` | 构建依赖：`openpyxl>=3.1,<4`；网页运行不需要 |
+| `requirements.txt` | 构建依赖：`openpyxl==3.1.5`；网页运行不需要 |
 | `实验提醒.html` | 构建后的源文件（开发/维护用） |
 | `index.html` | GitHub Pages 部署入口，与源文件字节一致 |
 | `verify-csp.py` | 校验 CSP 哈希、模板 JSON、默认数据解析和安全限制；`--apply` 重算代码哈希并同步 `index.html` |
@@ -36,6 +36,11 @@
 - 不使用 `innerHTML`、`outerHTML`、`insertAdjacentHTML`、`document.write`、`eval`、`new Function`、字符串定时器、`javascript:` URL、内联事件属性。
 - 表格、空状态、导入摘要、状态/确认/错误提示全部用 `createElement`、`textContent`、`setAttribute` 构建。
 - 动态内容（实验名称、地点、节次、班级名、导入文件名、localStorage 数据）一律按文本渲染，不拼 HTML/属性/URL。
+- 状态提示同步到隐藏的 `role="status" aria-live="polite"` 区域；模态框有 Tab 焦点循环，Esc 关闭后焦点回到触发按钮；按钮使用 `:focus-visible` 轮廓。
+- 页面保留 `<main id="main">`，已移除 skip link；打印样式只保留当前筛选表格和班级/日期/条数页眉。
+- 班级工具四个图标使用 36×36px 按钮热区，视觉表面 28px；移动端仍保持同一行。
+- 表格使用原生 `<table tabindex="0">`、动态 `caption`、`scope="col"` 和固定列头 `id`；每个数据单元格用 `headers` 关联列头；每条实验行 `tabindex="0"`，**Tab 从表格进入第一行后逐行前进，Shift+Tab 反向，一次报一行**；行尾保留读屏默认表格行播报；上下方向键同样逐条移动；Esc 回到表格；不拦截读屏的 Ctrl/Alt 表格导航键；桌面和手机的 `aria-describedby` 都含 `tableHeaderSummary`，聚焦表格先读全部数据表头；普通阅读时操作列表头/单元格对读屏隐藏，进入编辑/删除模式后恢复按钮；行 label 始终保留并含全部列名与状态（星期读“星期 星期一”），`cell-mobile` 子块对读屏隐藏，只读整段摘要，不读空白/不拆段。
+- 编辑/删除行按钮的 `aria-label` 与编辑弹窗摘要含完整日期、周次、星期、节次、实验名称、实验地点、备注和状态；星期读“星期 星期一”。
 - 班级下拉框的 `<option>` 用 `createElement` + `textContent` 生成；班级名来自文件名，也不拼 HTML。
 - 仅保留一个 Trusted Types 策略 `xlsx-xml`，用于 `DOMParser` 解析 xlsx XML；策略内再次检查大小和 `<!DOCTYPE`/`<!ENTITY`。
 - 已移除 JS frame-buster：它在 iframe/预览环境可能把顶层导航到 404，且本身可被绕过；点击劫持作为残余风险处理，不伪装成可靠防护。
@@ -48,8 +53,10 @@
 - 每行独立判断时间：`周次`+`星期`有效时优先；否则回退到有效 `日期`；`周次`/`星期`不完整或无效但日期有效时用日期；两组都没有有效时间时整次导入/build 失败。
 - 如果两组都填且周次+星期有效，以周次+星期为准；周次+星期无效/不完整时回退日期；日期无效但周次+星期有效时用周次+星期。
 - 页面导入遇到没有有效时间的行会整次失败，不写入任何数据；`build-html.py` 同样失败，且不覆盖 `index.html`。
-- 导出当前班用 `${班级}.xlsx`，sheet 名固定 `实验安排`；空班也导出只有表头的空表。
+- 导出默认全部实验，可选当前筛选；当前筛选文件名加 `-筛选`，xlsx `班级信息` 记录导出范围；空班也导出只有表头的空表。
 - 导入一个班文件，默认合并；文件名与当前班不一致时，默认按文件名切换/新建，也可以选择忽略文件名导入当前班。
+- 导入完成后状态栏提供“撤销导入”，恢复导入前该班的数据和 week1；导入时新建的本机班级会随撤销删除。
+- 班级下拉右侧的新建/重命名/删除只操作本机状态；名称限制文件名非法字符、长度和重名；内置班级重命名/删除先警告，然后在本机隐藏原班（重命名复制数据，删除只隐藏），部署数据不变，并支持单步撤销。
 - 文件大小上限 10MB；校验 ZIP magic（`PK\x03\x04`），不只信扩展名。
 - ZIP 条目上限 512；单条目解压上限 20MB；总解压上限 50MB；压缩比上限 1000；`DecompressionStream` 流式读取，超限立即取消（防 ZIP bomb）。
 - 只读取白名单条目：`xl/workbook.xml`、`xl/_rels/workbook.xml.rels`、`xl/sharedStrings.xml`、`xl/worksheets/*.xml`；其它条目（图片、主题等）直接跳过，不解压。
@@ -64,16 +71,26 @@
 ### 2.4 localStorage
 
 - 项目前缀：`ghpages:zhizao2402:`。
-- 每个班的数据键：`ghpages:zhizao2402:classdata:v1:<encodeURIComponent(班级名)>`；另有 `week1:v1`、`selected-class:v1`、`extra-classes:v1`。
+- 每个班的数据键：`ghpages:zhizao2402:classdata:v1:<encodeURIComponent(班级名)>`；另有 `week1:v1`、`selected-class:v1`、`extra-classes:v1`、`hidden-built-classes:v1`。
 - 旧单班键 `ghpages:zhizao2402:experiments:v1` 和 `zhizao2402_experiments_v1` 在选中 Z2 时自动迁移到 Z2 的班级键；旧 `week1` 键继续作为全局设置。
-- 空数组是有效状态（用户删光某班数据后刷新仍为空）；每班数据独立校验日期、类型、长度、备注（最多 500 字）、条数上限（5000）。
+- 空数组是有效状态；班级列表允许为空，此时表格显示无班级空状态，新建或恢复隐藏班后恢复。
+- `hidden-built-classes:v1` 只保存本机隐藏的内置班级 ID；重命名/删除不修改 `data/`。
+- 允许本机新建/重命名与隐藏班同名，但会先警告；恢复隐藏班时若存在同名本机班，恢复弹窗报错并要求先删除同名班，避免 ID 冲突。
 - 损坏的班级数据回退模板/默认；保存失败会提示，刷新后可能恢复。
-- “恢复默认数据”只恢复当前班的内置数据；本地新建、尚未 build 的班禁用恢复。
+- `storage` 事件同步当前班数据/week1、额外班级和隐藏班级；弹窗或编辑/删除模式中不覆盖当前页面，只提示并给“重新加载”按钮；关闭导入弹窗后如仍待刷新会自动重新载入。
+- 另一个标签页切换班级时只提示“已切换到 …”，不自动跟随。
+- 复制失败时只把纯文本放进只读 `<textarea>`，不拼 HTML；手动复制窗口支持 Esc 关闭和焦点归位。
+- “恢复”图标打开上下布局弹窗：上方恢复当前内置班的默认实验，下方逐个恢复本机隐藏的内置班；本机新建班或空班的上方按钮禁用。
 - 顶部“编辑实验”和“删除实验”是两个互斥模式：
   - 删除模式：每行左侧圆圈，可多选；点“完成”立即删除，状态栏提供“撤销”；
   - 编辑模式：每行左侧铅笔，点击打开预填弹窗；保存后留在编辑模式，状态栏提供“撤销编辑”。
 - 进入模式时默认取消本周筛选勾选并显示全部；复选框仍可主动勾选；退出后恢复进入前的筛选状态。
 - 模式下禁用班级选择、第 1 周、添加/导入/导出/恢复；两个模式按钮互相禁用；筛选复选框保持可用。
+- 顶部操作按钮默认收进“操作 ▾”内联面板；班级工具和“复制本周”在面板外；“实验”组为添加/编辑/删除，“数据”组为导入/导出；只有点击“操作”才展开/收起，滚动、点外、Esc、执行动作和完成模式均不自动收起。
+- 操作菜单内搜索只过滤当前班，匹配名称/地点/备注/节次/日期/周次/星期；搜索词不写 localStorage、不发请求，按 `textContent` 渲染；菜单收起后搜索仍生效。
+- 顶部“数据更新至”来自构建时自动读取的最近一次 `data/` git 提交日期，不拼接 HTML。
+- 班级链接 `?class=` 只接受当前班级列表中的 ID；不在列表中的值忽略并回退，地址栏同步用 `history.replaceState`。
+- JSON 备份只使用 `JSON.parse`，不拼接 HTML/脚本；限制文件大小、实验条数、日期、字段长度和备注长度；`class` 与文件名不一致时阻止导入。
 - “删除实验”不再跳转 404；`404.html` 只用于访问不存在的路径。
 - 只在本机 localStorage 保存草稿；部署默认数据来自 `data/` 构建。
 - 同源说明见“残余风险”。
@@ -81,13 +98,14 @@
 ### 2.5 外部 xlsx、设置与构建
 
 - 默认数据不再写死在 `<script>` 中，而是构建时写入页面内惰性的 `<template id="defaultData">` JSON。`<template>` 内容不会执行、不会渲染，也不参与 `<script>`/`<style>` 的 CSP 哈希。
-- `data/*.xlsx` 是实验数据发布源；班级名 = 文件名去掉 `.xlsx`；每个文件只读第一个工作表，sheet 名随意；表头必须含 `节次/实验名称/实验地点`，时间列用 `日期` 或 `周次+星期`，至少一组。
-- `data/设置.json` 是全局 week1 发布源；简单 JSON，不进 xlsx。
+- `data/*.xlsx` 是实验数据发布源；班级名 = 文件名去掉 `.xlsx`；数据工作表为 `实验安排`，旧文件没有该名称时读第一个工作表；可选 `班级信息` sheet 记录 `班级`、`week1` 等元数据。表头必须含 `节次/实验名称/实验地点`，时间列用 `日期` 或 `周次+星期`，至少一组。
+- `data/设置.json` 是全局 week1 fallback；简单 JSON，不进 xlsx。数据更新时间由构建脚本读取最近一次修改 `data/` 的 git 提交日期自动生成，不需要手写。
+- 每个班可以使用自己的 `week1`（页面本地设置或 `班级信息`）；没有时回退到 `data/设置.json` 全局值。`week1` 必须是星期一；页面、导入和 build 都校验。`班级信息` 的 `班级` 与文件名不一致时构建直接失败。
 - `build-html.py` 校验日期、表头、字段长度、控制字符、重复班级，把 `<`、`>`、`&` 转义成 `\u003c`/`\u003e`/`\u0026`，避免 `</template>`、`<img>` 或实体注入。
 - 构建只改模板数据，不改 `<script>`/`<style>`，所以**数据变化不需要重算 CSP 哈希**。
 - 构建同时写入 `实验提醒.html` 和 `index.html`，然后运行 `verify-csp.py`。
 - 运行时仍然是单文件、无 fetch、`connect-src 'none'`，可完全离线；`data/` 只在构建时读取。
-- 第 1 周设置全局共用：页面修改立即对本机所有班生效并保存 localStorage；部署默认值需要更新 `data/设置.json` 后 build。页面不能写仓库文件；“恢复默认数据”不清 week1。
+- 第 1 周按班级独立：页面修改只保存当前班；没有独立值时使用全局 `data/设置.json`。部署默认值可写在该班 xlsx 的 `班级信息`，或使用全局值；“恢复默认数据”不清 week1。
 - 班级名不限制字符（以操作系统允许的文件名为准）；页面显示和 xlsx 走文本/固定 sheet，不拼 HTML。新班级可以往 `data/` 放 xlsx 后 build；页面导入时新建的班只在本机保留，导出该班 xlsx 并 build 后才成为部署默认。
 - `data/*.xlsx`、`data/设置.json` 和 `index.html` 都会进入公开仓库/Pages，数据就是公开的；不要放敏感数据。
 
@@ -100,9 +118,9 @@
   - 恢复当前班、恢复清当前班存储、恢复不影响其它班；
   - 导入目标：默认按文件名、当前班（忽略文件名）、同班合并、已存在他班切换、新建本机班级；
   - 空班导出仅表头、Z2 导出 24 行（90 项回归时；当前 Z2 27 条对应 28 行，含备注列）、文件名 `${班级}.xlsx`；
-  - week1 全局、旧单班数据迁移到 Z2、旧键清理；
+  - week1 旧全局键迁移到各班、旧单班数据迁移到 Z2、旧键清理；
   - 无 JSON 入口、CSP/Trusted Types、无外部资源、无 style/内联事件。
-- 以上 90 项回归在 Z1 空、Z2 23 条的数据上跑通；当前 `data/` 为 Z1 25 条、Z2 27 条、Z5 13 条。编辑/删除模式已完成回归：删除立即生效并可撤销；编辑保存后留在模式内并可撤销；模式退出恢复筛选。build 当前 3 个班、65 条。
+- 以上 90 项回归在 Z1 空、Z2 23 条的数据上跑通；当前 `data/` 为 Z1 25 条、Z2 27 条、Z5 13 条。编辑/删除模式已完成回归：删除立即生效并可撤销；编辑保存后留在模式内并可撤销；模式退出恢复筛选。build 当前 3 个班、65 条。另有 build reader 单元测试与 Playwright UI 冒烟测试（week1 周一校验/切班、搜索、导出、JSON 导入、撤销导入、320px）。
 - 备注回归：添加/编辑多行、最多 500 字；桌面独立小字行、手机卡片第三行；只按文本渲染；xlsx 7 列备注最后；旧 6 列导入/build 为空备注；合并默认保留、选择更新时覆盖；build 无备注列/空备注/超长/换行均验证。
 - UI 筛选/手机布局回归：
   - 顶部“已结束仅显示本周”默认勾选；
@@ -128,7 +146,7 @@
   - `data/Z3.xlsx`、`data/A&B.xlsx`（任意班级名、任意 sheet 名）构建成功；
   - 名称含 `<img>` 的数据在页面按文本显示，无 img/svg、无脚本执行；
   - 非法日期构建失败，`index.html` 保持不变；
-  - 修改 `data/设置.json` 的 week1 后构建，页面默认 week1 随之更新；
+  - 修改 `data/设置.json` 的全局 week1 后构建，没有独立 week1 的班级默认值随之更新；班级 `班级信息` 的 week1 覆盖全局值；
   - 数据构建前后 script/style 哈希不变，`verify-csp.py` 通过。
 - xlsx 导出仍通过 openpyxl/LibreOffice 验证；本轮 xlsx 解析/写入代码沿用加固版。
 - 之前加固版的 136 项 xlsx 安全/存储测试作为基线；本轮改造保留了 xlsx 解析限制和字段校验。
@@ -149,7 +167,7 @@ python -m pip install -r requirements.txt
 之后：
 
 ```bash
-# 页面里添加/删除/导入后，点“导出 Excel（.xlsx）”
+# 页面里添加/删除/导入后，点“导出”，选择 Excel（.xlsx）
 # 把下载的 ${班级}.xlsx 覆盖到 data/${班级}.xlsx
 # 如果改了第 1 周，更新 data/设置.json
 python build-html.py
@@ -196,21 +214,30 @@ python verify-csp.py
 
 当前哈希（以 `verify-csp.py` 输出为准）：
 
-- script: `ixbPtoYkgK/SCx4jShj/PQBvI5SwTpZ3ng4OBVxNsJY=`
-- style:  `yGHRjmCns4Vr9OzgXoFxxtyLcuYUyvylFkv4SWepfis=`
+- script: `5eO0mxXb09EnXL1PBVg0Srbk7XOTcPCObWyBL5uoTeI=`
+- style:  `0h7a4hseBNqfx6gWSrrxKRwQllHFsSBn6TuZ5s8AgYM=`
 
 ## 5. 部署到 GitHub Pages
 
 1. 确保提交：`index.html`、`实验提醒.html`、`data/*.xlsx`、`data/设置.json`、`build-html.py`、`requirements.txt`、`verify-csp.py`、`.nojekyll`、`.gitattributes`、`.editorconfig`、`SECURITY.md`。
 2. 不要提交：导出的、不在 `data/` 下的 `*.xlsx`、备份、测试 fixture、`.DS_Store`。`.gitignore` 已排除；`data/*.xlsx` 有提交例外，因为它们是发布源。
 3. **公开数据警告**：`data/*.xlsx`、`data/设置.json` 和 `index.html` 都会公开。不要把个人敏感实验数据提交到公开仓库/公开 Pages；需要私密数据时不要用公开 GitHub Pages，改用本地文件或私有部署。
-4. GitHub 仓库设置开启 2FA、分支保护；静态站点优先直接分支部署，不使用 Actions；如必须用 Actions，固定 action SHA、最小权限、不要存长期凭据。
+4. GitHub 仓库设置开启 2FA、分支保护；Pages 仍从 `main` 根目录部署。新增的 `.github/workflows/verify.yml` 只做构建/CSP/diff 校验，权限仅 `contents: read`，不部署、不持有凭据；两个 Action 已固定到 commit SHA，checkout 使用 `fetch-depth: 0` 以读取 data 提交日期。
 5. Settings → Pages → Deploy from a branch → 根目录；开启 **Enforce HTTPS**。
 6. 部署后检查：
    - 班级下拉出现 Z1/Z2/Z5（以及 `data/` 里新增的班）；
    - Z1 显示 25 条，Z2 显示 27 条，Z5 显示 13 条；
-   - 编辑/删除模式：默认显示全部、筛选可主动勾选；删除可撤销；编辑保存后留在模式内并可撤销；无删除/无编辑退出有提示；退出恢复筛选；
-   - 切换班级、添加、导入、导出、恢复当前班、week1 正常；
+   - 编辑/删除模式：默认显示全部、筛选可主动勾选；删除可撤销；编辑保存后留在模式内并可撤销；无删除/无编辑退出静默；退出恢复筛选；
+   - 顶部操作菜单：默认收起，点击“操作”内联展开且桌面/手机横向排列；只有点击“操作”才收起，滚动/点外/Esc/执行动作均不关闭；恢复默认在菜单外；
+   - 下一次实验：最近一天所有行显示蓝色标记和“N天后”，桌面/手机一致；
+   - 手机图例 5 项一行；手机第一行短日期/节次不换行；
+   - 搜索：菜单内搜索名称/地点/备注，清空后恢复；顶部有搜索标签；
+   - 数据更新时间与 `?class=Z2` 链接正常；
+   - 切换班级、添加、导入、导出、恢复弹窗、week1 正常；
+   - 复制本周在菜单外；
+   - 桌面导入/导出标签含 `.xlsx/.json`，手机仅显示“导入/导出”；导出格式选择器正常；
+   - 班级导出包含 `实验安排` + `班级信息`，导入能读取 week1；文件名与元数据班级不一致时阻止；
+   - JSON 备份/导入：class/week1/备注/updatedAt 正常；文件名与 JSON class 不一致时阻止；
    - Console 无 CSP/Trusted Types 报错；
    - DevTools Network 中无外部请求；
    - `view-source` 中的 CSP 哈希与当前文件一致。
@@ -219,7 +246,7 @@ python verify-csp.py
 ```text
 页面添加/删除/导入
         ↓
-点“导出 Excel”，得到 ${班级}.xlsx
+点“导出”，选择 Excel，得到 ${班级}.xlsx
         ↓
 覆盖 data/${班级}.xlsx
 （改了 week1 就同步修改 data/设置.json）
