@@ -42,13 +42,13 @@ jobs:
       - name: Build
         run: |
           if [ "${{ inputs.stamp }}" = "true" ]; then
-            python build-html.py --stamp
+            python tools/build.py --stamp
           else
-            python build-html.py
+            python tools/build.py
           fi
 
       - name: Verify CSP hashes and template
-        run: python verify-csp.py
+        run: python tools/verify.py
 
       - name: Unit tests
         run: python -m unittest discover -s tests -p "test_*.py" -v

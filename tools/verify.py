@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """Verify (or re-apply) the CSP hashes and security invariants for the offline app.
 
-Usage:
-    python verify-csp.py           # verify index.html, 404.html and generated .ics files
-    python verify-csp.py --apply   # recompute hashes in index.html and 404.html
+Usage (在仓库根目录执行):
+    python tools/verify.py           # 校验 index.html、404.html 与构建期生成的 .ics
+    python tools/verify.py --apply   # 重算哈希并写回 index.html / 404.html
 
 No third-party packages; Python standard library only.
 
 The verification core is exposed as pure functions (`verify_html`, `verify_bytes`,
-`apply_hashes_to_html`) so build-html.py can validate the assembled page *before*
+`apply_hashes_to_html`) so tools/build.py can validate the assembled page *before*
 anything is written to disk.
 """
 import base64
@@ -19,11 +19,14 @@ import re
 import sys
 from pathlib import Path
 
-BASE = Path(__file__).resolve().parent
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import common  # noqa: E402  （tools/common.py：路径、原子写入）
+
+BASE = common.REPO_ROOT
 # index.html 是唯一页面文件；404.html 与构建期生成的 .ics 是附带产物。
-DEPLOY = BASE / "index.html"
+DEPLOY = common.INDEX
 # 独立页面：同样要求 CSP 哈希与外部资源禁令，但不跑应用专用的表格/模板检查。
-EXTRA_PAGES = [BASE / "404.html"]
+EXTRA_PAGES = [common.PAGE_404]
 
 META_RE = re.compile(r'<meta http-equiv="Content-Security-Policy" content="([^"]*)"\s*/?>')
 STYLE_RE = re.compile(r"<style>([\s\S]*?)</style>")
@@ -253,10 +256,8 @@ def verify_bytes(raw: bytes, name: str, html_check=None) -> list:
 
 
 def write_atomic(path: Path, data: bytes) -> None:
-    """Write via a temp file + replace so a crash never leaves a half-written page."""
-    tmp = path.with_name(path.name + ".tmp")
-    tmp.write_bytes(data)
-    os.replace(tmp, path)
+    """原子写入；实现与 build.py 共用 tools/common.py。"""
+    common.write_atomic(path, data)
 
 
 def describe(path: Path) -> str:

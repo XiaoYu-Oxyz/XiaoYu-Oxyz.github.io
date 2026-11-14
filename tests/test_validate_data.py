@@ -1,4 +1,4 @@
-"""validate-data.py 的回归测试。
+"""tools/validate_data.py 的回归测试。
 
 它是"改完 Excel 先看一眼"的第一道关：报错要准、不能把合法数据判成错，
 也不能对明显的坏数据沉默。测试通过临时目录 + 临时 xlsx 覆盖模块里的
@@ -18,7 +18,7 @@ from pathlib import Path
 from openpyxl import Workbook, load_workbook
 
 BASE = Path(__file__).resolve().parents[1]
-SPEC = importlib.util.spec_from_file_location("validate_data", BASE / "validate-data.py")
+SPEC = importlib.util.spec_from_file_location("validate_data", BASE / "tools" / "validate_data.py")
 VALIDATE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(VALIDATE)
 
@@ -184,3 +184,4 @@ class MainExitCodeTests(ValidatorCase):
 
 if __name__ == "__main__":
     unittest.main()
+

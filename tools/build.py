@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Build the deployable HTML from data/*.xlsx + data/设置.json.
 
-Usage:
-    python build-html.py            # build with data/设置.json's updatedAt
-    python build-html.py --stamp    # also set data/设置.json updatedAt = today
+Usage (在仓库根目录执行):
+    python tools/build.py            # 用 data/设置.json 的 updatedAt 构建
+    python tools/build.py --stamp    # 顺便把 updatedAt 设为今天
 
 Rules:
   - class name = xlsx filename stem (data/Z1.xlsx -> Z1)
@@ -17,7 +17,7 @@ Rules:
 
 The default data is written into the inert <template id="defaultData"> JSON,
 so changing data does NOT change the CSP hashes. Code changes still require
-verify-csp.py --apply.
+`python tools/verify.py --apply`.
 """
 import importlib.util
 import json
@@ -32,10 +32,13 @@ from pathlib import Path
 from openpyxl import load_workbook
 from openpyxl.utils.datetime import from_excel
 
-BASE = Path(__file__).resolve().parent
-DATA_DIR = BASE / "data"
-SETTINGS = DATA_DIR / "设置.json"
-DEPLOY = BASE / "index.html"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import common  # noqa: E402  （tools/common.py：路径、原子写入、动态导入）
+
+BASE = common.REPO_ROOT
+DATA_DIR = common.DATA_DIR
+SETTINGS = common.SETTINGS
+DEPLOY = common.INDEX
 ICS_SUFFIX = ".ics"
 
 TEMPLATE_RE = re.compile(r'(<template id="defaultData">)([\s\S]*?)(</template>)')
@@ -308,20 +311,16 @@ def write_ics_files(classes, updated_at):
 
 
 def write_atomic(path: Path, data: bytes) -> None:
-    """Write through a temp file + replace so an interrupted build leaves no half page."""
-    tmp = path.with_name(path.name + ".tmp")
-    tmp.write_bytes(data)
-    os.replace(tmp, path)
+    """原子写入；实现与 verify.py 共用 tools/common.py。"""
+    common.write_atomic(path, data)
 
 
 def load_verifier():
-    """Import verify-csp.py (hyphenated name) so the build can validate before writing."""
-    spec = importlib.util.spec_from_file_location("verify_csp", BASE / "verify-csp.py")
-    if spec is None or spec.loader is None:
-        fail("无法加载 verify-csp.py")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+    """导入 tools/verify.py，让构建在写盘前先校验一遍。"""
+    try:
+        return common.load_module(common.TOOLS_DIR / "verify.py", "verify_csp")
+    except RuntimeError:
+        fail("无法加载 tools/verify.py")
 
 
 def natural_key(name):
@@ -639,7 +638,7 @@ def resolve_updated_at(settings):
     if fallback:
         print(
             "WARN: %s 没有 updatedAt，回退到 git 提交日期 %s；"
-            "建议固定它（python build-html.py --stamp）" % (SETTINGS.name, fallback),
+            "建议固定它（python tools/build.py --stamp）" % (SETTINGS.name, fallback),
             file=sys.stderr,
         )
     else:

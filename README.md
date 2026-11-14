@@ -17,6 +17,7 @@
 | [docs/重构记录.md](docs/重构记录.md) | 想知道某个改动**为什么这么做**、踩过什么坑 |
 | [ACCESSIBILITY.md](ACCESSIBILITY.md) | 改了表格/焦点/模式后，按清单做读屏回归 |
 | [SECURITY.md](SECURITY.md) | 改了 `index.html` 的 `<style>`/`<script>` 后，怎么做哈希维护 |
+| [scripts/README.md](scripts/README.md) | 想一键构建/检查/发布（替代原先两个 .bat） |
 
 三句话版本：**README 教你怎么用，PRD 说清做什么与不做什么，重构记录解释为什么这么做。**
 
@@ -328,9 +329,18 @@ CrseCue/
 │  ├─ Z1.xlsx                 # 班级 Z1：当前 25 条
 │  ├─ Z2.xlsx                 # 班级 Z2：当前 27 条
 │  ├─ Z5.xlsx                 # 班级 Z5：当前 13 条
-│  └─ 设置.json               # 全局 week1
-├─ build-html.py              # 读取 data，校验并生成源文件/index
-├─ verify-csp.py              # 校验 CSP 哈希、模板、默认数据、字节一致性
+│  └─ 设置.json               # 全局 week1 / updatedAt / periodTimes
+├─ tools/                     # 构建与校验（Python，纯标准库 + openpyxl）
+│  ├─ common.py               # 三脚本共用：路径、原子写入、动态导入、git 日期
+│  ├─ build.py                # 读 data → 校验 → 写 index.html 与 *.ics
+│  ├─ verify.py               # 校验 CSP 哈希、模板、默认数据、字节一致性
+│  └─ validate_data.py        # 数据体检（比 build 更宽容，一次列全问题）
+├─ scripts/                   # 本地自动化（PowerShell，替代原先两个 .bat）
+│  ├─ crsecue.ps1             # 唯一入口：-Task build|check|release
+│  └─ README.md               # 脚本用法与参数说明
+├─ 部署文件.cmd                # 双击 = -Task build（构建 + 校验）
+├─ 全部检查.cmd                # 双击 = -Task check（含全部自动化测试）
+├─ 上传文件.cmd                # 双击 = -Task release（检查 + 提交 + 推送）
 ├─ requirements.txt           # 构建依赖：openpyxl==3.1.5
 ├─ package.json               # UI 冒烟测试脚本（Chromium/WebKit）与 Playwright 版本
 ├─ package-lock.json
@@ -348,19 +358,17 @@ CrseCue/
 ├─ .github/workflows/verify.yml # CI：构建 + CSP + 单元/UI 测试 + 产物检查
 ├─ .github/workflows/update-data.yml # 手动触发：构建+校验+自动提交（一键更新数据）
 ├─ docs/PRD.md                # 产品需求文档（需求编号、验收标准、被否决清单）
-├─ docs/重构记录.md            # 18 轮改动的动机、做法、踩坑与验证数字
+├─ docs/重构记录.md            # 19 轮改动的动机、做法、踩坑与验证数字
 ├─ LICENSE                    # MIT
 ├─ SECURITY.md                # 安全设计、残余风险、维护说明
 ├─ README.md                  # 本文件
 ├─ .nojekyll                  # 阻止 GitHub Pages 使用 Jekyll
 ├─ .gitignore
 ├─ .gitattributes
-├─ .editorconfig
-├─ 部署文件.bat               # 作者本机快捷脚本（含绝对路径，不建议直接复用）
-└─ 上传文件.bat               # 作者本机快捷脚本（含绝对路径，不建议直接复用）
+└─ .editorconfig
 ```
 
-不提交 `__pycache__/`、临时 xlsx、`.env`、token；`tests/` 下的正式回归测试会提交。
+脚本只认 `index.html` / `404.html` / `*.ics` / `data/` 的相对位置，**移动仓库位置不需要改任何路径**。
 
 ---
 
@@ -472,7 +480,7 @@ CrseCue/
 - 优先级：**班级 xlsx 的 `班级信息` 页 `periodTimes` > `data/设置.json` > 内置默认**。班级里留空就跟随设置。
 - `updatedAt` 必填（`YYYY-MM-DD`），决定页面顶部"数据更新至"。
   它**不再**从 git 提交历史推导：否则本地构建（提交前）与 CI 构建（提交后）拿到的日期必然不同，CI 的"产物是否已提交"检查会稳定误报。
-- 改完数据后运行 `python build-html.py --stamp`，它会把 `updatedAt` 写成本机今天（并保留 `periodTimes`），然后正常构建。
+- 改完数据后运行 `python tools/build.py --stamp`，它会把 `updatedAt` 写成本机今天（并保留 `periodTimes`），然后正常构建。
 
 - `week1` 必须是非空、有效的 `YYYY-MM-DD` 日期，且必须是星期一；页面修改、xlsx/JSON 导入和 build 都会校验。
 - 顶部“数据更新至”自动取 git 中最近一次修改 `data/` 的提交日期，不再需要手动写 `updatedAt`。
@@ -524,7 +532,18 @@ CrseCue/
 python -m pip install -r requirements.txt
 ```
 
-如果当前 `python` 没有 `openpyxl`，先安装；也可以使用你自己环境中已装好依赖的 Python。根目录 `.bat` 是作者本机快捷脚本，含绝对路径，不建议在其他机器直接运行。
+如果当前 `python` 没有 `openpyxl`，先安装；也可以使用你自己环境中已装好依赖的 Python。
+
+不想记命令的话，直接用打包好的脚本（Windows 自带 PowerShell 即可，**无需安装任何东西**）：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/crsecue.ps1 -Task build     # 体检 + 构建 + 校验
+powershell -ExecutionPolicy Bypass -File scripts/crsecue.ps1 -Task check     # 再加全部自动化测试
+powershell -ExecutionPolicy Bypass -File scripts/crsecue.ps1 -Task release   # 再加提交与推送
+```
+
+或双击仓库根目录的 `部署文件.cmd` / `全部检查.cmd` / `上传文件.cmd`。参数与细节见 [scripts/README.md](scripts/README.md)。
+脚本会自己找 Python（`CRSECUE_PYTHON` → `python` → `py -3`），找不到或没装 openpyxl 就直说，不会静默继续。
 
 ### 5.2 只改数据
 
@@ -534,13 +553,13 @@ python -m pip install -r requirements.txt
 4. 如有第 1 周变化，同步修改 `data/设置.json`；某班节次时间不同则在该班 `班级信息` 页加 `periodTimes`；
 5. 先体检数据（把问题一次列全，不修改文件）：
    ```bash
-   python validate-data.py
+   python tools/validate_data.py
    ```
 6. 构建并校验（`--stamp` 会把 `data/设置.json` 的 `updatedAt` 写成本机今天，保证本地与 CI 构建结果一致）：
 
 ```bash
-python build-html.py --stamp
-python verify-csp.py
+python tools/build.py --stamp
+python tools/verify.py
 ```
 
 正常输出示例：
@@ -557,28 +576,28 @@ built index.html: 3 classes, 65 experiments total
 如果修改了 `<style>` 或 `<script>`：
 
 ```bash
-python verify-csp.py --apply
-python build-html.py
-python verify-csp.py
+python tools/verify.py --apply
+python tools/build.py
+python tools/verify.py
 ```
 
 顺序不能反：
 
 1. `--apply` 按最终 UTF-8/LF 字节重算 CSP 哈希并同步 `index.html`；
-2. `build-html.py` 写入最新数据；
+2. `tools/build.py` 写入最新数据；
 3. 最后 verify。
 
 只改数据不需要 `--apply`；改代码必须重算哈希，否则浏览器会拒绝执行。
 
 ### 5.4 构建产物
 
-- `build-html.py` 读取 `data/*.xlsx` 和 `data/设置.json`；
+- `tools/build.py` 读取 `data/*.xlsx` 和 `data/设置.json`；
 - 校验表头、日期/周次、字段长度、控制字符、重复班级；
 - 转义 `<>&` 后写入 `<template id="defaultData">`；
 - 写回 `index.html`（页面只有一个真源，旧的双副本已删除）；
-- 自动调用 `verify-csp.py`。
+- 自动调用 `tools/verify.py`。
 
-`build-html.py` 先在内存里拼出完整页面并跑一遍 CSP/模板校验，**校验通过才写盘**（临时文件 + 原子替换）。所以哈希过期、模板损坏、危险 DOM sink 这几种情况都会让构建以非 0 退出码失败，并且两个 HTML 一个字节都不会被改动。
+`tools/build.py` 先在内存里拼出完整页面并跑一遍 CSP/模板校验，**校验通过才写盘**（临时文件 + 原子替换）。所以哈希过期、模板损坏、危险 DOM sink 这几种情况都会让构建以非 0 退出码失败，并且两个 HTML 一个字节都不会被改动。
 
 ### 5.5 CI 自动校验
 
@@ -588,7 +607,7 @@ python verify-csp.py
 - 只申请 `contents: read` 权限，不部署、不写仓库；
 - `actions/checkout`、`actions/setup-python`、`actions/setup-node` 固定到 commit SHA，并 `fetch-depth: 0` 以读取 data 提交日期；
 - 安装固定版本 `openpyxl==3.1.5`，Node 20 + `npm ci`；
-- 运行 `build-html.py` 和 `verify-csp.py`；
+- 运行 `tools/build.py` 和 `tools/verify.py`；
 - 运行 `tests/` 下的 build reader 单元测试；
 - 安装 Playwright Chromium + WebKit，分别运行 Chromium/WebKit UI 冒烟测试；
 - 最后执行 `git diff --exit-code`，防止修改数据/代码/哈希后忘记提交构建产物。
@@ -628,7 +647,7 @@ Windows 本机若已安装 Edge，Chromium 测试默认使用 `msedge`；CI Linu
 git config core.hooksPath .githooks   # 只需执行一次
 ```
 
-钩子只在你改动了 `index.html` / `404.html` / `*.ics` 时运行 `python verify-csp.py`；哈希不匹配会直接中止提交并提示该跑 `python verify-csp.py --apply`。
+钩子只在你改动了 `index.html` / `404.html` / `*.ics` 时运行 `python tools/verify.py`；哈希不匹配会直接中止提交并提示该跑 `python tools/verify.py --apply`。
 
 ---
 
@@ -639,8 +658,8 @@ git config core.hooksPath .githooks   # 只需执行一次
 ```bash
 cd "D:\MyProgram\HTML\CrseCue\XiaoYu-Oxyz.github.io"
 
-python build-html.py
-python verify-csp.py
+python tools/build.py
+python tools/verify.py
 
 git status --short
 git add -A
@@ -695,8 +714,8 @@ https://<用户名>.github.io/<仓库名>/
 
 ```bash
 # 改数据/页面后
-python build-html.py
-python verify-csp.py
+python tools/build.py
+python tools/verify.py
 
 git add -A
 git commit -m "data: 更新实验安排"
@@ -711,7 +730,7 @@ git push
 
 1. 改好 `data/*.xlsx`（网页编辑器里直接上传替换也行）；
 2. 进入 **Actions → update-data → Run workflow**，`stamp` 勾选表示把 `updatedAt` 改成今天；
-3. 它会依次执行 构建 → `verify-csp.py` → 单元测试，**全部通过才**提交并 push，push 后 Pages 自动重新发布。
+3. 它会依次执行 构建 → `tools/verify.py` → 单元测试，**全部通过才**提交并 push，push 后 Pages 自动重新发布。
 
 前置条件：**Settings → Actions → General → Workflow permissions** 选 “Read and write permissions”，否则最后一步 push 会被拒绝。
 班委只需要会改 xlsx、会点按钮，不必安装 Python/openpyxl/git。
@@ -730,8 +749,8 @@ git push
 - 导入只读缓存值，不执行公式；导出使用 `inlineStr` 文本；
 - 构建时校验并转义 `<`、`>`、`&`，防止模板注入；
 - `localStorage` 按班级隔离，校验 schema、类型、长度和条数；
-- `verify-csp.py` 检查哈希、模板、默认数据解析和源/部署字节一致；
-- `404.html` 使用同一套哈希 CSP，`verify-csp.py --apply` 会一起更新，并拒绝内联事件属性与外部脚本/样式。
+- `tools/verify.py` 检查哈希、模板、默认数据解析和源/部署字节一致；
+- `404.html` 使用同一套哈希 CSP，`tools/verify.py --apply` 会一起更新，并拒绝内联事件属性与外部脚本/样式。
 
 详见 [SECURITY.md](SECURITY.md)。
 
@@ -741,7 +760,7 @@ git push
 - GitHub Pages 站点和仓库文件默认公开；没有登录、权限或访问控制。需要私密数据时不要使用公开 Pages。
 - `*.github.io` 同账号项目共享源，`localStorage` 可能被同源其他项目读取/覆盖；项目前缀只能防误撞。
 - 页面是纯客户端应用；有 DevTools 的用户可以修改自己的数据。
-- `404.html` 也使用哈希 CSP（`verify-csp.py --apply` 会一起更新），并禁止内联事件属性；它不含用户数据。
+- `404.html` 也使用哈希 CSP（`tools/verify.py --apply` 会一起更新），并禁止内联事件属性；它不含用户数据。
 - 免费 GitHub Pages 没有 WAF/DDoS 防护。
 
 如果数据敏感或需要访问控制，应改用支持身份认证和自定义响应头的托管方案，而不是仅调整前端代码。
@@ -754,8 +773,8 @@ git push
 
 | 检查 | 结果 |
 |---|---|
-| `python build-html.py` | 3 个班 65 条；同时生成 `Z1.ics` / `Z2.ics` / `Z5.ics` |
-| `python verify-csp.py` | `index.html`、`404.html`、3 个 `.ics` 全部 PASS |
+| `python tools/build.py` | 3 个班 65 条；同时生成 `Z1.ics` / `Z2.ics` / `Z5.ics` |
+| `python tools/verify.py` | `index.html`、`404.html`、3 个 `.ics` 全部 PASS |
 | Python 单元测试 | **42/42**（build 6 + 校验器 22 + 体检脚本 14，含节次时间解析/合并/优先级、ICS 13:30 + 30 分钟提醒、坏数据逐条识别） |
 | `npm run test:logic`（Chromium / WebKit） | **52 个用例**：日期/周次/节次/冲突/ICS + 重复判定 + **xlsx 生成（转义、冲突高亮、冻结、列宽、空表）** |
 | `npm run test:ui`（Chromium / WebKit） | 全绿（含只读链接、首次提示、`.ics`、诊断信息） |
@@ -777,7 +796,7 @@ git push
 - UI 冒烟（Chromium + WebKit）：`tests/ui-smoke.mjs` 通过（week1 校验/切班、搜索、导出默认全部/当前筛选、筛选备份导入警告与替换二次确认、JSON 导入、撤销导入、班级新建/重命名/删除、内置班修改/撤销/恢复、隐藏班同名警告与恢复冲突、删除到空状态及刷新持久化、复制失败文本框、跨标签页 week1/实验数据/班级切换、焦点循环/Esc 归位、aria-live、表格 caption/scope/headers、全部数据表头摘要、操作列普通阅读隐藏/模式内可见、表格与行 Tab 聚焦、roving tabindex 单停靠点、方向键逐条、行摘要含全部列名与状态且“星期 星期一”、手机端读表头、空操作列不读空白、编辑/删除按钮完整数据标签含“节次”、当前筛选打印、36px 班级图标热区、320px、`.ics` 导出、`?mode=ro` 只读链接）。
 - 纯逻辑回归（Chromium + WebKit）：`tests/logic.mjs` 34 个用例覆盖日期/周次/节次区间/冲突分组/ICS 生成与折行/转义/控件字符清理。
 - 所有 UI 断言都走 `poll()` 轮询而非固定 `sleep`，测试数据（班级条数、全局 week1）从 `data/` 读取，改一条实验不需要改测试。
-- `verify-csp.py`：通过。
+- `tools/verify.py`：通过。
 - 当前 CSP 哈希（以 verify 输出为准）：
   - script：`aa9hV70vG0zYBCOF1SH8IS4BlabFJGwUppJVcxvUWfc=`
   - style：`RkiMyBeD4hV/7y9j2iB5e/4OO71G1LHPo41E/jiN+gA=`
@@ -855,8 +874,8 @@ git push
 页面运行时不读取 `data/`；需要重新 build，并提交新的 `index.html`：
 
 ```bash
-python build-html.py
-python verify-csp.py
+python tools/build.py
+python tools/verify.py
 git add -A
 git commit -m "data: 更新"
 git push
@@ -924,7 +943,7 @@ git push
 - 编辑/删除模式进入时默认不勾选两个筛选并显示全部；复选框仍可主动勾选；退出恢复进入前状态。
 - 旧版单班数据只迁移到 Z2，不会迁移到其他班级。
 - `*.github.io` 同源 `localStorage` 不能做到路径级隔离。
-- `.bat` 快捷脚本包含作者本机绝对路径，不适合直接分发。
+- `.cmd` 只是双击入口，真正逻辑在 `scripts/crsecue.ps1`，不含任何绝对路径；换机器直接能用（Python 由脚本自己找）。
 - 本仓库未声明 License；如需开源分发，请补充 `LICENSE`。
 
 ---
@@ -934,13 +953,13 @@ git push
 1. 改代码后必须执行：
 
    ```bash
-   python verify-csp.py --apply
-   python build-html.py
-   python verify-csp.py
+   python tools/verify.py --apply
+   python tools/build.py
+   python tools/verify.py
    ```
 
 2. 只改数据时不要执行 `--apply`，避免不必要的哈希变化。
-3. `index.html` 是唯一页面文件；不要手改 CSP 里的哈希，改完代码跑 `verify-csp.py --apply` 即可。
+3. `index.html` 是唯一页面文件；不要手改 CSP 里的哈希，改完代码跑 `tools/verify.py --apply` 即可。
 4. 保持 HTML/Python/Markdown/JSON 为 UTF-8、LF；`.gitattributes` 已配置。
 5. 不要提交 `__pycache__/`、导出的临时 xlsx、token、`.env`。
 6. 部署前确认 `404.html` 与 `index.html` 同目录。
@@ -951,6 +970,7 @@ git push
 ## License
 
 本仓库未声明开源许可证。除非另有书面说明，默认保留所有权利；如需开源分发，请补充 `LICENSE` 文件。
+
 
 
 

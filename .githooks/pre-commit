@@ -1,6 +1,6 @@
 #!/bin/sh
 # 提交前把 CSP 哈希与静态约束跑一遍：改了 index.html / 404.html / *.ics 却忘了
-# `python verify-csp.py --apply`，页面会因为哈希不匹配直接白屏。
+# `python tools/verify.py --apply`，页面会因为哈希不匹配直接白屏。
 # 安装：git config core.hooksPath .githooks
 set -e
 
@@ -19,9 +19,9 @@ if [ -z "$python_bin" ]; then
 fi
 
 echo "pre-commit: 校验 $(echo "$staged" | tr '\n' ' ')"
-if ! "$python_bin" verify-csp.py; then
+if ! "$python_bin" tools/verify.py; then
   echo ""
   echo "pre-commit: CSP 校验失败，提交已中止。"
-  echo "  改过内联样式/脚本的话，先跑：python verify-csp.py --apply"
+  echo "  改过内联样式/脚本的话，先跑：python tools/verify.py --apply"
   exit 1
 fi

@@ -10,11 +10,11 @@ import unittest
 from pathlib import Path
 
 BASE = Path(__file__).resolve().parents[1]
-SPEC = importlib.util.spec_from_file_location("verify_csp", BASE / "verify-csp.py")
+SPEC = importlib.util.spec_from_file_location("verify_csp", BASE / "tools" / "verify.py")
 VERIFY = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(VERIFY)
 
-BUILD_SPEC = importlib.util.spec_from_file_location("build_html", BASE / "build-html.py")
+BUILD_SPEC = importlib.util.spec_from_file_location("build_html", BASE / "tools" / "build.py")
 BUILD = importlib.util.module_from_spec(BUILD_SPEC)
 BUILD_SPEC.loader.exec_module(BUILD)
 
@@ -114,7 +114,7 @@ class IcsFileTests(unittest.TestCase):
     def test_ics_files_exist_for_every_class(self):
         for path in sorted((BASE / "data").glob("*.xlsx")):
             ics = BASE / (path.stem + ".ics")
-            self.assertTrue(ics.exists(), "%s 缺少订阅文件，先运行 build-html.py" % path.stem)
+            self.assertTrue(ics.exists(), "%s 缺少订阅文件，先运行 tools/build.py" % path.stem)
 
     def test_ics_uses_shifted_period5_and_30min_alarm(self):
         """5-6 节按班级/设置前移到 13:30，提醒提前 30 分钟。"""
@@ -163,3 +163,4 @@ class PeriodTimeTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

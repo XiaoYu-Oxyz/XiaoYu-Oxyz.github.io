@@ -8,12 +8,15 @@
 | --- | --- |
 | `data/*.xlsx` | 每班一个 xlsx（当前 `Z1.xlsx` 25 条、`Z2.xlsx` 27 条、`Z5.xlsx` 13 条）；文件名去掉 `.xlsx` 就是班级名 |
 | `data/设置.json` | 全局设置：`week1`（第 1 周星期一）、`updatedAt`（页面顶部"数据更新至"）、`periodTimes`（节次时间默认值）、`reminderMinutes`（日历提醒提前量，默认 30） |
-| `build-html.py` | 用 Python + openpyxl 读 `data/`，写入 `<template id="defaultData">`，生成源文件和 `index.html`，再运行 verify |
+| `tools/build.py` | 用 Python + openpyxl 读 `data/`，写入 `<template id="defaultData">`，生成源文件和 `index.html`，再运行 verify |
+| `tools/verify.py` | 校验 CSP 哈希、模板 JSON、默认数据解析和安全限制；`--apply` 重算代码哈希并同步 `index.html` |
+| `tools/validate_data.py` | 数据体检：一次列出所有问题（只读，不改文件） |
+| `tools/common.py` | 三个脚本共用：仓库路径、原子写入（临时文件 + 替换）、按路径动态导入、git 提交日期 |
+| `scripts/crsecue.ps1` | 本地自动化入口（`-Task build/check/release`），替代原先两个 `.bat`；不含绝对路径 |
 | `requirements.txt` | 构建依赖：`openpyxl==3.1.5`；网页运行不需要 |
 
 | `index.html` | GitHub Pages 部署入口，与源文件字节一致 |
-| `verify-csp.py` | 校验 CSP 哈希、模板 JSON、默认数据解析和安全限制；`--apply` 重算代码哈希并同步 `index.html` |
-| `.gitattributes` | HTML/Python/Markdown/JSON 使用 LF；xlsx 标记为 binary，避免损坏 |
+| `.gitattributes` | HTML/Python/Markdown/JSON 使用 LF；xlsx binary；`.ics` 保持 CRLF；`.ps1`/`.cmd` 检出为 CRLF |
 | `.editorconfig` | 强制 UTF-8、LF，避免 BOM/CRLF 破坏哈希 |
 | `.nojekyll` | 阻止 Jekyll 处理，保证 GitHub Pages 按原始字节提供文件 |
 | `.gitignore` | 忽略导出的 xlsx、备份；`data/*.xlsx` 仍然提交 |
@@ -52,7 +55,7 @@
 - 可选 `备注` 列，导出时固定在最后一列；最多 500 字，允许换行。旧 6 列文件按空备注处理。
 - 每行独立判断时间：`周次`+`星期`有效时优先；否则回退到有效 `日期`；`周次`/`星期`不完整或无效但日期有效时用日期；两组都没有有效时间时整次导入/build 失败。
 - 如果两组都填且周次+星期有效，以周次+星期为准；周次+星期无效/不完整时回退日期；日期无效但周次+星期有效时用周次+星期。
-- 页面导入遇到没有有效时间的行会整次失败，不写入任何数据；`build-html.py` 同样失败，且不覆盖 `index.html`。
+- 页面导入遇到没有有效时间的行会整次失败，不写入任何数据；`tools/build.py` 同样失败，且不覆盖 `index.html`。
 - 导出默认全部实验，可选当前筛选；当前筛选文件名加 `-筛选`，xlsx `班级信息` 记录导出范围；空班也导出只有表头的空表。
 - 筛选备份导入时识别 `-筛选` 文件名和 `scope/导出范围`，弹窗警告“不是完整班级”；替换已有班级前再次确认，避免误删未包含的记录。
 - 导入一个班文件，默认合并；文件名与当前班不一致时，默认按文件名切换/新建，也可以选择忽略文件名导入当前班。
@@ -67,7 +70,7 @@
 - 导入字段限制：节次 100、名称 200、地点 200、备注 500 字符；周次 1–1000；字段超限由页面导入跳过并提示，build 直接失败。
 - 导出全部使用 `inlineStr` 文本，`=` `+` `-` `@` 开头的值不会变成公式；导入只读缓存值，不执行公式。
 - 导入文件名、班级名只做文本展示并限长。
-- `build-html.py` 用 openpyxl 读取本地 `data/*.xlsx`；这是构建机上的可信数据源，构建前会严格校验日期、表头、字段长度、控制字符和重复班级；不是浏览器上传入口。
+- `tools/build.py` 用 openpyxl 读取本地 `data/*.xlsx`；这是构建机上的可信数据源，构建前会严格校验日期、表头、字段长度、控制字符和重复班级；不是浏览器上传入口。
 
 ### 2.4 localStorage
 
@@ -107,9 +110,9 @@
 - `data/*.xlsx` 是实验数据发布源；班级名 = 文件名去掉 `.xlsx`；数据工作表为 `实验安排`，旧文件没有该名称时读第一个工作表；可选 `班级信息` sheet 记录 `班级`、`week1` 等元数据。表头必须含 `节次/实验名称/实验地点`，时间列用 `日期` 或 `周次+星期`，至少一组。
 - `data/设置.json` 是全局 week1 fallback；简单 JSON，不进 xlsx。数据更新时间由构建脚本读取最近一次修改 `data/` 的 git 提交日期自动生成，不需要手写。
 - 每个班可以使用自己的 `week1`（页面本地设置或 `班级信息`）；没有时回退到 `data/设置.json` 全局值。`week1` 必须是星期一；页面、导入和 build 都校验。`班级信息` 的 `班级` 与文件名不一致时构建直接失败。
-- `build-html.py` 校验日期、表头、字段长度、控制字符、重复班级，把 `<`、`>`、`&` 转义成 `\u003c`/`\u003e`/`\u0026`，避免 `</template>`、`<img>` 或实体注入。
+- `tools/build.py` 校验日期、表头、字段长度、控制字符、重复班级，把 `<`、`>`、`&` 转义成 `\u003c`/`\u003e`/`\u0026`，避免 `</template>`、`<img>` 或实体注入。
 - 构建只改模板数据，不改 `<script>`/`<style>`，所以**数据变化不需要重算 CSP 哈希**。
-- 构建写回 `index.html`，然后运行 `verify-csp.py`。
+- 构建写回 `index.html`，然后运行 `tools/verify.py`。
 - 运行时仍然是单文件、无 fetch、`connect-src 'none'`，可完全离线；`data/` 只在构建时读取。
 - 第 1 周按班级独立：页面修改只保存当前班；没有独立值时使用全局 `data/设置.json`。部署默认值可写在该班 xlsx 的 `班级信息`，或使用全局值；“恢复默认数据”不清 week1。
 - 班级名不限制字符（以操作系统允许的文件名为准）；页面显示和 xlsx 走文本/固定 sheet，不拼 HTML。新班级可以往 `data/` 放 xlsx 后 build；页面导入时新建的班只在本机保留，导出该班 xlsx 并 build 后才成为部署默认。
@@ -153,10 +156,10 @@
   - 名称含 `<img>` 的数据在页面按文本显示，无 img/svg、无脚本执行；
   - 非法日期构建失败，`index.html` 保持不变；
   - 修改 `data/设置.json` 的全局 week1 后构建，没有独立 week1 的班级默认值随之更新；班级 `班级信息` 的 week1 覆盖全局值；
-  - 数据构建前后 script/style 哈希不变，`verify-csp.py` 通过。
+  - 数据构建前后 script/style 哈希不变，`tools/verify.py` 通过。
 - xlsx 导出仍通过 openpyxl/LibreOffice 验证；本轮 xlsx 解析/写入代码沿用加固版。
 - 之前加固版的 136 项 xlsx 安全/存储测试作为基线；本轮改造保留了 xlsx 解析限制和字段校验。
-- `python verify-csp.py` 会检查默认数据模板是否为合法 JSON、每个班级条目是否合法、默认数据解析代码是否存在，以及源文件与 `index.html` 的 CSP 哈希和字节一致性。
+- `python tools/verify.py` 会检查默认数据模板是否为合法 JSON、每个班级条目是否合法、默认数据解析代码是否存在，以及源文件与 `index.html` 的 CSP 哈希和字节一致性。
 
 ### 3.1 当前自动化基线（PRD 1.0）
 
@@ -190,19 +193,19 @@ python -m pip install -r requirements.txt
 # 页面里添加/删除/导入后，点“导出”，选择 Excel（.xlsx）
 # 下载的文件名形如 Z2-实验安排-2026-11-14.xlsx，改回 Z2.xlsx 再覆盖 data/Z2.xlsx
 # 如果改了第 1 周，更新 data/设置.json
-python build-html.py
-python verify-csp.py
+python tools/build.py
+python tools/verify.py
 ```
 
-`build-html.py` 会：
+`tools/build.py` 会：
 
 1. 读取 `data/*.xlsx` 和 `data/设置.json`；
 2. 校验班级名、日期、表头、字段长度、控制字符、重复班级；
 3. 转义 `<`、`>`、`&`，写入 `<template id="defaultData">`；
 4. 写回 `index.html`；
-5. 运行 `verify-csp.py`，确认 CSP/TT/模板都正常。
+5. 运行 `tools/verify.py`，确认 CSP/TT/模板都正常。
 
-数据构建**不需要** `verify-csp.py --apply`，脚本/样式哈希保持不变。
+数据构建**不需要** `tools/verify.py --apply`，脚本/样式哈希保持不变。
 
 新增班级：把 `${班级}.xlsx` 放进 `data/`，直接 build；页面下拉框会出现该班。页面导入时新建的班只在本机；要发布，需要导出该班 xlsx 放进 `data/` 再 build。
 
@@ -211,15 +214,15 @@ python verify-csp.py
 如果修改了 `<style>` 或 `<script>`：
 
 ```bash
-python verify-csp.py --apply
-python build-html.py
-python verify-csp.py
+python tools/verify.py --apply
+python tools/build.py
+python tools/verify.py
 ```
 
 顺序说明：
 
 - `--apply` 按最终 UTF-8/LF 字节重算 `<style>`/`<script>` 哈希，更新 CSP meta，并把源文件同步为 `index.html`；
-- 然后 `build-html.py` 用 `data/*.xlsx` 和 `data/设置.json` 重新写入数据，确保 `index.html` 的数据不是旧的；
+- 然后 `tools/build.py` 用 `data/*.xlsx` 和 `data/设置.json` 重新写入数据，确保 `index.html` 的数据不是旧的；
 - 最后再 verify。
 
 要求：
@@ -229,17 +232,17 @@ python verify-csp.py
 - `.nojekyll` 必须保留，避免 Jekyll 处理改变字节。
 - 不要直接编辑 `index.html`；它是构建产物，下次 build 会覆盖。
 - 不要直接改源文件里的 `<template>` 数据；`data/*.xlsx` 和 `data/设置.json` 才是发布源，build 会覆盖模板。
-- 提交前运行 `python verify-csp.py`，确认 `OK`。
+- 提交前运行 `python tools/verify.py`，确认 `OK`。
 - 部署后打开 DevTools Console，确认没有 `Refused to execute inline script` / `Refused to apply inline style`。
 
-当前哈希（以 `verify-csp.py` 输出为准）：
+当前哈希（以 `tools/verify.py` 输出为准）：
 
 - script: `aa9hV70vG0zYBCOF1SH8IS4BlabFJGwUppJVcxvUWfc=`
 - style:  `RkiMyBeD4hV/7y9j2iB5e/4OO71G1LHPo41E/jiN+gA=`
 
 ## 5. 部署到 GitHub Pages
 
-1. 确保提交：`index.html`、`404.html`、`data/*.xlsx`、`data/设置.json`、`build-html.py`、`requirements.txt`、`verify-csp.py`、`.nojekyll`、`.gitattributes`、`.editorconfig`、`SECURITY.md`。
+1. 确保提交：`index.html`、`404.html`、`data/*.xlsx`、`data/设置.json`、`tools/build.py`、`requirements.txt`、`tools/verify.py`、`.nojekyll`、`.gitattributes`、`.editorconfig`、`SECURITY.md`。
 2. 不要提交：导出的、不在 `data/` 下的 `*.xlsx`、备份、测试 fixture、`.DS_Store`。`.gitignore` 已排除；`data/*.xlsx` 有提交例外，因为它们是发布源。
 3. **公开数据警告**：`data/*.xlsx`、`data/设置.json` 和 `index.html` 都会公开。不要把个人敏感实验数据提交到公开仓库/公开 Pages；需要私密数据时不要用公开 GitHub Pages，改用本地文件或私有部署。
 4. GitHub 仓库设置开启 2FA、分支保护；Pages 仍从 `main` 根目录部署。新增的 `.github/workflows/verify.yml` 只做构建/CSP/diff 校验，权限仅 `contents: read`，不部署、不持有凭据；两个 Action 已固定到 commit SHA，checkout 使用 `fetch-depth: 0` 以读取 data 提交日期。
@@ -271,8 +274,8 @@ python verify-csp.py
 覆盖 data/${班级}.xlsx
 （改了 week1 就同步修改 data/设置.json）
         ↓
-python build-html.py
-python verify-csp.py
+python tools/build.py
+python tools/verify.py
         ↓
 git add data/*.xlsx data/设置.json index.html 404.html
 git commit / git push
@@ -296,7 +299,7 @@ git commit / git push
 - **Trusted Types 浏览器支持**：Chromium/Edge 强制执行；Firefox/Safari 可能忽略 Trusted Types 指令。代码本身已移除 HTML sink，CSP 仍然有效。
 - **免费 GitHub Pages** 没有企业级 WAF/DDoS 防护；仓库和默认实验数据是公开的。
 - **数据表公开**：`data/*.xlsx`、`data/设置.json`、`index.html` 都是公开的；班级名和实验内容不要放敏感信息。
-- **构建依赖**：`build-html.py` 需要本机 Python 3 + openpyxl；网页运行不需要 Python。xlsx 是二进制文件，不能用文本编辑器改。
+- **构建依赖**：`tools/build.py` 需要本机 Python 3 + openpyxl；网页运行不需要 Python。xlsx 是二进制文件，不能用文本编辑器改。
 - **班级名/文件名**：班级名不限制，但实际受操作系统文件名和 Excel 文件限制；页面用固定 `实验安排` sheet，班级从文件名读取，不依赖 sheet 名。
 - **xlsx 限制**：加密、ZIP64、超过大小/行/列/文本上限的文件会被拒绝；这是安全取舍，不是网络问题。
 

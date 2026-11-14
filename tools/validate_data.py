@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
 """构建前的数据体检：把 data/*.xlsx 与 data/设置.json 的问题一次列全，说人话。
 
-用法：
-    python validate-data.py          # 只检查，不修改任何文件
-    python validate-data.py --quiet  # 只在有问题时输出
+用法（在仓库根目录执行）：
+    python tools/validate_data.py          # 只检查，不修改任何文件
+    python tools/validate_data.py --quiet  # 只在有问题时输出
 
-与 build-html.py 的区别：build 遇到第一个错误就退出，适合"确定要构建"；
+与 tools/build.py 的区别：build 遇到第一个错误就退出，适合"确定要构建"；
 本脚本把所有能查的问题都收集起来，适合"改完 Excel 先看一眼"。
 """
 from __future__ import annotations
 
-import importlib.util
 import json
 import re
 import sys
@@ -19,20 +18,20 @@ from pathlib import Path
 
 from openpyxl import load_workbook
 
-BASE = Path(__file__).resolve().parent
-DATA_DIR = BASE / "data"
-SETTINGS = DATA_DIR / "设置.json"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import common  # noqa: E402  （tools/common.py：路径、动态导入、git 日期）
+
+BASE = common.REPO_ROOT
+DATA_DIR = common.DATA_DIR
+SETTINGS = common.SETTINGS
 META_SHEET = "班级信息"
 MIN_PERIOD, MAX_PERIOD = 1, 14
 MAX_NAME, MAX_PLACE, MAX_NOTE = 200, 200, 500
 
 
 def load_build_module():
-    """复用 build-html.py 的解析逻辑，保证两边口径一致。"""
-    spec = importlib.util.spec_from_file_location("crsecue_build", BASE / "build-html.py")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+    """复用 tools/build.py 的解析逻辑，保证两边口径一致。"""
+    return common.load_module(common.TOOLS_DIR / "build.py", "crsecue_build")
 
 
 BUILD = load_build_module()
@@ -40,10 +39,7 @@ BUILD = load_build_module()
 
 def latest_data_commit():
     """data/ 最后一次提交日期；包一层是为了测试能替换掉（不依赖真实 git 历史）。"""
-    try:
-        return BUILD.latest_data_commit_date()
-    except Exception:
-        return ""
+    return common.latest_data_commit()
 
 
 def text_of(value):
@@ -84,7 +80,7 @@ def check_settings(errors, warnings):
         if latest and str(updated) < latest:
             warnings.append(
                 "data/设置.json 的 updatedAt（%s）早于 data/ 最后一次提交（%s）；"
-                "页面会显示旧日期，需要的话跑 python build-html.py --stamp" % (updated, latest)
+                "页面会显示旧日期，需要的话跑 python tools/build.py --stamp" % (updated, latest)
             )
     times = data.get("periodTimes")
     if times is not None:

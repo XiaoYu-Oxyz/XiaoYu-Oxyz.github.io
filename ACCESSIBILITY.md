@@ -95,7 +95,7 @@
 ## 自动化
 
 ```powershell
-python verify-csp.py
+python tools/verify.py
 python -m unittest discover -s tests -p "test_*.py" -v   # 42 个
 npm run test:ui
 npm run test:ui:webkit

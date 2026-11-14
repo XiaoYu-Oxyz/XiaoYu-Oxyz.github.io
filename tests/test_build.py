@@ -16,7 +16,7 @@ from pathlib import Path
 from openpyxl import Workbook
 
 BASE = Path(__file__).resolve().parents[1]
-SPEC = importlib.util.spec_from_file_location("build_html", BASE / "build-html.py")
+SPEC = importlib.util.spec_from_file_location("build_html", BASE / "tools" / "build.py")
 BUILD = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(BUILD)
 
@@ -124,3 +124,4 @@ class BuildReaderTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

@@ -37,13 +37,13 @@ jobs:
         run: python -m pip install --disable-pip-version-check -r requirements.txt
 
       - name: Validate source data
-        run: python validate-data.py
+        run: python tools/validate_data.py
 
       - name: Build deployable HTML
-        run: python build-html.py
+        run: python tools/build.py
 
       - name: Verify CSP hashes and template
-        run: python verify-csp.py
+        run: python tools/verify.py
 
       - name: Unit tests
         run: python -m unittest discover -s tests -p "test_*.py" -v
@@ -51,7 +51,7 @@ jobs:
       - name: Ensure generated files are committed
         run: |
           if [ -n "$(git status --porcelain)" ]; then
-            echo "::error::构建产物与提交不一致（含新增的 .ics）：请本地运行 build-html.py 与 verify-csp.py --apply 后一起提交"
+            echo "::error::构建产物与提交不一致（含新增的 .ics）：请本地运行 tools/build.py 与 tools/verify.py --apply 后一起提交"
             git --no-pager status --porcelain
             git --no-pager diff --stat
             exit 1

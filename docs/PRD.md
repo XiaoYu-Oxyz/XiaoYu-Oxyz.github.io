@@ -51,7 +51,7 @@
 | G2 手机首屏能看到实验内容 | 首行距顶 ≤ 380px | 320:342 / 360:296 / 横屏:191 / 390:275 |
 | G3 零网络依赖 | 运行时 `connect-src 'none'` | 已强制（CSP） |
 | G4 单文件可离线 | `index.html` 单文件双击可开 | 是（`file://` 自测通过） |
-| G5 数据可自助维护 | 不改代码即可更新数据 | `data/*.xlsx` + `build-html.py` |
+| G5 数据可自助维护 | 不改代码即可更新数据 | `data/*.xlsx` + `tools/build.py` |
 | G6 打印可直接贴到教室门口 | A4 一页多行、不切行 | `break-inside: avoid` + 表头跨页重复 |
 | G7 读屏可用 | NVDA/VoiceOver 清单通过 | 清单见 [ACCESSIBILITY.md](../ACCESSIBILITY.md)（人工复核仍需真机） |
 
@@ -94,7 +94,7 @@
 
 **看课（P1）**：打开链接 → 自动定位到今天/下一节 → 顶部提示条 → 点提示条跳到对应行 → 需要时展开备注。
 
-**改数据（P2）**：改 Excel → `python validate-data.py` 体检 → `python build-html.py` → `python verify-csp.py` → 提交 → CI 自动复跑。
+**改数据（P2）**：改 Excel → `python tools/validate_data.py` 体检 → `python tools/build.py` → `python tools/verify.py` → 提交 → CI 自动复跑。
 
 ---
 
@@ -122,8 +122,8 @@
 |---|---|---|---|
 | A1 | P0 | 从 `data/*.xlsx` 读取班级数据 | 3 个班共 65 条全部进入页面；行数、日期、节次与 Excel 一致 |
 | A2 | P0 | 支持"日期"或"周次+星期"两种时间写法 | 只填日期可导入；只填周次+星期可导入；两者都有时**周次+星期优先** |
-| A3 | P0 | 空名称/空时间必须报错，不静默丢行 | `build-html.py` 退出码非 0 并指出"第 N 行…为空" |
-| A4 | P1 | 数据体检脚本 | `validate-data.py` 报告问题数；错误 exit 1，警告 exit 0 |
+| A3 | P0 | 空名称/空时间必须报错，不静默丢行 | `tools/build.py` 退出码非 0 并指出"第 N 行…为空" |
+| A4 | P1 | 数据体检脚本 | `tools/validate_data.py` 报告问题数；错误 exit 1，警告 exit 0 |
 | A5 | P1 | 合并单元格会误导用户 | 体检脚本提示"有合并单元格（E2:E3）…请取消合并" |
 | A6 | P2 | `updatedAt` 与数据提交日期不一致时提示 | 早于 `data/` 最后提交日时给警告 |
 
@@ -256,7 +256,7 @@
 | L2 | P0 | 无 `innerHTML` | 全站仅 `createElement`/`textContent` |
 | L3 | P0 | xlsx 导入防爆 | ZIP 大小/解压比/工作表数/条数上限 |
 | L4 | P0 | 不收集数据 | 无统计、无 Cookie、无第三方请求 |
-| L5 | P1 | 哈希校验 | `verify-csp.py` 内存中比对，失败不写盘 |
+| L5 | P1 | 哈希校验 | `tools/verify.py` 内存中比对，失败不写盘 |
 | L6 | P1 | 只读链接 | `?mode=ro` 不写本机数据 |
 | L7 | P2 | 查询参数只做文本 | `?class=`/`?from=`/`?name=` 一律 `textContent` 设置 |
 
@@ -298,8 +298,8 @@
 
 ### 6.3 可维护性 / 可测试性
 
-- **单一产物**：`index.html` 由 `build-html.py` 从模板 + 数据生成，构建后必须与提交一致（CI 强制）。
-- **改动即验证**：pre-commit 钩子在 `index.html`/`404.html`/`*.ics` 变更时自动跑 `verify-csp.py`。
+- **单一产物**：`index.html` 由 `tools/build.py` 从模板 + 数据生成，构建后必须与提交一致（CI 强制）。
+- **改动即验证**：pre-commit 钩子在 `index.html`/`404.html`/`*.ics` 变更时自动跑 `tools/verify.py`。
 - **不得引入依赖**：无 npm 运行时依赖（Playwright 只用于测试）。
 
 ---
@@ -352,7 +352,7 @@
 - [x] CI 全绿：build+csp+unit / ui smoke chromium / ui smoke webkit（run 10）
 - [x] 线上逐项验证：`/` 200 · `/?class=Z2` 13 行 · `/404.html` 200 · `/?class=不存在` 跳 404 · `/Z1.ics` 200 且 CRLF
 - [ ] 真机过一遍：360×640 竖屏 + 横屏（**待人工**）
-- [ ] 确认页面顶部"数据更新至"与预期一致（当前仍是 2026-11-06，需要时跑 `build-html.py --stamp`）
+- [ ] 确认页面顶部"数据更新至"与预期一致（当前仍是 2026-11-06，需要时跑 `tools/build.py --stamp`）
 
 ---
 
@@ -413,7 +413,7 @@
 | `.ics` Content-Type 由 GitHub Pages 决定 | 个别客户端订阅可能失败 | 可用"导出 .ics 再导入"绕过 |
 | 真实 NVDA/VoiceOver 未做真机复核 | 实际朗读效果可能有差异 | 人工清单已就绪 |
 | 课表行标签不显示时间 | 44px 列宽放不下 | 用节次序号 + 提示条补足 |
-| `updatedAt` 当前滞后于 data 提交 | 页面显示旧日期 | 可跑 `build-html.py --stamp` 更新 |
+| `updatedAt` 当前滞后于 data 提交 | 页面显示旧日期 | 可跑 `tools/build.py --stamp` 更新 |
 | 老机型 WebView 可能 < Chrome 60 | 部分新语法降级 | 已 polyfill 关键 API，未做完整回归 |
 | 真机未验收 | 读屏/触控只能靠手工复核 | 清单在 ACCESSIBILITY.md |
 
@@ -424,12 +424,14 @@
 | 文档 | 内容 |
 |---|---|
 | [README](../README.md) | 使用说明、构建/部署、FAQ、已知限制 |
-| [重构记录](重构记录.md) | 18 轮改动的动机、做法、踩坑与验证数字 |
+| [docs/重构记录.md](重构记录.md) | 19 轮改动的动机、做法、踩坑与验证数字 |
 | [ACCESSIBILITY.md](../ACCESSIBILITY.md) | 读屏回归清单（NVDA/VoiceOver/JAWS） |
 | [SECURITY.md](../SECURITY.md) | CSP、Trusted Types、哈希维护、残余风险 |
-| `validate-data.py` | 数据体检（带单测 `tests/test_validate_data.py`） |
-| `verify-csp.py` | CSP 哈希与模板校验（写盘前先验证） |
-| `build-html.py` | 数据 → `index.html` 的构建器 |
+| [scripts/README.md](../scripts/README.md) | 一键构建 / 检查 / 发布（替代原先两个 `.bat`） |
+| `tools/build.py` | 数据 → `index.html` 的构建器（写盘前先校验） |
+| `tools/verify.py` | CSP 哈希与模板校验 |
+| `tools/validate_data.py` | 数据体检（带单测 `tests/test_validate_data.py`） |
+| `tools/common.py` | 三脚本共用：路径、原子写入、动态导入、git 日期 |
 
 ---
 
