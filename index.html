@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-44KcCO+RzQBY28l05piLQFpr0KzzF9nOpT2BsZB7we8='; script-src-elem 'sha256-44KcCO+RzQBY28l05piLQFpr0KzzF9nOpT2BsZB7we8='; script-src-attr 'none'; style-src 'sha256-9cNqXrehG/X7fkB1FGG/KsLg0Ti3QmBFF5QEjwTd09w='; style-src-elem 'sha256-9cNqXrehG/X7fkB1FGG/KsLg0Ti3QmBFF5QEjwTd09w='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-bYLAZqeSB2WEJSzhhFRynPKEETCQhxsOdapVNB0cLw0='; script-src-elem 'sha256-bYLAZqeSB2WEJSzhhFRynPKEETCQhxsOdapVNB0cLw0='; script-src-attr 'none'; style-src 'sha256-T7WUFiUg+HnF9rFOzn1k3A32vU6SMZ18LtChVzuYGoY='; style-src-elem 'sha256-T7WUFiUg+HnF9rFOzn1k3A32vU6SMZ18LtChVzuYGoY='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>CrseCue</title>
 <style>
@@ -357,8 +357,13 @@
 
   .clock { font-size: 14px; color: #57606a; margin-bottom: 16px; }
   .clock b { color: #0969da; }
+  /* 24 小时制时间：等宽数字，定时刷新时不会左右抖 */
+  .clock-time {
+    color: #24292f; font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
   .saved-tip { color: #2da44e; }
-  /* 「现在第几节 / 离下一节多久」：跟着"今天"后面，只在今天有课时出现 */
+  /* 「现在第几节 / 离下一节多久」：只在今天有课时出现 */
   .period-status {
     padding: 1px 8px; border-radius: 10px;
     background: #eaf3ff; color: #0757b8; font-weight: 700;
@@ -5302,11 +5307,18 @@ function updateClock() {
   const wkNow = weekNoOf(now);
   const frag = document.createDocumentFragment();
 
-  frag.appendChild(document.createTextNode('今天：'));
+  // 格式：现在：2026-11-14 第 11 周 星期六 19:24（24 小时制）
+  frag.appendChild(document.createTextNode('现在：'));
   const b = document.createElement('b');
-  b.textContent = `${toDateStr(now)} ${WEEK_NAMES[now.getDay()]}`;
+  b.textContent = toDateStr(now);
   frag.appendChild(b);
-  frag.appendChild(document.createTextNode(wkNow ? ` · 第 ${wkNow} 周` : ' · 学期未开始'));
+  frag.appendChild(document.createTextNode(wkNow ? ` 第 ${wkNow} 周` : ' 学期未开始'));
+  frag.appendChild(document.createTextNode(` ${WEEK_NAMES[now.getDay()]} `));
+
+  const clockTime = document.createElement('span');
+  clockTime.className = 'clock-time';
+  clockTime.textContent = `${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
+  frag.appendChild(clockTime);
 
   const periodStatus = currentPeriodStatus(now);
   if (periodStatus) {
@@ -7353,6 +7365,9 @@ function autoLocateToday() {
   flashElement(target);
 }
 autoLocateToday();
+
+// 时钟要显示 hh:mm 与"第几节进行中"，每 30 秒刷一次（跨节次边界最多差 30 秒）
+window.setInterval(updateClock, 30000);
 </script>
 </body>
 </html>
