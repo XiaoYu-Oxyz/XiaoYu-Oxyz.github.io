@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-MTcweK9kp7a3dHEfuax1oZdRacAOEG9txxiJx/u1dNA='; script-src-elem 'sha256-MTcweK9kp7a3dHEfuax1oZdRacAOEG9txxiJx/u1dNA='; script-src-attr 'none'; style-src 'sha256-3oYIi1ViAwMLJyx2izu6Hhm8lUYbruxPGwATCu+i23M='; style-src-elem 'sha256-3oYIi1ViAwMLJyx2izu6Hhm8lUYbruxPGwATCu+i23M='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Jz4zx5z3SzE0mS2gAq6SmCtmNlaX9eZg6lmyC/TdlHI='; script-src-elem 'sha256-Jz4zx5z3SzE0mS2gAq6SmCtmNlaX9eZg6lmyC/TdlHI='; script-src-attr 'none'; style-src 'sha256-6aO51ilCPHXfOXMCVMjTrtW4fiqYwIiFL0PdOftFPMc='; style-src-elem 'sha256-6aO51ilCPHXfOXMCVMjTrtW4fiqYwIiFL0PdOftFPMc='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>实验课提醒</title>
 <style>
@@ -140,8 +140,7 @@
   .recent-filter.is-disabled { color: #6e7781; cursor: not-allowed; opacity: .6; }
   .recent-filter.is-disabled input { cursor: not-allowed; }
   .recent-count { font-size: 12px; color: #6e7781; white-space: nowrap; }
-  /* 首次访问提示：默认班不是"你的班"时最容易看错课表 */
-  .first-run {
+  /* 首次访问提示：默认班不是"你的班"时最容易看错课表 */  .first-run {
     display: flex; align-items: center; gap: 8px;
     margin: 0 0 10px; padding: 7px 10px;
     border: 1px solid #b6d4fb; border-radius: 8px;
@@ -156,6 +155,14 @@
     font-family: inherit; font-size: 14px; line-height: 1;
   }
   .first-run-close:hover { background: #e3f0ff; }
+  /* 诊断信息：纯静态页面没有后端日志，反馈问题时最缺环境信息 */
+  .diag-row { margin: 14px 0 0; text-align: right; }
+  .diag-btn {
+    padding: 2px 4px; border: 0; border-radius: 4px; background: none;
+    color: #57606a; font-family: inherit; font-size: 12px;
+    text-decoration: underline dotted; cursor: pointer;
+  }
+  .diag-btn:hover { color: #0969da; }
   /* 「本机数据 / 只读」徽标：把"改动只在这台设备上"显式说出来 */
   .mode-badge {
     display: inline-flex; align-items: center;
@@ -674,7 +681,7 @@
   @media print {
     @page { margin: 12mm; }
     body { background: #fff; padding: 0 !important; color: #000; }
-    .head, .action-panel, .settings-row, .legend, .clock,
+    .head, .action-panel, .settings-row, .legend, .clock, .diag-row,
     .import-status, .sr-only, .copy-week-outside, .actions-toggle, .class-picker,
     .recent-filter, .recent-count, .data-updated, .saved-tip { display: none !important; }
     .wrap { max-width: none; margin: 0; padding: 0 !important; box-shadow: none; border-radius: 0; }
@@ -1101,8 +1108,7 @@
   </div>
 
   <div class="table-wrap">
-    <div class="print-head" id="printHead" aria-hidden="true"></div>
-    <p class="sr-only" id="tableKeyboardHint">实验表格。按 Tab 进入第一行并逐行前进，Shift+Tab 反向；上下方向键也可逐条朗读；编辑/删除模式下 Tab 到行内按钮；按 Esc 返回表格。</p>
+    <div class="print-head" id="printHead" aria-hidden="true"></div>    <p class="sr-only" id="tableKeyboardHint">实验表格。按 Tab 进入第一行并逐行前进，Shift+Tab 反向；上下方向键也可逐条朗读；编辑/删除模式下 Tab 到行内按钮；按 Esc 返回表格。</p>
     <p class="sr-only" id="tableHeaderSummary">表头：日期、周次、星期、节次、实验名称、实验地点。</p>
     <table id="scheduleTable" tabindex="0" aria-labelledby="tableCaption" aria-describedby="tableKeyboardHint tableHeaderSummary">
       <caption class="sr-only" id="tableCaption"></caption>
@@ -1120,6 +1126,10 @@
       <tbody id="tbody"></tbody>
     </table>
   </div>
+
+  <p class="diag-row">
+    <button class="diag-btn" id="diagBtn" type="button" title="复制浏览器/数据版本等信息，方便反馈问题">遇到问题？复制诊断信息</button>
+  </p>
 </main>
 
 <!-- 添加实验模态框 -->
@@ -4198,7 +4208,9 @@ function fallbackCopyText(text) {
   return ok;
 }
 
-function showCopyFallback(text) {
+function showCopyFallback(text, title) {
+  const heading = document.getElementById('copyTitle');
+  if (heading) heading.textContent = title || '复制本周安排';
   copyFallbackText.value = text;
   rememberModalFocus(copyMask, copyWeekBtn);
   copyMask.classList.add('show');
@@ -6036,6 +6048,29 @@ function exportXlsx() {
 
 exportBtn.addEventListener('click', openExportChooser);
 document.getElementById('icsBtn').addEventListener('click', exportIcs);
+
+// 诊断信息：粘到群里就能定位"为什么显示不对"
+document.getElementById('diagBtn').addEventListener('click', () => {
+  const shownRows = document.querySelectorAll('#tbody tr:not(.note-row)').length;
+  const text = [
+    '【实验课提醒 · 诊断信息】',
+    '时间：' + new Date().toLocaleString('zh-CN'),
+    '班级：' + (selectedClass || '（无）'),
+    '该班实验：' + experiments.length + ' 条，当前显示 ' + shownRows + ' 条',
+    '数据版本：' + (DATA_UPDATED_AT || '未知'),
+    '第 1 周星期一：' + toDateStr(week1Start),
+    '本机数据：' + (usingSaved ? '有（只在这台设备）' : '无'),
+    '模式：' + (READ_ONLY ? '只读' : '可编辑'),
+    '视口：' + window.innerWidth + '×' + window.innerHeight,
+    'UA：' + navigator.userAgent
+  ].join('\n');
+  const ok = () => showStatus('ok', '诊断信息已复制，粘贴到群里即可');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(ok).catch(() => showCopyFallback(text, '诊断信息'));
+  } else {
+    showCopyFallback(text, '诊断信息');
+  }
+});
 
 // 键盘 /：展开「操作」面板并聚焦搜索（零布局代价；手机上仍从「操作」进入）
 document.addEventListener('keydown', ev => {

@@ -224,8 +224,20 @@ try {
   assert.ok(Math.max(...icsText.split('\r\n').map(line => Buffer.byteLength(line, 'utf8'))) <= 75,
     'iCalendar 单行不能超过 75 字节');
 
-  await page.locator('#searchInput').fill('');
-  await waitText(page.locator('#recentCount'), new RegExp(`显示 25 / 共 ${totalZ1}`));
+  // 诊断信息：复制成功给状态提示；剪贴板不可用时退化为可手动复制的文本框
+  await page.locator('#diagBtn').click();
+  await poll(async () => {
+    if (await page.locator('#copyMask').isVisible()) return true;
+    const status = await page.locator('#importStatus').innerText().catch(() => '');
+    return status.includes('诊断信息已复制');
+  }, '诊断信息应复制成功或弹出兜底文本框');
+  if (await page.locator('#copyMask').isVisible()) {
+    assert.match(await page.locator('#copyFallbackText').inputValue(), /诊断信息/);
+    await page.locator('#copyFallbackDone').click();
+    await waitVisible(page.locator('#copyMask'), false);
+  }
+
+  await page.locator('#searchInput').fill('');  await waitText(page.locator('#recentCount'), new RegExp(`显示 25 / 共 ${totalZ1}`));
 
   // 3. 导出格式选择器：初始焦点、Tab 循环、Esc 关闭并回到触发按钮。
   await page.locator('#exportBtn').click();
