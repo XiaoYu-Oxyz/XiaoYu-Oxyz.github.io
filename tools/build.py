@@ -300,7 +300,7 @@ def write_ics_files(classes, updated_at):
         class_id = item["id"]
         text = build_ics_text(class_id, item["experiments"], stamp, item.get("periodTimes"))
         path = BASE / (class_id + ICS_SUFFIX)
-        write_atomic(path, text.encode("utf-8"))
+        common.write_atomic(path, text.encode("utf-8"))
         written.append(path)
     keep = {path.name for path in written}
     for stale in BASE.glob("*" + ICS_SUFFIX):
@@ -309,10 +309,6 @@ def write_ics_files(classes, updated_at):
             print("removed stale %s" % stale.name)
     return written
 
-
-def write_atomic(path: Path, data: bytes) -> None:
-    """原子写入；实现与 verify.py 共用 tools/common.py。"""
-    common.write_atomic(path, data)
 
 
 def load_verifier():
@@ -457,7 +453,7 @@ def stamp_settings(settings):
     # --stamp 不能顺手把节次时间抹掉
     if settings.get("periodTimes"):
         payload["periodTimes"] = settings["periodTimes"]
-    write_atomic(SETTINGS, (json.dumps(payload, ensure_ascii=False, indent=2) + "\n").encode("utf-8"))
+    common.write_atomic(SETTINGS, (json.dumps(payload, ensure_ascii=False, indent=2) + "\n").encode("utf-8"))
     print("stamped %s: updatedAt=%s" % (SETTINGS.name, payload["updatedAt"]))
 
 
@@ -698,7 +694,7 @@ def main(argv=None):
     if errors:
         fail("产物未通过校验，未写入任何文件：\n  " + "\n  ".join(errors))
 
-    write_atomic(DEPLOY, encoded)
+    common.write_atomic(DEPLOY, encoded)
 
     print("built %s: %d classes, %d experiments total" % (
         DEPLOY.name,

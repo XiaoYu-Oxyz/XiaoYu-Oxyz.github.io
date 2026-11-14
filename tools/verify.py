@@ -255,10 +255,6 @@ def verify_bytes(raw: bytes, name: str, html_check=None) -> list:
     return errors + html_check(html, name)
 
 
-def write_atomic(path: Path, data: bytes) -> None:
-    """原子写入；实现与 build.py 共用 tools/common.py。"""
-    common.write_atomic(path, data)
-
 
 def describe(path: Path) -> str:
     try:
@@ -321,14 +317,14 @@ def main(argv=None) -> int:
             print("APPLY FAILED: %s: %s" % (target.name, exc))
             return 1
         encoded = new_html.encode("utf-8")
-        write_atomic(target, encoded)
+        common.write_atomic(target, encoded)
         print("updated %s: script=%s style=%s" % (target.name, script_hash, style_hash))
         for extra in EXTRA_PAGES:
             if not extra.exists():
                 continue
             extra_html = extra.read_bytes().decode("utf-8-sig").replace("\r\n", "\n")
             extra_new, extra_script, extra_style = apply_hashes_to_html(extra_html)
-            write_atomic(extra, extra_new.encode("utf-8"))
+            common.write_atomic(extra, extra_new.encode("utf-8"))
             print("updated %s: script=%s style=%s" % (extra.name, extra_script, extra_style))
 
     paths = [p for p in (DEPLOY,) if p.exists()]
