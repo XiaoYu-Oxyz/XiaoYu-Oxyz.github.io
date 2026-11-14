@@ -5,3 +5,5 @@
 *.json text eol=lf
 *.xlsx binary
 *.xls binary
+# iCalendar 必须是 CRLF 行尾（verify-csp.py 会校验）：不能让 git 把它当文本归一化成 LF
+*.ics -text
