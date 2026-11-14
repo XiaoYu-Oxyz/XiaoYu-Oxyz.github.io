@@ -77,11 +77,18 @@ try {
   await page.keyboard.press('Escape');
   assert.equal(await page.evaluate(() => document.activeElement.id), 'scheduleTable');
   await page.keyboard.press('ArrowDown');
+  const rovingLabel = await page.evaluate(() => document.activeElement.getAttribute('aria-label'));
+  assert.equal(rovingLabel, firstFocusedRow.label);
+  // roving tabindex：整张表只有 1 个行级 Tab 停靠点，Tab 直接离开表格
+  const rowTabStops = await page.evaluate(() =>
+    Array.from(document.querySelectorAll('#tbody tr')).filter(row => row.tabIndex === 0).length);
+  assert.equal(rowTabStops, 1, 'roving tabindex 应只有 1 个行级 Tab 停靠点');
   await page.keyboard.press('Tab');
-  assert.equal(await page.evaluate(() => document.activeElement.tagName), 'TR');
-  assert.equal(await page.evaluate(() => document.activeElement.getAttribute('aria-label')), secondRowDate);
-  await page.keyboard.press('Shift+Tab');
-  assert.equal(await page.evaluate(() => document.activeElement.getAttribute('aria-label')), firstFocusedRow.label);
+  assert.notEqual(await page.evaluate(() => document.activeElement.tagName), 'TR',
+    'roving tabindex 下 Tab 应离开表格而不是逐行前进');
+  await page.locator('#scheduleTable').focus();
+  await page.keyboard.press('ArrowDown');
+  assert.equal(await page.evaluate(() => document.activeElement.getAttribute('aria-label')), rovingLabel);
   await page.keyboard.press('Escape');
 
   await page.emulateMedia({ media: 'print' });
@@ -178,6 +185,22 @@ try {
   assert.match(await page.locator('#importScopeWarning').innerText(), /当前筛选.*不是完整班级/);
   await page.locator('#importCancel').click();
   await page.waitForTimeout(50);
+
+  // 日历导出：标准 VCALENDAR，每条实验一个事件 + 提前 2 小时提醒。
+  const icsTotal = Number((await page.locator('#recentCount').innerText()).match(/共\s*(\d+)/)[1]);
+  const icsPromise = page.waitForEvent('download');
+  await page.locator('#icsBtn').click();
+  const icsFile = await icsPromise;
+  assert.equal(icsFile.suggestedFilename(), 'Z1-实验课.ics');
+  const icsText = fs.readFileSync(await icsFile.path(), 'utf8');
+  assert.match(icsText, /^BEGIN:VCALENDAR\r\n/);
+  assert.match(icsText, /BEGIN:VTIMEZONE/);
+  assert.match(icsText, /DTSTART;TZID=Asia\/Shanghai:\d{8}T\d{6}/);
+  assert.match(icsText, /BEGIN:VALARM/);
+  assert.equal((icsText.match(/BEGIN:VEVENT/g) || []).length, icsTotal);
+  assert.ok(icsText.trimEnd().endsWith('END:VCALENDAR'));
+  assert.ok(Math.max(...icsText.split('\r\n').map(line => Buffer.byteLength(line, 'utf8'))) <= 75,
+    'iCalendar 单行不能超过 75 字节');
 
   await page.locator('#searchInput').fill('');
   await page.waitForTimeout(120);
@@ -413,7 +436,10 @@ try {
   await builtPage.waitForTimeout(100);
   assert.equal(await builtPage.locator('#classSelect').inputValue(), 'Z1本机');
   assert.equal(await builtPage.locator('#classSelect option[value="Z1"]').count(), 0);
-  assert.match(await builtPage.locator('#importStatus').innerText(), /重命名/);
+  // 状态栏可能被并发的跨标签页同步消息覆盖，直接断言"重命名产生了可撤销操作"更稳定。
+  await builtPage.waitForFunction(() =>
+    Array.from(document.querySelectorAll('#importStatus button')).some(btn => btn.textContent.includes('撤销')),
+    null, { timeout: 3000 });
   await builtPage.getByRole('button', { name: '撤销' }).click();
   await builtPage.waitForTimeout(100);
   assert.equal(await builtPage.locator('#classSelect').inputValue(), 'Z1');

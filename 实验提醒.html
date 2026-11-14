@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-aa9hV70vG0zYBCOF1SH8IS4BlabFJGwUppJVcxvUWfc='; script-src-elem 'sha256-aa9hV70vG0zYBCOF1SH8IS4BlabFJGwUppJVcxvUWfc='; script-src-attr 'none'; style-src 'sha256-GL0YCfzmdu3UGef+yeCIb4wwIMIVCsjjvCLXlUTWTm0='; style-src-elem 'sha256-GL0YCfzmdu3UGef+yeCIb4wwIMIVCsjjvCLXlUTWTm0='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-xKept5q6v45BRL5K3PpVP4r7KF0tHZQOj0TFkVRcH84='; script-src-elem 'sha256-xKept5q6v45BRL5K3PpVP4r7KF0tHZQOj0TFkVRcH84='; script-src-attr 'none'; style-src 'sha256-GL0YCfzmdu3UGef+yeCIb4wwIMIVCsjjvCLXlUTWTm0='; style-src-elem 'sha256-GL0YCfzmdu3UGef+yeCIb4wwIMIVCsjjvCLXlUTWTm0='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>实验课提醒</title>
 <style>
@@ -1042,6 +1042,7 @@
         <span class="group-label">数据</span>
         <button class="import-btn" id="importBtn" type="button"><span class="label-long">导入（.xlsx/.json）</span><span class="label-short">导入</span></button>
         <button class="ghost-btn"  id="exportBtn" type="button"><span class="label-long">导出（.xlsx/.json）</span><span class="label-short">导出</span></button>
+        <button class="ghost-btn"  id="icsBtn" type="button" title="导出 .ics：导入手机日历后由系统提前 2 小时提醒"><span class="label-long">日历（.ics）</span><span class="label-short">日历</span></button>
       </div>
     </div>
   </div>
@@ -2688,7 +2689,7 @@ function render() {
       conflict ? '时间冲突' : ''
     ].filter(Boolean).join('；');
     const a11ySummary = experimentA11ySummary(e, a11yStatus);
-    tr.tabIndex = 0;
+    tr.tabIndex = -1;
     tr.dataset.a11yLabel = a11ySummary;
     tr.setAttribute('aria-label', a11ySummary);
     const markBtn = document.createElement('button');
@@ -2851,6 +2852,7 @@ function render() {
   });
 
   tbody.replaceChildren(frag);
+  syncRowFocusability();
   syncTableA11y();
   syncConflictFilter(conflictInfo);
 }
@@ -5163,7 +5165,30 @@ document.getElementById('tbody').addEventListener('click', (ev) => {
   if (row) row.classList.toggle('row-marked', marked);
 });
 
-// 表格聚焦后，用上下方向键逐条读取实验；行本身可 Tab 逐行移动。
+// roving tabindex：整张表只保留 1 个 Tab 停靠点（当前行），其余行 -1。
+// 否则 25 条实验就要按 25 次 Tab 才能穿过表格，键盘用户代价过高。
+let activeRowIndex = 0;
+
+function syncRowFocusability() {
+  const rows = Array.from(tableBodyEl.querySelectorAll('tr:not(.note-row)'));
+  if (!rows.length) { activeRowIndex = 0; return; }
+  if (activeRowIndex >= rows.length) activeRowIndex = rows.length - 1;
+  if (activeRowIndex < 0) activeRowIndex = 0;
+  rows.forEach((row, i) => { row.tabIndex = i === activeRowIndex ? 0 : -1; });
+}
+
+tableBodyEl.addEventListener('focusin', ev => {
+  const target = ev.target;
+  const row = target && target.closest ? target.closest('tr') : null;
+  if (!row || row.classList.contains('note-row')) return;
+  const rows = Array.from(tableBodyEl.querySelectorAll('tr:not(.note-row)'));
+  const index = rows.indexOf(row);
+  if (index < 0 || index === activeRowIndex) return;
+  activeRowIndex = index;
+  syncRowFocusability();
+});
+
+// 表格聚焦后，用上下方向键逐条读取实验；Tab 只停靠一次（roving tabindex）。
 scheduleTableEl.addEventListener('keydown', ev => {
   if (ev.altKey || ev.ctrlKey || ev.metaKey) return;
 
@@ -5715,6 +5740,144 @@ function formatExportTime(d) {
   return `${dd.getFullYear()}-${pad2(dd.getMonth() + 1)}-${pad2(dd.getDate())} ${pad2(dd.getHours())}:${pad2(dd.getMinutes())}:${pad2(dd.getSeconds())}`;
 }
 
+/* ---------- 日历订阅（.ics）：纯静态页面唯一能做到"真正提醒"的方式 ----------
+   生成标准 VCALENDAR，同学导入 iOS/Android 日历后由系统负责提醒。
+   不依赖后端、不发网络请求、不影响 CSP。 */
+const PERIOD_TIME_SLOTS = [
+  { from: 1, to: 2, start: [8, 0], end: [9, 40] },
+  { from: 3, to: 4, start: [10, 0], end: [11, 40] },
+  { from: 5, to: 6, start: [14, 0], end: [15, 40] },
+  { from: 7, to: 8, start: [16, 0], end: [17, 40] },
+  { from: 9, to: 10, start: [19, 0], end: [20, 40] }
+];
+
+function icsEscape(text) {
+  return String(text == null ? '' : text)
+    .replace(/\\/g, '\\\\')
+    .replace(/;/g, '\\;')
+    .replace(/,/g, '\\,')
+    .replace(/\r?\n/g, '\\n');
+}
+
+// RFC 5545：内容行不超过 75 个八位组，超出用 CRLF + 单个空格折行
+function icsFold(line) {
+  const encoder = new TextEncoder();
+  if (encoder.encode(line).length <= 75) return line;
+  let out = '';
+  let current = '';
+  let bytes = 0;
+  for (const ch of line) {
+    const size = encoder.encode(ch).length;
+    if (bytes + size > 73) {
+      out += current + '\r\n ';
+      current = '';
+      bytes = 0;
+    }
+    current += ch;
+    bytes += size;
+  }
+  return out + current;
+}
+
+function icsStampUtc(date) {
+  return String(date.getUTCFullYear()) + pad2(date.getUTCMonth() + 1) + pad2(date.getUTCDate()) + 'T' +
+    pad2(date.getUTCHours()) + pad2(date.getUTCMinutes()) + pad2(date.getUTCSeconds()) + 'Z';
+}
+
+// 把「第3-4节」映射到具体时间；无法识别时退化为全天事件
+function resolvePeriodTimes(period) {
+  const ranges = parsePeriodRanges(period);
+  if (!ranges || !ranges.length) return null;
+  const first = Math.min.apply(null, ranges.map(r => r[0]));
+  const last = Math.max.apply(null, ranges.map(r => r[1]));
+  const startSlot = PERIOD_TIME_SLOTS.find(slot => slot.from === first);
+  const endSlot = PERIOD_TIME_SLOTS.find(slot => slot.to === last);
+  if (!startSlot || !endSlot) return null;
+  return { start: startSlot.start, end: endSlot.end };
+}
+
+function buildIcsText(list, className) {
+  const now = new Date();
+  const lines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//CrseCue//实验课提醒//CN',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'X-WR-CALNAME:' + icsEscape('实验课 ' + className),
+    'X-WR-TIMEZONE:Asia/Shanghai',
+    'BEGIN:VTIMEZONE',
+    'TZID:Asia/Shanghai',
+    'BEGIN:STANDARD',
+    'DTSTART:19700101T000000',
+    'TZOFFSETFROM:+0800',
+    'TZOFFSETTO:+0800',
+    'TZNAME:CST',
+    'END:STANDARD',
+    'END:VTIMEZONE'
+  ];
+
+  list.slice().sort((a, b) => String(a.date).localeCompare(String(b.date))).forEach(e => {
+    const date = parseDate(e.date);
+    if (isNaN(date.getTime())) return;
+    const ymd = e.date.replace(/-/g, '');
+    const slot = resolvePeriodTimes(e.period);
+    let uid = 0;
+    const seed = `${className}|${e.date}|${normKeyText(e.period)}|${normKeyText(e.name)}`;
+    for (let i = 0; i < seed.length; i++) uid = (uid * 31 + seed.charCodeAt(i)) >>> 0;
+
+    lines.push('BEGIN:VEVENT');
+    lines.push(`UID:${uid.toString(36)}-${ymd}@crsecue`);
+    lines.push(`DTSTAMP:${icsStampUtc(now)}`);
+    if (slot) {
+      lines.push(`DTSTART;TZID=Asia/Shanghai:${ymd}T${pad2(slot.start[0])}${pad2(slot.start[1])}00`);
+      lines.push(`DTEND;TZID=Asia/Shanghai:${ymd}T${pad2(slot.end[0])}${pad2(slot.end[1])}00`);
+    } else {
+      const next = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
+      lines.push(`DTSTART;VALUE=DATE:${ymd}`);
+      lines.push(`DTEND;VALUE=DATE:${toDateStr(next).replace(/-/g, '')}`);
+    }
+    lines.push('SUMMARY:' + icsEscape(e.name || '实验课'));
+    if (e.place) lines.push('LOCATION:' + icsEscape(e.place));
+    const week = weekNoOf(date);
+    const desc = [
+      week === null ? '' : `第${week}周 ${WEEK_NAMES[date.getDay()]}`,
+      e.period ? `节次 ${e.period}` : '',
+      e.note ? `备注：${e.note}` : ''
+    ].filter(Boolean).join('\n');
+    if (desc) lines.push('DESCRIPTION:' + icsEscape(desc));
+    lines.push('BEGIN:VALARM');
+    lines.push('TRIGGER:-PT2H');
+    lines.push('ACTION:DISPLAY');
+    lines.push('DESCRIPTION:' + icsEscape('实验课提醒：' + (e.name || '实验课')));
+    lines.push('END:VALARM');
+    lines.push('END:VEVENT');
+  });
+
+  lines.push('END:VCALENDAR');
+  return lines.map(icsFold).join('\r\n') + '\r\n';
+}
+
+function exportIcs() {
+  if (!selectedClass) {
+    showStatus('warn', '当前没有班级，无法导出日历');
+    return;
+  }
+  const list = experiments.slice();
+  if (!list.length) {
+    showStatus('warn', '当前班级还没有实验，未生成日历文件');
+    return;
+  }
+  try {
+    const blob = new Blob([buildIcsText(list, selectedClass)], { type: 'text/calendar;charset=utf-8' });
+    const fileName = `${selectedClass}-实验课.ics`;
+    downloadBlob(blob, fileName);
+    showStatus('ok', `已导出 ${list.length} 条实验到 ${fileName}。导入手机日历后会提前 2 小时提醒。`);
+  } catch (err) {
+    showStatus('error', '生成日历失败：' + (err && err.message ? err.message : err));
+  }
+}
+
 function exportXlsx() {
   if (!selectedClass) {
     showStatus('warn', '当前没有班级，无法导出');
@@ -5772,6 +5935,7 @@ function exportXlsx() {
 }
 
 exportBtn.addEventListener('click', openExportChooser);
+document.getElementById('icsBtn').addEventListener('click', exportIcs);
 
 
 /* ============================================================
