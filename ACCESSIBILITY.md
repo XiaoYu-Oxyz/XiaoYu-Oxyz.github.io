@@ -2,6 +2,8 @@
 
 本页记录已经人工验收通过的读屏行为。修改表格、班级切换、编辑/删除模式或移动端卡片后，必须重新跑一遍本清单。
 
+相关文档：[PRD §5.10](docs/PRD.md)（需求编号 J1–J8）· [SECURITY.md](SECURITY.md) · [README.md](README.md)
+
 ## 已冻结的行为
 
 - 桌面端：Tab 进入表格，再 Tab 进入第一行；继续 Tab 逐行前进，Shift+Tab 反向。
@@ -12,6 +14,10 @@
 - 行尾使用读屏默认播报，不自定义“结束”。
 - 手机端读表头；每行只读一段，不读空白，“下一次实验”不拆成上下两段。
 - 已完全移除 skip link，不再恢复“跳到主要内容/跳到实验表格”。
+- **弹窗打开时 `<main>` 设为 `inert` + `aria-hidden="true"`**：读屏的虚拟光标不能逛到弹窗背后；关闭后自动解除（老浏览器只有 `aria-hidden`）。
+- **表单校验错误绑到字段**：出错字段带 `aria-invalid="true"` + `aria-describedby="formError"`，焦点自动落到第一个出错项；用户改动该字段就解除。
+- **状态变化有 live region**：操作结果进 `role="status"`；状态栏在窄屏多占 42px，所以"定位到今天"只用闪烁提示、不弹状态栏。
+- **跨天自动重绘**：页面挂一夜后，「今天/明天」标签、提示条、表格的今天列、行 `aria-label` 里的状态一起更新，不会出现"标签说今天、时钟说明天"。
 
 ## NVDA + Chrome（Windows）
 
@@ -38,6 +44,13 @@
 7. 切换班级：
    - 行内容、状态和表头同步更新；
    - 不读旧班残留内容。
+8. 表单错误（新增）：
+   - 打开「添加实验」，直接点「确认添加」；
+   - 焦点应落在第一个出错字段（节次），朗读应带出"请填写节次"；
+   - 改好该字段后错误标记清除，另一个字段仍保持错误。
+9. 弹窗 inert（新增）：
+   - 弹窗打开时按 Shift+Tab 反向穿越，焦点不应跑到背后的表格；
+   - 读屏浏览模式下也不应读到弹窗外的内容。
 
 ## VoiceOver + Safari（iPhone）
 
@@ -51,6 +64,10 @@
    - 下一次实验不拆成上下两段。
 4. 切换班级后重复一次。
 5. 进入编辑/删除模式，确认行内按钮可达。
+6. 名称/地点联想（新增）：
+   - iOS 不渲染原生 `<datalist>`，页面改用自绘下拉；
+   - 在「实验名称」输入「机械」，应出现候选列表，点选后回填；
+   - 候选列表可被 VoiceOver 读出并操作。
 
 ## JAWS + Chrome（Windows）
 
@@ -60,15 +77,30 @@
 - 行尾播报；
 - 操作列隐藏；
 - 编辑/删除按钮标签；
-- 切换班级后的表头与行内容。
+- 切换班级后的表头与行内容；
+- 表单错误字段的 `aria-invalid` 与 `aria-describedby`。
+
+## 深色模式下的可读性
+
+`prefers-color-scheme: dark` 时必须满足 WCAG AA（4.5:1）。已自动化校验的三处：
+
+| 区域 | 实测对比度 |
+|---|---|
+| 顶部提示条 `.cue-text` | 8.41 : 1 |
+| 「下一次」行 `tr.row-next td` | 11.85 : 1（曾因浅色规则特异性过高掉到 1.12 : 1） |
+| 正文 `.wrap` | 16.02 : 1 |
+
+改深色配色后必须重跑 `npm run test:visual`，它会在深色用例里断言这三个值。
 
 ## 自动化
 
 ```powershell
 python verify-csp.py
-python -m unittest discover -s tests -p "test_*.py" -v
+python -m unittest discover -s tests -p "test_*.py" -v   # 42 个
 npm run test:ui
 npm run test:ui:webkit
+npm run test:visual
+npm run test:visual:webkit
 ```
 
 自动化不能代替 NVDA/VoiceOver 人工验收。

@@ -8,10 +8,23 @@
 - 当前构建：3 个班级、65 条实验
 - 数据公开提示：部署到 GitHub Pages 后，`data/*.xlsx`、`index.html` 和本 README 都会公开，请勿放敏感信息。
 
+## 文档地图
+
+| 文档 | 什么时候看 |
+|---|---|
+| **本页 README** | 想用起来 / 想改数据 / 想部署 / 遇到问题 |
+| [docs/PRD.md](docs/PRD.md) | 想知道**产品到底有哪些需求、边界在哪、什么被明确否决了** |
+| [docs/重构记录.md](docs/重构记录.md) | 想知道某个改动**为什么这么做**、踩过什么坑 |
+| [ACCESSIBILITY.md](ACCESSIBILITY.md) | 改了表格/焦点/模式后，按清单做读屏回归 |
+| [SECURITY.md](SECURITY.md) | 改了 `index.html` 的 `<style>`/`<script>` 后，怎么做哈希维护 |
+
+三句话版本：**README 教你怎么用，PRD 说清做什么与不做什么，重构记录解释为什么这么做。**
+
 ## 目录
 
 | 章节 | 内容 |
 |---|---|
+| [文档地图](#文档地图) | README / PRD / 重构记录 / 无障碍 / 安全 五份文档各看什么 |
 | [1. 项目定位](#1-项目定位) | 这个页面解决什么问题、不做什么 |
 | [2. 功能](#2-功能) | 列表视图、周视图、筛选、导入导出、日历订阅、无障碍 |
 | [3. 目录结构](#3-目录结构) | 每个文件干什么 |
@@ -35,6 +48,8 @@
 - 班级数据来自 `data/*.xlsx`，在构建阶段校验后写入 `index.html` 的惰性 `<template>`。
 - 浏览器里的增删改只保存在当前站点的 `localStorage`，要发布必须导出 xlsx、覆盖 `data/`、重新 build、提交 `index.html`。
 - GitHub Pages 只负责静态托管，不提供登录、权限、数据库或服务端写文件能力。
+
+完整的需求清单、验收标准与**明确不做的事**见 [docs/PRD.md](docs/PRD.md)（PRD §2.2 非目标、§10 已否决需求）。
 
 ---
 
@@ -322,15 +337,18 @@ CrseCue/
 ├─ ACCESSIBILITY.md           # 读屏人工回归清单
 ├─ tests/
 │  ├─ test_build.py           # build reader 回归测试（metadata/week1/旧格式）
-│  ├─ test_validate_data.py   # 体检脚本回归（坏日期/越界节次/重名/重复行）
+│  ├─ test_validate_data.py   # 体检脚本回归（坏日期/越界节次/重名/重复行/合并单元格）
 │  ├─ test_verifier.py        # 校验器回归（哈希过期/CRLF/裸 CR/NUL/BOM/外部脚本/内联事件）
 │  ├─ fixtures/
 │  │  └─ Z1-import.json       # UI 导入固定样本
 │  ├─ ui-smoke.mjs            # Playwright UI 冒烟测试（Chromium/WebKit）
+│  ├─ week-view.mjs           # 课表视图 50 项断言
+│  ├─ visual-smoke.mjs        # 8 视口几何 + 深色对比度 + 截图
 │  └─ logic.mjs               # 纯函数回归（page.evaluate 直接调用全局函数）
 ├─ .github/workflows/verify.yml # CI：构建 + CSP + 单元/UI 测试 + 产物检查
 ├─ .github/workflows/update-data.yml # 手动触发：构建+校验+自动提交（一键更新数据）
-├─ docs/重构记录.md            # 两轮重构的改动与取舍记录（含"没做什么、为什么"）
+├─ docs/PRD.md                # 产品需求文档（需求编号、验收标准、被否决清单）
+├─ docs/重构记录.md            # 18 轮改动的动机、做法、踩坑与验证数字
 ├─ LICENSE                    # MIT
 ├─ SECURITY.md                # 安全设计、残余风险、维护说明
 ├─ README.md                  # 本文件
