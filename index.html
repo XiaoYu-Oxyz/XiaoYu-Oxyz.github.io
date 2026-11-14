@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-mHVgFIxCbiDxyyOdPsbEd+S6W/cRMT19VwFeID2bTnE='; script-src-elem 'sha256-mHVgFIxCbiDxyyOdPsbEd+S6W/cRMT19VwFeID2bTnE='; script-src-attr 'none'; style-src 'sha256-fGi3ztMi4ZUr9DtXqYFOzgdYx3t3VDqaFeSOWM+mPEs='; style-src-elem 'sha256-fGi3ztMi4ZUr9DtXqYFOzgdYx3t3VDqaFeSOWM+mPEs='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-MXz7yhhdx1A/cEBKTRK6VbTNlNBVUdiPXMsPAaETMVI='; script-src-elem 'sha256-MXz7yhhdx1A/cEBKTRK6VbTNlNBVUdiPXMsPAaETMVI='; script-src-attr 'none'; style-src 'sha256-vhhc5HkueW8iUy8yUA2uMYIRzC3xbscxG8+Wpl45kdU='; style-src-elem 'sha256-vhhc5HkueW8iUy8yUA2uMYIRzC3xbscxG8+Wpl45kdU='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>CrseCue</title>
 <style>
@@ -17,6 +17,9 @@
     margin: 0; padding: 24px 16px;
     font-family: "Microsoft YaHei", "PingFang SC", system-ui, -apple-system, sans-serif;
     background: #f5f7fa; color: #24292f;
+    /* iOS/老 WebView 转横屏时会"自动放大"字号，把布局顶乱；这里统一关掉，交给浏览器缩放 */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
   a:focus-visible, button:focus-visible, select:focus-visible,
   textarea:focus-visible, input:focus-visible, [tabindex]:focus-visible {
@@ -1196,6 +1199,30 @@
     }
   }
 
+  /* ---------- 横屏 / 矮屏（如 640×360、812×375） ----------
+     实测竖屏时首行在 296px，横屏却在 262px —— 屏幕只剩 360 高时
+     头部（含提示条、设置行、时钟）吃掉七成，一张卡片都放不全。
+     这里把"配置类"信息折叠掉，把首屏让给实验卡片。 */
+  @media (max-width: 940px) and (max-height: 480px) {
+    body { padding: 8px 6px; }
+    .wrap { padding: 10px; }
+    .head { margin-bottom: 6px; }
+    .head-filters { margin-bottom: 6px; }
+    .settings-row, .first-run, .legend { display: none; }
+    /* 头部控件也收一档：横屏时高度比可点面积更稀缺 */
+    h1 { font-size: 17px; }
+    .actions-toggle, .copy-week-outside { min-height: 34px; padding: 4px 8px; }
+    .class-tool { width: 32px; height: 32px; }
+    .class-picker select { padding: 4px 6px; }
+    .cue-bar { padding: 4px 8px; font-size: 12px; }
+    .cue-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cue-close { width: 22px; height: 22px; font-size: 12px; }
+    .clock { font-size: 11.5px; margin-bottom: 4px; }
+    .action-panel { margin-bottom: 6px; }
+    tbody tr { margin-bottom: 6px; }
+    tbody tr.week-start { margin-top: 14px; }
+  }
+
   /* ---------- 深色模式 ----------
      不逐条改 304 处 hex（那需要单独的机械化提交），只覆盖"面/字/边"三层：
      页面底色、卡片/表格/弹窗表面、正文与次要文字、分隔线，以及五种状态色。 */
@@ -1452,8 +1479,10 @@
 
       <div class="form-row">
         <label>实验名称 <span class="req">*</span></label>
-        <input type="text" id="formName" maxlength="200" placeholder="例如 机械设计">
+        <input type="text" id="formName" list="nameList" maxlength="200" placeholder="例如 机械设计">
       </div>
+      <!-- 已有实验名称做联想：避免「机械设计」「机械设计实验」两种写法并存，搜索漏命中 -->
+      <datalist id="nameList"></datalist>
 
       <div class="form-row">
         <label>实验地点</label>
@@ -5603,28 +5632,41 @@ function resetForm() {
   updateFormConflictHint();
 }
 
-// 已有地点做输入联想：同一个地方写成两种写法，搜索就命不中
+// 已有名称/地点做输入联想：同一个东西写成两种写法，搜索就命不中
 function refreshPlaceSuggestions() {
-  const list = document.getElementById('placeList');
-  if (!list) return;
-  const seen = new Map();
+  const placeList = document.getElementById('placeList');
+  const nameList = document.getElementById('nameList');
+  const places = new Map();
+  const names = new Map();
   const collect = items => {
     (items || []).forEach(item => {
-      const place = String(item && item.place ? item.place : '').trim();
-      if (!place || place === '待定') return;
-      const key = place.toLowerCase();
-      if (!seen.has(key)) seen.set(key, place);
+      if (!item) return;
+      const place = String(item.place || '').trim();
+      if (place && place !== '待定') {
+        const key = place.toLowerCase();
+        if (!places.has(key)) places.set(key, place);
+      }
+      const name = String(item.name || '').trim();
+      if (name) {
+        const nameKey = name.toLowerCase();
+        if (!names.has(nameKey)) names.set(nameKey, name);
+      }
     });
   };
   classIds.forEach(id => {
     collect(id === selectedClass ? experiments : (readClassStored(id) || getDefaultClassExperiments(id)));
   });
-  const values = [...seen.values()].sort((a, b) => a.localeCompare(b, 'zh-Hans-CN'));
-  list.replaceChildren(...values.slice(0, 100).map(place => {
-    const option = document.createElement('option');
-    option.value = place;
-    return option;
-  }));
+  const fill = (list, map) => {
+    if (!list) return;
+    const values = Array.from(map.values()).sort((a, b) => a.localeCompare(b, 'zh-Hans-CN'));
+    list.replaceChildren(...values.slice(0, 100).map(value => {
+      const option = document.createElement('option');
+      option.value = value;
+      return option;
+    }));
+  };
+  fill(placeList, places);
+  fill(nameList, names);
 }
 
 function openModal(prefill) {

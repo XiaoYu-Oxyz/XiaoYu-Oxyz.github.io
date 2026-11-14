@@ -29,6 +29,8 @@ const PALETTE = {
 const cases = [
   // 360×640 = vivo Y66i 这类 5.5 寸 720p 老机型
   { name: 'mobile-360', width: 360, height: 640 },
+  // 横屏手机：头部折叠后首行约 191px（折叠前 262px）
+  { name: 'landscape-640', width: 640, height: 360 },
   { name: 'mobile-320', width: 320, height: 640 },
   { name: 'mobile-list', width: 390, height: 844 },
   { name: 'mobile-dark', width: 390, height: 844, dark: true },
