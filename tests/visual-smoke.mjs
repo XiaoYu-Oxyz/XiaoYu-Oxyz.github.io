@@ -75,6 +75,40 @@ for (const item of cases) {
         return el.getBoundingClientRect().height + parseFloat(getComputedStyle(el).marginBottom || '0');
       })(),
       weekGrid: !!document.querySelector('.week-grid'),
+      // 深色模式对比度：曾因 row-next 的浅色规则特异性过高导致 1.12:1（白底白字）
+      contrasts: (() => {
+        const lum = c => {
+          const parts = c.match(/[\d.]+/g).slice(0, 3).map(Number);
+          const f = v => { const x = v / 255; return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4); };
+          const [r, g, b] = parts.map(f);
+          return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        };
+        const ratio = (fg, bg) => {
+          const a = lum(fg);
+          const b = lum(bg);
+          return Number(((Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)).toFixed(2));
+        };
+        const bgOf = el => {
+          let node = el;
+          while (node) {
+            const bg = getComputedStyle(node).backgroundColor;
+            if (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') return bg;
+            node = node.parentElement;
+          }
+          return 'rgb(0, 0, 0)';
+        };
+        const pick = sel => {
+          const el = document.querySelector(sel);
+          if (!el) return null;
+          const cs = getComputedStyle(el);
+          return ratio(cs.color, bgOf(el));
+        };
+        return {
+          cue: pick('#cueText'),
+          next: pick('tr.row-next td.cell-mobile') ?? pick('tr.row-next td'),
+          body: pick('.wrap')
+        };
+      })(),
       dots: Object.fromEntries(['dot-today', 'dot-tomorrow', 'dot-past', 'dot-conflict', 'dot-next']
         .map(name => {
           const el = document.querySelector('.' + name);
@@ -110,6 +144,13 @@ for (const item of cases) {
       );
     }
     if (item.week) assert.ok(metrics.weekGrid, '课表没有渲染');
+    // 深色模式：关键区域对比度必须过 WCAG AA（4.5:1）
+    if (item.dark) {
+      const c = metrics.contrasts || {};
+      if (c.cue !== null && c.cue !== undefined) assert.ok(c.cue >= 4.5, `深色提示条对比度 ${c.cue} < 4.5`);
+      if (c.next !== null && c.next !== undefined) assert.ok(c.next >= 4.5, `深色「下一次」行对比度 ${c.next} < 4.5`);
+      if (c.body !== null && c.body !== undefined) assert.ok(c.body >= 4.5, `深色正文对比度 ${c.body} < 4.5`);
+    }
     for (const [name, expected] of Object.entries(PALETTE)) {
       // 深色模式下配色会整套替换，只校验浅色
       if (item.dark) continue;
@@ -118,7 +159,7 @@ for (const item of cases) {
       assert.equal(actual, expected, `图例色 ${name} 变了`);
     }
     assert.equal(pageErrors.length, 0, `脚本错误：${pageErrors.join(' | ')}`);
-    report.push(`  ✓ ${item.name.padEnd(14)} ${item.width}×${item.height}  首行 ${metrics.firstRowTop}px${afterCueClose === null ? '' : `（关提示条 ${afterCueClose}px）`}  溢出 ${metrics.overflowX}px`);
+    report.push(`  ✓ ${item.name.padEnd(14)} ${item.width}×${item.height}  首行 ${metrics.firstRowTop}px${afterCueClose === null ? '' : `（关提示条 ${afterCueClose}px）`}  溢出 ${metrics.overflowX}px${item.dark ? `  对比度 提示条 ${metrics.contrasts.cue} / 下一次 ${metrics.contrasts.next}` : ''}`);
   } catch (error) {
     failures.push(`${item.name}: ${error.message}`);
     report.push(`  ✗ ${item.name.padEnd(14)} ${error.message}`);

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-YyO3Sj9OpOcvJN1G0F4GqHzMA3iE7iA2yl40Vtjt93o='; script-src-elem 'sha256-YyO3Sj9OpOcvJN1G0F4GqHzMA3iE7iA2yl40Vtjt93o='; script-src-attr 'none'; style-src 'sha256-yKh6ROlCMJT4IQh1jwzz3KPmM4hHnvP/lafUs5ZZqdI='; style-src-elem 'sha256-yKh6ROlCMJT4IQh1jwzz3KPmM4hHnvP/lafUs5ZZqdI='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-mHVgFIxCbiDxyyOdPsbEd+S6W/cRMT19VwFeID2bTnE='; script-src-elem 'sha256-mHVgFIxCbiDxyyOdPsbEd+S6W/cRMT19VwFeID2bTnE='; script-src-attr 'none'; style-src 'sha256-fGi3ztMi4ZUr9DtXqYFOzgdYx3t3VDqaFeSOWM+mPEs='; style-src-elem 'sha256-fGi3ztMi4ZUr9DtXqYFOzgdYx3t3VDqaFeSOWM+mPEs='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>CrseCue</title>
 <style>
@@ -1234,6 +1234,39 @@
     .import-status.error { background: #3d1a1c; color: #ff9492; border-color: #6b1f24; }
     .search-hit { background: #6b4b00; color: #ffdf5d; }
     .m-place, .m-line1, .m-note { color: #8b949e; }
+
+    /* 「下一次」的浅色底规则带两个 :not()，特异性高于本条之前的写法，
+       深色下会把白底刷到行上（文字仍是浅色 → 1.12:1 不可读）。这里用同样的选择器纠正。 */
+    tbody tr.row-next:not(.row-today):not(.row-tomorrow) td { background: #0d2d4d; }
+    tbody tr.row-next td:nth-child(2) { box-shadow: inset 3px 0 0 #58a6ff; }
+
+    /* 提示条与首次提示：原来只有浅色版，深色下是一块亮斑 */
+    .first-run { background: #12212f; border-color: #1f6feb66; color: #79c0ff; }
+    .first-run-close { background: #161b22; border-color: #1f6feb66; color: #79c0ff; }
+    .cue-bar { background: #12212f; border-color: #1f6feb66; color: #79c0ff; }
+    .cue-bar.is-today { background: #2a1517; border-color: #6b1f24; color: #ffb3b0; }
+
+    /* 同周分隔线、冲突标记列、跳转高亮、备注展开按钮 */
+    tbody tr.week-start > td { border-top-color: #30363d; }
+    tbody tr.week-start.row-today > td { border-top-color: #6b1f24; }
+    tbody tr.week-start.row-tomorrow > td { border-top-color: #1b4721; }
+    tbody tr.row-conflict td.cell-mark { background: #3b2f12; }
+    tbody tr.row-conflict.row-past td.cell-mark { background: #2f2712; }
+    tbody tr.conflict-peer td.cell-mark { background: #4a3a10; }
+    .is-flash { outline-color: #a371f7; }
+    .m-note-toggle { color: #58a6ff; }
+    .import-dupe { color: #e3b341; }
+
+    /* 周视图（桌面）也补一套深色 */
+    .wg-cell { background: #161b22; border-color: #30363d; }
+    .wg-head { background: #1c2128; color: #adbac7; }
+    .wg-slot { background: #12181f; color: #8b949e; }
+    .wg-item.st-past { background: #21262d; color: #8b949e; }
+    .wg-item.st-today { background: #3d1a1c; color: #ffb3b0; }
+    .wg-item.st-tomorrow { background: #12261a; color: #7ee2a8; }
+    .wg-item.st-future { background: #161b22; color: #e6edf3; border-color: #30363d; }
+    .wg-item.st-next { background: #0d2d4d; box-shadow: inset 3px 0 0 #58a6ff; }
+    .wg-item.is-conflict { background: #3b2f12; color: #e3b341; box-shadow: inset 0 0 0 2px #9e6a03; }
   }
 </style>
 </head>
@@ -1649,6 +1682,29 @@ if (typeof Element !== 'undefined' && !Element.prototype.replaceChildren) {
 // 不在 iframe/预览中强制跳转顶层页面：GitHub Pages 没有 frame-ancestors，
 // 但 JS frame-buster 在预览/嵌入环境可能把顶层导航到 404，且本身可被绕过。
 // 点击劫持作为残余风险记录在 SECURITY.md，不再做客户端强制跳转。
+
+/* 未捕获异常：白屏对使用者毫无信息量。
+   记下现场 → 跳到 404 页面（那里能一键复制错误信息，也有返回入口）。 */
+var fatalRedirected = false;
+function redirectOnFatal(reason) {
+  if (fatalRedirected) return;
+  fatalRedirected = true;
+  try {
+    var detail = String(reason && reason.stack ? reason.stack : reason).slice(0, 1500);
+    var report = [
+      '【CrseCue · 页面异常】',
+      '时间：' + new Date().toLocaleString('zh-CN'),
+      '地址：' + location.href,
+      '视口：' + window.innerWidth + '×' + window.innerHeight,
+      'UA：' + navigator.userAgent,
+      '详情：' + detail
+    ].join('\n');
+    sessionStorage.setItem('crsecue:lasterror', report);
+  } catch (e) {}
+  try { location.replace('404.html?from=error'); } catch (e2) {}
+}
+window.addEventListener('error', function (ev) { redirectOnFatal(ev.error || ev.message); });
+window.addEventListener('unhandledrejection', function (ev) { redirectOnFatal(ev.reason); });
 /* ============================================================
    1. 配置与常量
    ============================================================ */
@@ -7306,8 +7362,36 @@ function autoLocateToday() {
 }
 autoLocateToday();
 
-// 时钟要显示 hh:mm 与"第几节进行中"，每 30 秒刷一次（跨节次边界最多差 30 秒）
+// 时钟要显示 hh:mm，每 30 秒刷一次
 window.setInterval(updateClock, 30000);
+
+/* 弹窗打开时把 <main> 设为 inert：
+   JS 的焦点陷阱挡得住 Tab，挡不住读屏的虚拟光标 —— 否则打开弹窗后还能"逛"到后面的表格。
+   inert 是 Chrome 102+，老浏览器退回 aria-hidden（行为略弱但仍比不做好）。 */
+(function syncBackgroundInert() {
+  var masks = ['modalMask', 'importMask', 'exportMask', 'copyMask', 'confirmMask', 'classMask', 'restoreMask'];
+  var mainEl = document.getElementById('main');
+  if (!mainEl || typeof MutationObserver === 'undefined') return;
+  function sync() {
+    var open = masks.some(function (id) {
+      var el = document.getElementById(id);
+      return el && el.classList.contains('show');
+    });
+    if (open) {
+      mainEl.setAttribute('aria-hidden', 'true');
+      if ('inert' in mainEl) mainEl.inert = true;
+    } else {
+      mainEl.removeAttribute('aria-hidden');
+      if ('inert' in mainEl) mainEl.inert = false;
+    }
+  }
+  var observer = new MutationObserver(sync);
+  masks.forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) observer.observe(el, { attributes: true, attributeFilter: ['class'] });
+  });
+  sync();
+})();
 </script>
 </body>
 </html>

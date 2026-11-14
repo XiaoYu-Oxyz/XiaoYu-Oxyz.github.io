@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-rV78uMoS1ZTRNiMB1DZCy0H27SVuje8rxfZoeEdeiAo='; script-src-attr 'none'; style-src 'sha256-6RvCk6RZCDDfdpXdvKOfLC+VSqIzEl3gCz8A1MRU9ww='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-OhYqspvzjrcgN5lig2/fg1yxCmIvl7g8L94xaYFoHjg='; script-src-attr 'none'; style-src 'sha256-6RvCk6RZCDDfdpXdvKOfLC+VSqIzEl3gCz8A1MRU9ww='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'" />
 <title>404 · 页面走丢了</title>
 <style>
   /* ---------- 基础 ---------- */
@@ -313,15 +313,15 @@
   <div class="glow glow-3" aria-hidden="true"></div>
 
   <main class="stage">
-    <p class="eyebrow reveal d1">Error 404</p>
+    <p class="eyebrow reveal d1" id="eyebrow">Error 404</p>
 
     <div class="code-wrap reveal d2">
-      <h1 class="code">404</h1>
+      <h1 class="code" id="codeText">404</h1>
     </div>
 
-    <h2 class="title reveal d3">页面走丢了</h2>
+    <h2 class="title reveal d3" id="errTitle">页面走丢了</h2>
 
-    <p class="desc reveal d4">
+    <p class="desc reveal d4" id="errDesc">
       你访问的页面不存在，可能已被移动或删除。<br />
       不如回到首页，重新出发吧。
     </p>
@@ -336,6 +336,9 @@
         </svg>
         <span id="homeBtnText">打开实验课提醒</span>
       </a>
+      <button class="btn btn-ghost" type="button" id="copyErrBtn" hidden>
+        复制错误信息
+      </button>
       <button class="btn btn-ghost" type="button" id="backBtn">
         返回上一页
       </button>
@@ -442,6 +445,50 @@
   var backBtn = document.getElementById("backBtn");
   if (backBtn) {
     backBtn.addEventListener("click", function () { history.back(); });
+  }
+
+  /* ---------- 来自主页面异常（index.html 跳到 404.html?from=error） ----------
+     主页面把错误现场写进 sessionStorage，这里负责展示并提供一键复制。 */
+  var isErrorMode = false;
+  try {
+    isErrorMode = new URLSearchParams(location.search).get("from") === "error";
+  } catch (e) {
+    isErrorMode = false;
+  }
+  if (isErrorMode) {
+    var storedError = "";
+    try { storedError = sessionStorage.getItem("crsecue:lasterror") || ""; } catch (e) { storedError = ""; }
+
+    document.title = "CrseCue · 页面出错了";
+    var setText = function (id, text) {
+      var el = document.getElementById(id);
+      if (el) el.textContent = text;
+    };
+    setText("eyebrow", "Error");
+    setText("codeText", "!");
+    setText("errTitle", "页面出错了");
+    var desc = document.getElementById("errDesc");
+    if (desc) {
+      desc.textContent = "刚才那一下出了点问题，你保存的数据没有丢。"
+        + "刷新一次通常就好了；如果反复出现，把错误信息发给维护者。";
+    }
+
+    var copyErrBtn = document.getElementById("copyErrBtn");
+    if (copyErrBtn && storedError) {
+      copyErrBtn.hidden = false;
+      copyErrBtn.addEventListener("click", function () {
+        var done = function () {
+          copyErrBtn.textContent = "已复制";
+          setTimeout(function () { copyErrBtn.textContent = "复制错误信息"; }, 1600);
+        };
+        var fallback = function () { window.prompt("复制下面的信息：", storedError); };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(storedError).then(done, fallback);
+        } else {
+          fallback();
+        }
+      });
+    }
   }
 
   /* ---------- 认识"你上次看的是哪个班" ----------
