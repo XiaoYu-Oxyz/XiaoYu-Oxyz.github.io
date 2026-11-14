@@ -76,6 +76,17 @@ const check = (label, ok) => {
   console.log(`  ✓ ${label}`);
 };
 
+// 弹窗打开后的焦点是 setTimeout(…, 0) 里给的：慢机器上单次读取会抢跑，
+// 所以这种"稍后才会成立"的断言统一用轮询。
+async function waitUntil(fn, timeout = 3000) {
+  const started = Date.now();
+  while (Date.now() - started < timeout) {
+    if (await fn()) return true;
+    await page.waitForTimeout(50);
+  }
+  return false;
+}
+
 await loadWeekView(entries);
 
 // ---------- 1. 行数上限与截断标记 ----------
@@ -180,7 +191,10 @@ const addForm = await page.evaluate(() => ({
 }));
 check('空格预填了该格日期', addForm.date === emptyCell.date);
 check('空格预填了该格节次', addForm.period === `第${emptyCell.period}节`);
-check('焦点落在实验名称', addForm.focused === 'formName');
+const focusOk = await waitUntil(
+  async () => (await page.evaluate(() => document.activeElement && document.activeElement.id)) === 'formName'
+);
+check('焦点落在实验名称', focusOk);
 check('添加模式下没有删除按钮', addForm.deleteHidden === true);
 await page.click('#modalCancel');
 await page.waitForFunction(() => !document.getElementById('modalMask').classList.contains('show'));
