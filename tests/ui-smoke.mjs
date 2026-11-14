@@ -545,6 +545,20 @@ try {
   assert.equal(await searchPage.locator('#searchInput').inputValue(), '/');
   await searchPage.close();
 
+  // 首次访问提示：全新 context（无 localStorage）时出现，切班后消失且不再打扰
+  const freshCtx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const freshPage = await freshCtx.newPage();
+  await freshPage.goto(appUrl);
+  await freshPage.waitForSelector('#tbody tr');
+  assert.equal(await freshPage.locator('#firstRunHint').isVisible(), true);
+  assert.match(await freshPage.locator('#firstRunHint').innerText(), /班级/);
+  await freshPage.selectOption('#classSelect', 'Z2');
+  await waitVisible(freshPage.locator('#firstRunHint'), false);
+  await freshPage.reload();
+  await freshPage.waitForSelector('#tbody tr');
+  assert.equal(await freshPage.locator('#firstRunHint').isVisible(), false);
+  await freshCtx.close();
+
   // 9. 只读链接 ?mode=ro：不写本机数据，隐藏所有编辑入口，并显示"只读"徽标。
   const roPage = await context.newPage();
   await roPage.goto(`${appUrl}?mode=ro`);
