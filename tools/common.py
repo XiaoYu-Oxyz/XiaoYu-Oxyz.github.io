@@ -18,6 +18,7 @@ TOOLS_DIR = REPO_ROOT / "tools"
 DATA_DIR = REPO_ROOT / "data"
 SETTINGS = DATA_DIR / "设置.json"
 INDEX = REPO_ROOT / "index.html"
+CALENDARS_DIR = REPO_ROOT / "calendars"
 PAGE_404 = REPO_ROOT / "404.html"
 
 # 用于跨模块 import 时把仓库根放进 sys.path（工具脚本互相加载时会用到）。

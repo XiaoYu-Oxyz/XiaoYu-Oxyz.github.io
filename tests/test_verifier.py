@@ -113,12 +113,12 @@ class IcsFileTests(unittest.TestCase):
 
     def test_ics_files_exist_for_every_class(self):
         for path in sorted((BASE / "data").glob("*.xlsx")):
-            ics = BASE / (path.stem + ".ics")
+            ics = BASE / "calendars" / (path.stem + ".ics")
             self.assertTrue(ics.exists(), "%s 缺少订阅文件，先运行 tools/build.py" % path.stem)
 
     def test_ics_uses_shifted_period5_and_30min_alarm(self):
         """5-6 节按班级/设置前移到 13:30，提醒提前 30 分钟。"""
-        text = (BASE / "Z1.ics").read_text(encoding="utf-8")
+        text = (BASE / "calendars" / "Z1.ics").read_text(encoding="utf-8")
         self.assertIn("T133000", text)
         self.assertIn("T151000", text)
         self.assertIn("TRIGGER:-PT30M", text)

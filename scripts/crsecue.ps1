@@ -72,7 +72,7 @@ if ($LASTEXITCODE -ne 0) {
     Write-Fail @"
 Python 里没有 openpyxl。先执行：
 
-    $($script:Python.Exe) $($script:Python.Args -join ' ') -m pip install -r requirements.txt
+    $($script:Python.Exe) $($script:Python.Args -join ' ') -m pip install -r tools/requirements.txt
 "@
 }
 
@@ -107,7 +107,7 @@ switch ($Task) {
         Step-Data
         Step-Build
         Step-Verify
-        Write-Host "`n构建完成：index.html 已更新。要发布请跑 -Task release（或双击「上传文件.cmd」）。" -ForegroundColor Green
+        Write-Host "`n构建完成：index.html 已更新。要发布请跑 -Task release（或双击 scripts\上传文件.cmd）。" -ForegroundColor Green
     }
 
     'check' {

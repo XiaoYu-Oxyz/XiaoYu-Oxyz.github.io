@@ -4,11 +4,11 @@
 |---|---|
 | 产品名 | CrseCue（页面标题、H1 均为 `CrseCue`） |
 | 形态 | 单文件静态页面（`index.html`，零依赖、零网络、零构建步骤即可运行） |
-| 载体 | GitHub Pages（`XiaoYu-Oxyz.github.io`），另外提供 `404.html` 与每班一个 `.ics` |
+| 载体 | GitHub Pages（`XiaoYu-Oxyz.github.io`），另外提供 `404.html` 与每班一个 `calendars/<班级>.ics` |
 | 文档版本 | 1.0（2026-11-14） |
 | 状态 | 已实现并上线（CI run 10 全绿，线上已验证，见 §8.3） |
 | 适用代码版本 | `d687a3b`（`main`） |
-| 相关文档 | [README](../README.md) · [重构记录](重构记录.md) · [无障碍回归清单](../ACCESSIBILITY.md) · [安全说明](../SECURITY.md) |
+| 相关文档 | [README](../README.md) · [重构记录](重构记录.md) · [无障碍回归清单](../docs/ACCESSIBILITY.md) · [安全说明](../SECURITY.md) |
 
 ---
 
@@ -53,7 +53,7 @@
 | G4 单文件可离线 | `index.html` 单文件双击可开 | 是（`file://` 自测通过） |
 | G5 数据可自助维护 | 不改代码即可更新数据 | `data/*.xlsx` + `tools/build.py` |
 | G6 打印可直接贴到教室门口 | A4 一页多行、不切行 | `break-inside: avoid` + 表头跨页重复 |
-| G7 读屏可用 | NVDA/VoiceOver 清单通过 | 清单见 [ACCESSIBILITY.md](../ACCESSIBILITY.md)（人工复核仍需真机） |
+| G7 读屏可用 | NVDA/VoiceOver 清单通过 | 清单见 [docs/ACCESSIBILITY.md](docs/ACCESSIBILITY.md)（人工复核仍需真机） |
 
 ### 2.2 非目标（明确不做）
 
@@ -198,7 +198,7 @@
 | G3 | P0 | 导出 xlsx（全部/当前筛选） | 文件名 `Z1-实验安排-2026-11-14.xlsx`；冲突行标浅黄 |
 | G4 | P1 | 导出 json 备份 | 文件名 `Z1-数据-2026-11-14.json`；可再次导入 |
 | G5 | P1 | 导出 .ics | 事件含节次时间、地点、提前 30 分钟提醒；行按 RFC 5545 折行 |
-| G6 | P1 | 日历订阅地址 | 每班一个 `Z1.ics`，与页面导出一致（测试比对哈希） |
+| G6 | P1 | 日历订阅地址 | 每班一个 `calendars/Z1.ics`，与页面导出一致（测试比对哈希） |
 | G7 | P1 | 复制本周为文本 | 纯文本，可粘贴到微信 |
 | G8 | P2 | 文件名可反推班级 | 导入时剥掉日期与用途标签：`Z1-筛选-数据-…json` → `Z1-筛选` → `Z1` |
 | G9 | P2 | 导出范围提示 | 筛选状态下导出会提示"当前筛选不是完整班级" |
@@ -415,7 +415,7 @@
 | 课表行标签不显示时间 | 44px 列宽放不下 | 用节次序号 + 提示条补足 |
 | `updatedAt` 当前滞后于 data 提交 | 页面显示旧日期 | 可跑 `tools/build.py --stamp` 更新 |
 | 老机型 WebView 可能 < Chrome 60 | 部分新语法降级 | 已 polyfill 关键 API，未做完整回归 |
-| 真机未验收 | 读屏/触控只能靠手工复核 | 清单在 ACCESSIBILITY.md |
+| 真机未验收 | 读屏/触控只能靠手工复核 | 清单在 docs/ACCESSIBILITY.md |
 
 ---
 
@@ -425,7 +425,7 @@
 |---|---|
 | [README](../README.md) | 使用说明、构建/部署、FAQ、已知限制 |
 | [docs/重构记录.md](重构记录.md) | 19 轮改动的动机、做法、踩坑与验证数字 |
-| [ACCESSIBILITY.md](../ACCESSIBILITY.md) | 读屏回归清单（NVDA/VoiceOver/JAWS） |
+| [docs/ACCESSIBILITY.md](docs/ACCESSIBILITY.md) | 读屏回归清单（NVDA/VoiceOver/JAWS） |
 | [SECURITY.md](../SECURITY.md) | CSP、Trusted Types、哈希维护、残余风险 |
 | [scripts/README.md](../scripts/README.md) | 一键构建 / 检查 / 发布（替代原先两个 `.bat`） |
 | `tools/build.py` | 数据 → `index.html` 的构建器（写盘前先校验） |

@@ -7,7 +7,7 @@ set -e
 root=$(git rev-parse --show-toplevel)
 cd "$root"
 
-staged=$(git diff --cached --name-only --diff-filter=ACM | grep -E '^(index\.html|404\.html|Z[0-9]+\.ics)$' || true)
+staged=$(git diff --cached --name-only --diff-filter=ACM | grep -E '^(index\.html|404\.html|calendars/Z[0-9]+\.ics)$' || true)
 if [ -z "$staged" ]; then
   exit 0
 fi

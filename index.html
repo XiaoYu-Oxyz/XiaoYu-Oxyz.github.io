@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-prIpqh0u8LH4eI59/rZJA98RSSnN2ybJ1OkuLN28oXw='; script-src-elem 'sha256-prIpqh0u8LH4eI59/rZJA98RSSnN2ybJ1OkuLN28oXw='; script-src-attr 'none'; style-src 'sha256-yWBuiy7a4QE2krgO6eX8Fd1Cy8uoY7kE3TWnuwp5btQ='; style-src-elem 'sha256-yWBuiy7a4QE2krgO6eX8Fd1Cy8uoY7kE3TWnuwp5btQ='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-6yorD83uBsyxEgcxWuG6qBD5WxO1WVbfemo/ZgFlAjE='; script-src-elem 'sha256-6yorD83uBsyxEgcxWuG6qBD5WxO1WVbfemo/ZgFlAjE='; script-src-attr 'none'; style-src 'sha256-yWBuiy7a4QE2krgO6eX8Fd1Cy8uoY7kE3TWnuwp5btQ='; style-src-elem 'sha256-yWBuiy7a4QE2krgO6eX8Fd1Cy8uoY7kE3TWnuwp5btQ='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>CrseCue</title>
 <style>
@@ -7306,7 +7306,7 @@ function exportXlsx() {
 exportBtn.addEventListener('click', openExportChooser);
 document.getElementById('icsBtn').addEventListener('click', exportIcs);
 
-// 订阅地址：指向构建期生成的 <班级>.ics，日历 App 订阅一次后随数据更新自动同步
+// 订阅地址：指向构建期生成的 calendars/<班级>.ics，日历 App 订阅一次后随数据更新自动同步
 document.getElementById('icsCopyBtn').addEventListener('click', () => {
   if (!selectedClass) {
     showStatus('warn', '当前没有班级，无法复制订阅地址');
@@ -7320,7 +7320,12 @@ document.getElementById('icsCopyBtn').addEventListener('click', () => {
     showStatus('warn', '用本地文件方式打开时没有可订阅的地址；请用部署后的网页地址');
     return;
   }
-  const url = new URL(encodeURIComponent(selectedClass) + '.ics', location.href).href;
+  // 订阅文件放在 calendars/ 下：从当前页面地址推出站点根，再拼 calendars/<班级>.ics
+  const pageUrl = new URL(location.href);
+  pageUrl.pathname = pageUrl.pathname.replace(/[^/]*$/, '');
+  pageUrl.search = '';
+  pageUrl.hash = '';
+  const url = new URL('calendars/' + encodeURIComponent(selectedClass) + '.ics', pageUrl.href).href;
   const ok = () => showStatus('ok', `订阅地址已复制：${url}。在手机日历里选「订阅日历」粘贴即可。`);
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(url).then(ok).catch(() => showCopyFallback(url, '订阅地址'));

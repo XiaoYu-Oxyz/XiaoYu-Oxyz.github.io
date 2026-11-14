@@ -267,7 +267,7 @@ def describe(path: Path) -> str:
 def verify_ics_files() -> list:
     """构建期生成的日历订阅文件：结构、CRLF、折行，以及事件数必须大于 0。"""
     errors = []
-    for path in sorted(BASE.glob("*.ics")):
+    for path in sorted(common.CALENDARS_DIR.glob("*.ics")):
         name = path.name
         raw = path.read_bytes()
         if b"\r\n" not in raw:
@@ -346,7 +346,7 @@ def main(argv=None) -> int:
         print("[%s] %s: %s" % (status, extra.name, describe(extra)))
         errors.extend(extra_errors)
 
-    ics_files = sorted(BASE.glob("*.ics"))
+    ics_files = sorted(common.CALENDARS_DIR.glob("*.ics"))
     ics_errors = verify_ics_files()
     print("[%s] %d 个 .ics 订阅文件" % ("PASS" if not ics_errors else "FAIL", len(ics_files)))
     errors.extend(ics_errors)

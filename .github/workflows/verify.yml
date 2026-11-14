@@ -34,7 +34,7 @@ jobs:
           cache: pip
 
       - name: Install build dependency
-        run: python -m pip install --disable-pip-version-check -r requirements.txt
+        run: python -m pip install --disable-pip-version-check -r tools/requirements.txt
 
       - name: Validate source data
         run: python tools/validate_data.py

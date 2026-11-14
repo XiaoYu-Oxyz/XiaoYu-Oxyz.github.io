@@ -12,6 +12,7 @@
 | `tools/verify.py` | 校验 CSP 哈希、模板 JSON、默认数据解析和安全限制；`--apply` 重算代码哈希并同步 `index.html` |
 | `tools/validate_data.py` | 数据体检：一次列出所有问题（只读，不改文件） |
 | `tools/common.py` | 三个脚本共用：仓库路径、原子写入（临时文件 + 替换）、按路径动态导入、git 提交日期 |
+| `calendars/<班级>.ics` | 构建期生成的日历订阅文件（公开 URL：`/calendars/Z1.ics`）；CRLF 行尾 |
 | `scripts/crsecue.ps1` | 本地自动化入口（`-Task build/check/release`），替代原先两个 `.bat`；不含绝对路径 |
 | `requirements.txt` | 构建依赖：`openpyxl==3.1.5`；网页运行不需要 |
 

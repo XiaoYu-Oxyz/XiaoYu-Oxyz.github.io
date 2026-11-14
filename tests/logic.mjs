@@ -204,8 +204,8 @@ assert.ok(r.icsMaxLineBytes <= 75, `iCalendar 单行超过 75 字节：${r.icsMa
 assert.deepEqual(pageErrors, [], '页面脚本不应有报错');
 
 // 订阅文件必须与页面现场生成的 .ics 一致，否则同一节课会在日历里出现两条
-const icsPath = path.join(root, 'Z1.ics');
-assert.ok(fs.existsSync(icsPath), '缺少 Z1.ics：先运行 python tools/build.py');
+const icsPath = path.join(root, 'calendars', 'Z1.ics');
+assert.ok(fs.existsSync(icsPath), '缺少 calendars/Z1.ics：先运行 python tools/build.py');
 const fileIcs = fs.readFileSync(icsPath, 'utf8');
 const pageIcs = await page.evaluate(() => buildIcsText(experiments, 'Z1'));
 const pickIcsKeys = text => (text.match(/^(?:UID|DTSTART|DTEND|SUMMARY|LOCATION)[^\r]*$/gm) || []).sort();

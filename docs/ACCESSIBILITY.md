@@ -2,7 +2,7 @@
 
 本页记录已经人工验收通过的读屏行为。修改表格、班级切换、编辑/删除模式或移动端卡片后，必须重新跑一遍本清单。
 
-相关文档：[PRD §5.10](docs/PRD.md)（需求编号 J1–J8）· [SECURITY.md](SECURITY.md) · [README.md](README.md)
+相关文档：[PRD §5.10](PRD.md)（需求编号 J1–J8）· [SECURITY.md](../SECURITY.md) · [README.md](../README.md)
 
 ## 已冻结的行为
 

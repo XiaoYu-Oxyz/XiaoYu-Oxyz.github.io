@@ -39,6 +39,7 @@ BASE = common.REPO_ROOT
 DATA_DIR = common.DATA_DIR
 SETTINGS = common.SETTINGS
 DEPLOY = common.INDEX
+CALENDARS_DIR = common.CALENDARS_DIR
 ICS_SUFFIX = ".ics"
 
 TEMPLATE_RE = re.compile(r'(<template id="defaultData">)([\s\S]*?)(</template>)')
@@ -295,15 +296,16 @@ def build_ics_text(class_id, experiments, stamp, times=None):
 def write_ics_files(classes, updated_at):
     """为每个班级写 <班级>.ics，并清理已经不存在班级的旧文件。"""
     stamp = (updated_at or "19700101").replace("-", "") + "T000000Z"
+    CALENDARS_DIR.mkdir(parents=True, exist_ok=True)
     written = []
     for item in classes:
         class_id = item["id"]
         text = build_ics_text(class_id, item["experiments"], stamp, item.get("periodTimes"))
-        path = BASE / (class_id + ICS_SUFFIX)
+        path = CALENDARS_DIR / (class_id + ICS_SUFFIX)
         common.write_atomic(path, text.encode("utf-8"))
         written.append(path)
     keep = {path.name for path in written}
-    for stale in BASE.glob("*" + ICS_SUFFIX):
+    for stale in CALENDARS_DIR.glob("*" + ICS_SUFFIX):
         if stale.name not in keep:
             stale.unlink()
             print("removed stale %s" % stale.name)

@@ -15,7 +15,7 @@
 | **本页 README** | 想用起来 / 想改数据 / 想部署 / 遇到问题 |
 | [docs/PRD.md](docs/PRD.md) | 想知道**产品到底有哪些需求、边界在哪、什么被明确否决了** |
 | [docs/重构记录.md](docs/重构记录.md) | 想知道某个改动**为什么这么做**、踩过什么坑 |
-| [ACCESSIBILITY.md](ACCESSIBILITY.md) | 改了表格/焦点/模式后，按清单做读屏回归 |
+| [docs/ACCESSIBILITY.md](docs/ACCESSIBILITY.md) | 改了表格/焦点/模式后，按清单做读屏回归 |
 | [SECURITY.md](SECURITY.md) | 改了 `index.html` 的 `<style>`/`<script>` 后，怎么做哈希维护 |
 | [scripts/README.md](scripts/README.md) | 想一键构建/检查/发布（替代原先两个 .bat） |
 
@@ -117,10 +117,10 @@
 - 「操作 → 数据 → 日历（.ics）」导出 `${班级}-实验课.ics`：每条实验一个 `VEVENT`（节次按 1-2/3-4/5-6/7-8/9-10 映射到具体时间，默认 5-6 节是 **13:30–15:10**），带 `VALARM` 提前 **30 分钟**提醒。导入 iOS/Android 日历后由系统负责提醒 —— 这是纯静态页面唯一能做到“真正提醒”的方式，不需要任何后端。
 - **节次时间可配**：`data/设置.json` 的 `periodTimes` 是全站默认；某个班时间不同时，在该班 xlsx 的 `班级信息` 页写一行 `periodTimes`（JSON，如 `{"5-6":["14:00","15:40"]}`）即可覆盖。优先级：**班级文件 > 设置.json > 内置默认**，留空则自动回落。页面提示条会显示真实时段（如「第3-4节（10:00–11:40）」）。
 - **时钟行**：格式是 `现在：2026-11-14 第 11 周 星期六 19:47`（24 小时制，每 30 秒自刷新）。学期未开始时中间显示「学期未开始」。**跨天会自动重绘**：页面挂一夜后，「今天/明天」标签、提示条、课表的今天列会跟着日期一起更新（30 秒心跳 + 回到前台各查一次）。
-- **订阅日历**：构建时在仓库根目录生成 `Z1.ics`、`Z2.ics`…（每班一个）。「复制订阅地址」给出 `https://<站点>/<班级>.ics`，在手机日历里选「订阅日历」粘贴一次，以后数据更新会自动同步。
+- **订阅日历**：构建时在 `calendars/` 下生成 `Z1.ics`、`Z2.ics`…（每班一个）。「复制订阅地址」给出 `https://<站点>/calendars/<班级>.ics`，在手机日历里选「订阅日历」粘贴一次，以后数据更新会自动同步。
 - 订阅文件与页面导出的文件使用**完全相同的 UID**（班级+日期+节次+名称的哈希），所以两者不会产生重复事件；`DTSTAMP` 固定取 `data/设置.json` 的 `updatedAt`，保证构建结果可复现、CI 不会因时间戳产生 diff。
 - 注意：GitHub Pages 对 `.ics` 返回的 Content-Type 可能是 `application/octet-stream`，部分日历客户端会拒绝直接订阅；此时用「日历（.ics）」下载后导入即可。
-- 真机订阅步骤（地址形如 `https://<用户名>.github.io/<仓库>/Z1.ics`，点页面「复制订阅地址」拿到的就是它）：
+- 真机订阅步骤（地址形如 `https://<用户名>.github.io/<仓库>/calendars/Z1.ics`，点页面「复制订阅地址」拿到的就是它）：
 
   | 系统 / 应用 | 操作 | 备注 |
   |---|---|---|
@@ -302,7 +302,7 @@ https://xiaoyu-oxyz.github.io/?class=Z2&mode=ro
 - 普通阅读时操作列（表头和单元格）对读屏隐藏；进入编辑/删除模式后恢复，铅笔/圆圈按钮可 Tab 到达。手机端 `cell-mobile` 的子块对读屏隐藏，只读整段摘要，不读空白、不拆成上下两段。
 - 编辑/删除行按钮与编辑弹窗摘要读出完整字段，包含“节次”列名和值。
 - 浅灰辅助文字统一加深为 `#6e7781`，提高对比度；真实 NVDA/VoiceOver 仍需人工复核。
-- 人工回归步骤固定在 [ACCESSIBILITY.md](ACCESSIBILITY.md)，修改表格/焦点后必须重新跑。
+- 人工回归步骤固定在 [docs/ACCESSIBILITY.md](docs/ACCESSIBILITY.md)，修改表格/焦点后必须重新跑。
 
 ### 2.12 兼容性（老设备）
 
@@ -324,7 +324,7 @@ https://xiaoyu-oxyz.github.io/?class=Z2&mode=ro
 CrseCue/
 ├─ index.html                 # 唯一真源 + GitHub Pages 部署入口
 ├─ 404.html                   # 自定义 404 页面（缺失路径时使用）
-├─ Z1.ics / Z2.ics / Z5.ics   # 构建期生成的日历订阅文件（每班一个）
+├─ calendars/                 # 构建期生成的日历订阅文件（每班一个，公开 URL：/calendars/Z1.ics）
 ├─ data/
 │  ├─ Z1.xlsx                 # 班级 Z1：当前 25 条
 │  ├─ Z2.xlsx                 # 班级 Z2：当前 27 条
@@ -332,19 +332,20 @@ CrseCue/
 │  └─ 设置.json               # 全局 week1 / updatedAt / periodTimes
 ├─ tools/                     # 构建与校验（Python，纯标准库 + openpyxl）
 │  ├─ common.py               # 三脚本共用：路径、原子写入、动态导入、git 日期
-│  ├─ build.py                # 读 data → 校验 → 写 index.html 与 *.ics
+│  ├─ build.py                # 读 data → 校验 → 写 index.html 与 calendars/*.ics
 │  ├─ verify.py               # 校验 CSP 哈希、模板、默认数据、字节一致性
-│  └─ validate_data.py        # 数据体检（比 build 更宽容，一次列全问题）
+│  ├─ validate_data.py        # 数据体检（比 build 更宽容，一次列全问题）
+│  └─ requirements.txt        # 构建依赖：openpyxl==3.1.5
 ├─ scripts/                   # 本地自动化（PowerShell，替代原先两个 .bat）
 │  ├─ crsecue.ps1             # 唯一入口：-Task build|check|release
+│  ├─ 部署文件.cmd             # 双击 = -Task build（构建 + 校验）
+│  ├─ 全部检查.cmd             # 双击 = -Task check（含全部自动化测试）
+│  ├─ 上传文件.cmd             # 双击 = -Task release（检查 + 提交 + 推送）
 │  └─ README.md               # 脚本用法与参数说明
-├─ 部署文件.cmd                # 双击 = -Task build（构建 + 校验）
-├─ 全部检查.cmd                # 双击 = -Task check（含全部自动化测试）
-├─ 上传文件.cmd                # 双击 = -Task release（检查 + 提交 + 推送）
-├─ requirements.txt           # 构建依赖：openpyxl==3.1.5
+
 ├─ package.json               # UI 冒烟测试脚本（Chromium/WebKit）与 Playwright 版本
 ├─ package-lock.json
-├─ ACCESSIBILITY.md           # 读屏人工回归清单
+
 ├─ tests/
 │  ├─ test_build.py           # build reader 回归测试（metadata/week1/旧格式）
 │  ├─ test_validate_data.py   # 体检脚本回归（坏日期/越界节次/重名/重复行/合并单元格）
@@ -358,6 +359,7 @@ CrseCue/
 ├─ .github/workflows/verify.yml # CI：构建 + CSP + 单元/UI 测试 + 产物检查
 ├─ .github/workflows/update-data.yml # 手动触发：构建+校验+自动提交（一键更新数据）
 ├─ docs/PRD.md                # 产品需求文档（需求编号、验收标准、被否决清单）
+├─ docs/ACCESSIBILITY.md      # 读屏人工回归清单
 ├─ docs/重构记录.md            # 19 轮改动的动机、做法、踩坑与验证数字
 ├─ LICENSE                    # MIT
 ├─ SECURITY.md                # 安全设计、残余风险、维护说明
@@ -529,7 +531,7 @@ CrseCue/
 安装：
 
 ```bash
-python -m pip install -r requirements.txt
+python -m pip install -r tools/requirements.txt
 ```
 
 如果当前 `python` 没有 `openpyxl`，先安装；也可以使用你自己环境中已装好依赖的 Python。
@@ -542,7 +544,7 @@ powershell -ExecutionPolicy Bypass -File scripts/crsecue.ps1 -Task check     # �
 powershell -ExecutionPolicy Bypass -File scripts/crsecue.ps1 -Task release   # 再加提交与推送
 ```
 
-或双击仓库根目录的 `部署文件.cmd` / `全部检查.cmd` / `上传文件.cmd`。参数与细节见 [scripts/README.md](scripts/README.md)。
+或双击 `scripts\部署文件.cmd` / `scripts\全部检查.cmd` / `scripts\上传文件.cmd`。参数与细节见 [scripts/README.md](scripts/README.md)。
 脚本会自己找 Python（`CRSECUE_PYTHON` → `python` → `py -3`），找不到或没装 openpyxl 就直说，不会静默继续。
 
 ### 5.2 只改数据
@@ -773,7 +775,7 @@ git push
 
 | 检查 | 结果 |
 |---|---|
-| `python tools/build.py` | 3 个班 65 条；同时生成 `Z1.ics` / `Z2.ics` / `Z5.ics` |
+| `python tools/build.py` | 3 个班 65 条；同时生成 `calendars/Z1.ics` / `Z2.ics` / `Z5.ics` |
 | `python tools/verify.py` | `index.html`、`404.html`、3 个 `.ics` 全部 PASS |
 | Python 单元测试 | **42/42**（build 6 + 校验器 22 + 体检脚本 14，含节次时间解析/合并/优先级、ICS 13:30 + 30 分钟提醒、坏数据逐条识别） |
 | `npm run test:logic`（Chromium / WebKit） | **52 个用例**：日期/周次/节次/冲突/ICS + 重复判定 + **xlsx 生成（转义、冲突高亮、冻结、列宽、空表）** |
