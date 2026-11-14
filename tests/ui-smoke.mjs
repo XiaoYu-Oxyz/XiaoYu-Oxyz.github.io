@@ -533,6 +533,18 @@ try {
   await waitValue(builtPage.locator('#classSelect'), 'Z1');
   await builtPage.close();
 
+  // 键盘 /：展开面板并聚焦搜索框；在输入框里按 / 不应被劫持
+  const searchPage = await context.newPage();
+  await searchPage.goto(appUrl);
+  await searchPage.waitForSelector('#tbody tr');
+  assert.equal(await searchPage.locator('#actionPanel').isVisible(), false);
+  await searchPage.keyboard.press('/');
+  await searchPage.waitForSelector('#actionPanel:not([hidden])');
+  await waitFocus(searchPage, 'searchInput');
+  await searchPage.keyboard.press('/');
+  assert.equal(await searchPage.locator('#searchInput').inputValue(), '/');
+  await searchPage.close();
+
   // 9. 只读链接 ?mode=ro：不写本机数据，隐藏所有编辑入口，并显示"只读"徽标。
   const roPage = await context.newPage();
   await roPage.goto(`${appUrl}?mode=ro`);

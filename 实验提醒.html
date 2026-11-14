@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-n5rekrttPcCqtqjnkMDsg1055h5sTZuXyHzpLNkTAvM='; script-src-elem 'sha256-n5rekrttPcCqtqjnkMDsg1055h5sTZuXyHzpLNkTAvM='; script-src-attr 'none'; style-src 'sha256-A0Sl9nsl916adzft590Y++K/aApMjIz/owqSklCVx/w='; style-src-elem 'sha256-A0Sl9nsl916adzft590Y++K/aApMjIz/owqSklCVx/w='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-I7VWpso7PCdB85CR4BesGAV9H6mnfw0C2+eVfa/K6/w='; script-src-elem 'sha256-I7VWpso7PCdB85CR4BesGAV9H6mnfw0C2+eVfa/K6/w='; script-src-attr 'none'; style-src 'sha256-W+bCkzfl92ZyLMOj3NcorMa9eL9qDG0OGhnZIB+yiI8='; style-src-elem 'sha256-W+bCkzfl92ZyLMOj3NcorMa9eL9qDG0OGhnZIB+yiI8='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>实验课提醒</title>
 <style>
@@ -848,13 +848,14 @@
       width: 36px; height: 36px; padding: 0; line-height: 0; z-index: 2;
       touch-action: manipulation;
     }
+    /* 24px 是 WCAG 2.5.8 的最小可点尺寸；容器 36px 只负责居中，不是点击热区 */
     body.deleting tbody tr .mark-btn,
     body.editing tbody tr .edit-row-btn {
-      width: 20px; height: 20px;
+      width: 24px; height: 24px;
     }
-    body.editing tbody tr .edit-row-btn svg { width: 13px; height: 13px; }
-    body.deleting tbody tr .mark-btn::before { width: 9px; height: 2px; }
-    body.deleting tbody tr .mark-btn::after { width: 2px; height: 9px; }
+    body.editing tbody tr .edit-row-btn svg { width: 14px; height: 14px; }
+    body.deleting tbody tr .mark-btn::before { width: 11px; height: 2px; }
+    body.deleting tbody tr .mark-btn::after { width: 2px; height: 11px; }
     tbody tr.row-today { background: #ffe9e8; border-color: #ffc9c7; }
     tbody tr.row-tomorrow { background: #e6f9ea; border-color: #c3f0cd; }
     tbody tr.row-past { background: #f6f8fa; }
@@ -5983,6 +5984,18 @@ function exportXlsx() {
 
 exportBtn.addEventListener('click', openExportChooser);
 document.getElementById('icsBtn').addEventListener('click', exportIcs);
+
+// 键盘 /：展开「操作」面板并聚焦搜索（零布局代价；手机上仍从「操作」进入）
+document.addEventListener('keydown', ev => {
+  if (ev.key !== '/' || ev.ctrlKey || ev.metaKey || ev.altKey) return;
+  const active = document.activeElement;
+  const tag = active ? active.tagName : '';
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (active && active.isContentEditable)) return;
+  ev.preventDefault();
+  if (actionPanel.hidden) actionsToggle.click();
+  searchInput.focus();
+  searchInput.select();
+});
 
 
 /* ============================================================
