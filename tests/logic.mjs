@@ -99,6 +99,31 @@ const r = await page.evaluate(() => {
     { date: '2026-11-02', period: '第5-6节', name: '重复实验', place: 'A101', note: '' }
   ]).length;
   out.periodTimesShape = JSON.stringify(sanitizePeriodTimes({ '5-6': ['13:30', '15:10'], '7': ['x', 'y'] }));
+
+  // ---- xlsx 生成：手写 OOXML 是"数据出得去"的唯一通道，之前零覆盖 ----
+  const sheet = makeXlsxSheetXml([
+    ['日期', '实验名称'],
+    ['2026-11-02', 'A&B <c> "d" \'e\''],
+    ['2026-11-09', ' 前后有空格 ']
+  ], [12, 30], new Set([1]), true);
+  out.xlsxEscaped = /A&amp;B &lt;c&gt; &quot;d&quot; &apos;e&apos;/.test(sheet);
+  out.xlsxHeaderNoStyle = !/<c r="A1"[^>]*s="1"/.test(sheet);
+  out.xlsxHighlighted = /<c r="A2"[^>]*s="1"/.test(sheet) && !/<c r="A3"[^>]*s="1"/.test(sheet);
+  out.xlsxPreserveSpace = /<t xml:space="preserve"> 前后有空格 <\/t>/.test(sheet);
+  out.xlsxStructure = /<pane ySplit="1"/.test(sheet)
+    && /<autoFilter ref="A1:B3"\/>/.test(sheet)
+    && /<col min="1" max="1" width="12"/.test(sheet)
+    && /<col min="2" max="2" width="30"/.test(sheet);
+  const plainSheet = makeXlsxSheetXml([['日期'], ['2026-11-02']], [], null, false);
+  out.xlsxNoHighlightNoCols = !/ s="1"/.test(plainSheet) && !/<cols>/.test(plainSheet);
+  const headerOnly = makeXlsxSheetXml([['日期', '节次']], null, null, false);
+  out.xlsxHeaderOnly = /<row r="1">/.test(headerOnly) && !/<row r="2">/.test(headerOnly)
+    && /<autoFilter ref="A1:B1"\/>/.test(headerOnly);
+  out.xlsxControlChars = !/[\u0000-\u0008\u000B\u000C]/.test(xmlEscape('a\u0001b\u0008c'));
+
+  const blob = buildXlsxBlob([['日期'], ['2026-11-02']], '实验安排', [12], null, [['键', '值'], ['班级', 'Z1']]);
+  out.xlsxBlobSize = blob instanceof Blob && blob.size > 1000;
+  out.xlsxBlobType = /spreadsheetml/.test(blob.type);
   return out;
 });
 
@@ -139,7 +164,18 @@ const cases = [
   ['cleanText 去控制字符', r.cleanText, 'ab'],
   ['cleanNote 统一换行并 trim', r.cleanNote, 'x\ny'],
   ['导入疑似重复按 日期+节次+名称 判定', r.dupeRows, 1],
-  ['periodTimes 只保留合法项', r.periodTimesShape, '{"5-6":["13:30","15:10"]}']
+  ['periodTimes 只保留合法项', r.periodTimesShape, '{"5-6":["13:30","15:10"]}'],
+  // xlsx 生成（导出路径）
+  ['xlsx 单元格 XML 转义', r.xlsxEscaped, true],
+  ['xlsx 表头不加高亮样式', r.xlsxHeaderNoStyle, true],
+  ['xlsx 冲突行加 s="1"、其他行不加', r.xlsxHighlighted, true],
+  ['xlsx 前后空格用 xml:space 保留', r.xlsxPreserveSpace, true],
+  ['xlsx 冻结首行 + autoFilter + 列宽', r.xlsxStructure, true],
+  ['xlsx 无高亮/无列宽时不生成多余节点', r.xlsxNoHighlightNoCols, true],
+  ['xlsx 只有表头时范围是 A1:B1', r.xlsxHeaderOnly, true],
+  ['xmlEscape 去掉控制字符', r.xlsxControlChars, true],
+  ['buildXlsxBlob 产出非空 Blob', r.xlsxBlobSize, true],
+  ['buildXlsxBlob 的 MIME 是 spreadsheetml', r.xlsxBlobType, true]
 ];
 
 let failed = 0;

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-MXz7yhhdx1A/cEBKTRK6VbTNlNBVUdiPXMsPAaETMVI='; script-src-elem 'sha256-MXz7yhhdx1A/cEBKTRK6VbTNlNBVUdiPXMsPAaETMVI='; script-src-attr 'none'; style-src 'sha256-INsLnEmX/DPAr7yKBwW3sqTs5oNNUEARYJ/0PlZ37CQ='; style-src-elem 'sha256-INsLnEmX/DPAr7yKBwW3sqTs5oNNUEARYJ/0PlZ37CQ='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-U5aXH9d3z9mo0VOY8PADKp1UIJmoOpKho5q6DE+d98c='; script-src-elem 'sha256-U5aXH9d3z9mo0VOY8PADKp1UIJmoOpKho5q6DE+d98c='; script-src-attr 'none'; style-src 'sha256-rC5S8q/FcWR/6W8bxcXRrbA6/0D3sPlm9yNJHZrP5YI='; style-src-elem 'sha256-rC5S8q/FcWR/6W8bxcXRrbA6/0D3sPlm9yNJHZrP5YI='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>CrseCue</title>
 <style>
@@ -147,6 +147,13 @@
   .recent-filter.is-disabled { color: #6e7781; cursor: not-allowed; opacity: .6; }
   .recent-filter.is-disabled input { cursor: not-allowed; }
   .recent-count { font-size: 12px; color: #6e7781; white-space: nowrap; }
+  /* 本地存储不可用时的常驻警告：不吓人，但必须让用户知道"改完刷新就没了" */
+  .storage-warn {
+    margin: 0 0 10px; padding: 8px 12px;
+    border: 1px solid #f0d38a; border-radius: 8px;
+    background: #fff8e6; color: #7a4b00;
+    font-size: 12.5px; line-height: 1.65;
+  }
   /* 首次访问提示：默认班不是"你的班"时最容易看错课表 */
   .first-run {
     display: flex; align-items: center; gap: 8px;
@@ -676,7 +683,22 @@
   }
   .form-row {
     display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px;
+    position: relative; /* iOS 下自绘建议列表的定位基准 */
   }
+  /* 自绘建议下拉（iOS Safari 不渲染 <datalist>，只能用这个兜底） */
+  .suggest-box {
+    position: absolute; left: 0; right: 0; top: 100%; z-index: 6;
+    margin-top: 2px; max-height: 190px; overflow: auto;
+    background: #fff; border: 1px solid #d0d7de; border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(31, 35, 40, .18);
+  }
+  .suggest-item {
+    display: block; width: 100%; text-align: left;
+    padding: 9px 12px; border: 0; background: none;
+    font-family: inherit; font-size: 13px; color: #24292f;
+    cursor: pointer;
+  }
+  .suggest-item:hover, .suggest-item:focus-visible { background: #f2f8ff; }
   .form-row > label,
   .choice-body label {
     font-size: 13px; font-weight: 600; color: #424a53;
@@ -1001,6 +1023,7 @@
     .data-updated { font-size: 11px; }
     /* 显式排序：.wrap 是 flex 容器，未指定 order 的子元素会落到最前面（诊断行曾在表格之上） */
     .head { order: 1; }
+    .storage-warn { order: 2; }
     .first-run { order: 2; }
     .cue-bar { order: 3; }
     .action-panel { order: 4; }
@@ -1350,6 +1373,8 @@
     </div>
   </header>
   <div class="first-run" id="firstRunHint" hidden></div>
+  <!-- 浏览器禁用/写满本地存储时常驻：让用户知道自己处在"改完就丢"的状态 -->
+  <div class="storage-warn" id="storageWarn" role="status" hidden></div>
   <div class="cue-bar" id="cueBar" hidden>
     <span class="cue-text" id="cueText"></span>
     <button class="cue-close" id="cueClose" type="button" aria-label="关闭提示">×</button>
@@ -1747,6 +1772,18 @@ const WEEK_NAMES = ['星期日','星期一','星期二','星期三','星期四',
 const BASE_REQUIRED = ['节次', '实验名称', '实验地点'];
 
 const STORAGE_PREFIX = 'ghpages:zhizao2402:';
+// 本地存储是否可用（无痕模式、禁用 Cookie、配额满都会让写入抛错）
+const STORAGE_OK = (() => {
+  try {
+    const probe = STORAGE_PREFIX + '__selftest';
+    localStorage.setItem(probe, '1');
+    const ok = localStorage.getItem(probe) === '1';
+    localStorage.removeItem(probe);
+    return ok;
+  } catch (e) {
+    return false;
+  }
+})();
 const WEEK1_START_KEY = STORAGE_PREFIX + 'week1:v1';
 const LEGACY_WEEK1_KEY = 'zhizao2402_week1_start_v1';
 const OLD_SINGLE_STORAGE_KEY = STORAGE_PREFIX + 'experiments:v1';
@@ -5673,6 +5710,61 @@ function refreshPlaceSuggestions() {
   };
   fill(placeList, places);
   fill(nameList, names);
+  // 自绘下拉用的候选（iOS 不渲染 datalist）
+  suggestionData = {
+    names: Array.from(names.values()).sort((a, b) => a.localeCompare(b, 'zh-Hans-CN')),
+    places: Array.from(places.values()).sort((a, b) => a.localeCompare(b, 'zh-Hans-CN'))
+  };
+}
+
+/* ---------- iOS 兜底：Safari 不渲染 <datalist>，自己画一个建议列表 ---------- */
+let suggestionData = { names: [], places: [] };
+const NEEDS_JS_SUGGEST = /iP(hone|ad|pod)/i.test(navigator.userAgent)
+  || !('list' in HTMLInputElement.prototype);
+
+function attachSuggest(input, getValues) {
+  if (!input || !input.parentElement) return;
+  const box = document.createElement('div');
+  box.className = 'suggest-box';
+  box.hidden = true;
+  input.parentElement.appendChild(box);
+  const close = () => { box.hidden = true; };
+  const pick = value => {
+    input.value = value;
+    close();
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  };
+  const render = () => {
+    const query = input.value.trim().toLowerCase();
+    const values = getValues()
+      .filter(value => !query || value.toLowerCase().includes(query))
+      .slice(0, 8);
+    if (!values.length) { close(); return; }
+    box.replaceChildren(...values.map(value => {
+      const item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'suggest-item';
+      item.textContent = value;
+      // mousedown 而不是 click：避免 blur 先把列表关掉
+      item.addEventListener('mousedown', event => { event.preventDefault(); pick(value); });
+      return item;
+    }));
+    box.hidden = false;
+  };
+  input.setAttribute('autocomplete', 'off');
+  input.addEventListener('focus', render);
+  input.addEventListener('input', render);
+  input.addEventListener('blur', () => window.setTimeout(close, 150));
+  input.addEventListener('keydown', event => { if (event.key === 'Escape') close(); });
+}
+
+if (NEEDS_JS_SUGGEST) {
+  [['formName', 'names'], ['formPlace', 'places']].forEach(([id, key]) => {
+    const input = document.getElementById(id);
+    if (!input) return;
+    input.removeAttribute('list');
+    attachSuggest(input, () => suggestionData[key] || []);
+  });
 }
 
 function openModal(prefill) {
@@ -7366,6 +7458,17 @@ document.addEventListener('keydown', (e) => {
 });
 
 showFirstRunHint();
+
+// 存储不可用时挂常驻提示：否则用户会以为改动已经保存，刷新后才发现全丢了
+(function showStorageWarning() {
+  const el = document.getElementById('storageWarn');
+  if (!el || STORAGE_OK) return;
+  el.textContent = '这台设备无法保存改动（浏览器禁用了本地存储）。刷新后修改会丢失，'
+    + '需要保留请用「操作 → 数据 → 导出」备份。';
+  el.hidden = false;
+  document.body.classList.add('no-storage');
+})();
+
 if (viewListBtn) viewListBtn.addEventListener('click', () => setView('list', true));
 if (viewWeekBtn) viewWeekBtn.addEventListener('click', () => setView('week', true));
 {

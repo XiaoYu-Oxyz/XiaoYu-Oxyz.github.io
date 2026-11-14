@@ -598,6 +598,40 @@ try {
   assert.equal(await roPage.locator('.action-group-edit').isVisible(), false);
   await roPage.close();
 
+  // 10. 横屏（640×360）：两列卡片布局下交互仍然可用。
+  //     这类问题视觉冒烟看不出来（它只量几何），必须真的点一遍。
+  const landCtx = await browser.newContext({ viewport: { width: 640, height: 360 } });
+  const landPage = await landCtx.newPage();
+  const landErrors = [];
+  landPage.on('pageerror', error => landErrors.push(error.message));
+  await landPage.goto(`${appUrl}?class=Z1`);
+  await landPage.waitForSelector('#tbody tr');
+  const landCols = await landPage.evaluate(() => new Set(
+    Array.from(document.querySelectorAll('#tbody tr')).map(row => Math.round(row.getBoundingClientRect().left))
+  ).size);
+  assert.equal(landCols, 2, '横屏应为两列卡片');
+  // 两列的同一排必须顶边齐平（周分隔不能把一侧顶下去）
+  const landPairs = await landPage.evaluate(() => {
+    const rows = Array.from(document.querySelectorAll('#tbody tr'));
+    const out = [];
+    for (let i = 0; i + 1 < rows.length; i += 2) {
+      out.push(Math.abs(rows[i].getBoundingClientRect().top - rows[i + 1].getBoundingClientRect().top));
+    }
+    return out;
+  });
+  assert.ok(landPairs.every(diff => diff <= 1), `两列左右没有对齐：${landPairs.join(',')}`);
+  // 编辑模式下的行首铅笔可点开弹窗
+  await landPage.locator('#actionsToggle').click();
+  await landPage.locator('#editModeBtn').click();
+  await landPage.waitForSelector('.edit-row-btn', { state: 'visible' });
+  await landPage.locator('.edit-row-btn').first().click();
+  await landPage.waitForSelector('#modalMask.show');
+  assert.equal(await landPage.locator('#modalTitle').innerText(), '编辑实验');
+  await landPage.locator('#modalCancel').click();
+  await landPage.locator('#editModeBtn').click();
+  assert.deepEqual(landErrors, [], '横屏下有脚本错误');
+  await landCtx.close();
+
   console.log('UI smoke OK');
 } finally {
   fs.rmSync(fixtureDir, { force: true, recursive: true });
