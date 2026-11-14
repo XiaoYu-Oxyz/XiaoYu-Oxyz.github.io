@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-L39gh/Y0oA0kM6FEgAahjiHS7xAYHXI+HIuSt/O5/pQ='; script-src-elem 'sha256-L39gh/Y0oA0kM6FEgAahjiHS7xAYHXI+HIuSt/O5/pQ='; script-src-attr 'none'; style-src 'sha256-wTw3N7T3X+YH+qUEFscHTwaTkDhCIjB/jqOIIgqBTfY='; style-src-elem 'sha256-wTw3N7T3X+YH+qUEFscHTwaTkDhCIjB/jqOIIgqBTfY='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-2lBcOcbSBbkMIlfUkvw1w6VdbKsLSrmKCZB+3Ktw3MQ='; script-src-elem 'sha256-2lBcOcbSBbkMIlfUkvw1w6VdbKsLSrmKCZB+3Ktw3MQ='; script-src-attr 'none'; style-src 'sha256-wTw3N7T3X+YH+qUEFscHTwaTkDhCIjB/jqOIIgqBTfY='; style-src-elem 'sha256-wTw3N7T3X+YH+qUEFscHTwaTkDhCIjB/jqOIIgqBTfY='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>实验课提醒</title>
 <style>
@@ -2806,11 +2806,12 @@ function renderWeekView() {
   }
   fragment.appendChild(grid);
 
-  // 「其他」行已删除；排不进网格的记录要显式说明，避免数据"消失"
+  // 「其他」行已删除。当前数据里节次都是「第N-M节」，走不到这里；
+  // 保留这行是为了将来导入非数字节次（如「上午」）时不至于静默消失。
   if (skipped > 0) {
     const note = document.createElement('p');
     note.className = 'wg-empty';
-    note.textContent = `另有 ${skipped} 条节次无法排进课表（如「晚上」），请切回列表视图查看。`;
+    note.textContent = `另有 ${skipped} 条节次无法排进课表，请切回列表视图查看。`;
     fragment.appendChild(note);
   }
   weekViewEl.replaceChildren(fragment);
