@@ -136,10 +136,11 @@ for (const item of cases) {
     assert.ok(metrics.headerVisible, '标题不可见');
     assert.ok(metrics.firstRowTop !== null && metrics.firstRowTop < item.height, '首行跑到视口外');
     // 头部高度守卫：超过这个数说明又堆了一层东西。
-    // 注意字体差异：CI 是 Linux + Noto CJK，同一页面比 Windows + 微软雅黑高约 70–90px
-    // （实测 360×640：Win 296、Linux 387；横屏 640×360：Win 191、Linux 262）。
-    // 所以上限按"跨平台仍能接受"来定，而不是按某一台机器的实测值。
-    if (!item.week) assert.ok(metrics.firstRowTop <= 420, `首屏首行过高：${metrics.firstRowTop}px > 420px`);
+    // 字体差异很大：CI 是 Linux + Noto CJK，同一页面比 Windows + 微软雅黑高约 90px
+    // （实测：360×640 Win 296 / Linux 387；320×640 Win 342 / Linux ≈433）。
+    // 所以这里只是"别再加一层东西"的粗上限；精确约束交给
+    // 横向溢出、关提示条回落量、深色对比度、以及 ui-smoke 里的两列对齐断言。
+    if (!item.week) assert.ok(metrics.firstRowTop <= 460, `首屏首行过高：${metrics.firstRowTop}px > 460px`);
     if (afterCueClose !== null) {
       const delta = metrics.firstRowTop - afterCueClose;
       assert.ok(
