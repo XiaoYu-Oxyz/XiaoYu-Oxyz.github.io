@@ -78,38 +78,80 @@ jobs:
         run: |
           npm ci --ignore-scripts
           npx playwright install --with-deps ${{ matrix.browser }}
+          # 无 CJK 字体时中文会渲染成豆腐块，字体度量与真机差很远：
+          # 首屏高度、换行、宽度断言都会跟着漂移。
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends fonts-noto-cjk
 
+      # 失败时 GitHub 的日志需要登录才能看；把每个测试的输出 tee 到文件，
+      # 后面统一转成 ::error:: 注解（公开可读）方便排查。
       - name: UI smoke (Chromium)
         if: matrix.browser == 'chromium'
-        run: npm run test:ui
+        run: |
+          set -o pipefail
+          mkdir -p test-results
+          npm run test:ui 2>&1 | tee test-results/ui.log
 
       - name: UI smoke (WebKit)
         if: matrix.browser == 'webkit'
-        run: npm run test:ui:webkit
+        run: |
+          set -o pipefail
+          mkdir -p test-results
+          npm run test:ui:webkit 2>&1 | tee test-results/ui.log
 
       - name: Logic tests (Chromium)
         if: matrix.browser == 'chromium'
-        run: npm run test:logic
+        run: |
+          set -o pipefail
+          mkdir -p test-results
+          npm run test:logic 2>&1 | tee test-results/logic.log
 
       - name: Logic tests (WebKit)
         if: matrix.browser == 'webkit'
-        run: npm run test:logic:webkit
+        run: |
+          set -o pipefail
+          mkdir -p test-results
+          npm run test:logic:webkit 2>&1 | tee test-results/logic.log
 
       - name: Week view tests (Chromium)
         if: matrix.browser == 'chromium'
-        run: npm run test:week
+        run: |
+          set -o pipefail
+          mkdir -p test-results
+          npm run test:week 2>&1 | tee test-results/week.log
 
       - name: Week view tests (WebKit)
         if: matrix.browser == 'webkit'
-        run: npm run test:week:webkit
+        run: |
+          set -o pipefail
+          mkdir -p test-results
+          npm run test:week:webkit 2>&1 | tee test-results/week.log
 
       - name: Visual smoke (Chromium)
         if: matrix.browser == 'chromium'
-        run: npm run test:visual
+        run: |
+          set -o pipefail
+          mkdir -p test-results
+          npm run test:visual 2>&1 | tee test-results/visual.log
 
       - name: Visual smoke (WebKit)
         if: matrix.browser == 'webkit'
-        run: npm run test:visual:webkit
+        run: |
+          set -o pipefail
+          mkdir -p test-results
+          npm run test:visual:webkit 2>&1 | tee test-results/visual.log
+
+      - name: Surface failures as annotations
+        if: failure()
+        run: |
+          for f in test-results/*.log; do
+            [ -e "$f" ] || continue
+            echo "::group::$(basename "$f")"
+            tail -n 20 "$f" | tr -d '\r' | while IFS= read -r line; do
+              [ -n "$line" ] && echo "::error::$line"
+            done
+            echo "::endgroup::"
+          done
 
       - name: Upload screenshots
         if: always()
