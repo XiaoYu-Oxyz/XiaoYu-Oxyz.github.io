@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-U5aXH9d3z9mo0VOY8PADKp1UIJmoOpKho5q6DE+d98c='; script-src-elem 'sha256-U5aXH9d3z9mo0VOY8PADKp1UIJmoOpKho5q6DE+d98c='; script-src-attr 'none'; style-src 'sha256-rC5S8q/FcWR/6W8bxcXRrbA6/0D3sPlm9yNJHZrP5YI='; style-src-elem 'sha256-rC5S8q/FcWR/6W8bxcXRrbA6/0D3sPlm9yNJHZrP5YI='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-TFZPE/meKMzVjfY6tMvmdDItyRnpI87TYxTE+HWcHFI='; script-src-elem 'sha256-TFZPE/meKMzVjfY6tMvmdDItyRnpI87TYxTE+HWcHFI='; script-src-attr 'none'; style-src 'sha256-yWBuiy7a4QE2krgO6eX8Fd1Cy8uoY7kE3TWnuwp5btQ='; style-src-elem 'sha256-yWBuiy7a4QE2krgO6eX8Fd1Cy8uoY7kE3TWnuwp5btQ='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>CrseCue</title>
 <style>
@@ -154,6 +154,8 @@
     background: #fff8e6; color: #7a4b00;
     font-size: 12.5px; line-height: 1.65;
   }
+  /* 设备时区与课表时区（UTC+8）不一致时的提示：蓝底，语气比存储警告轻 */
+  .tz-warn { background: #f2f8ff; border-color: #b6d4fb; color: #0757b8; }
   /* 首次访问提示：默认班不是"你的班"时最容易看错课表 */
   .first-run {
     display: flex; align-items: center; gap: 8px;
@@ -942,6 +944,10 @@
   }
   .class-prompt-input:focus:not(:focus-visible) { outline: none; }
   .class-prompt-input[aria-invalid="true"] { border-color: #cf222e; }
+  /* 表单校验失败时把出错的字段标红：读屏靠 aria-invalid，视觉靠这条 */
+  .form-row input[aria-invalid="true"],
+  .form-row select[aria-invalid="true"],
+  .form-row textarea[aria-invalid="true"] { border-color: #cf222e; box-shadow: 0 0 0 1px #cf222e inset; }
   .hidden-class-list {
     display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
     margin-top: 12px; padding-top: 10px; border-top: 1px dashed #d8dee4;
@@ -1375,6 +1381,8 @@
   <div class="first-run" id="firstRunHint" hidden></div>
   <!-- 浏览器禁用/写满本地存储时常驻：让用户知道自己处在"改完就丢"的状态 -->
   <div class="storage-warn" id="storageWarn" role="status" hidden></div>
+  <!-- 设备时区不是 UTC+8 时提示：页面按本地时区算"今天"，日历事件固定 +08:00 -->
+  <div class="storage-warn tz-warn" id="tzWarn" role="status" hidden></div>
   <div class="cue-bar" id="cueBar" hidden>
     <span class="cue-text" id="cueText"></span>
     <button class="cue-close" id="cueClose" type="button" aria-label="关闭提示">×</button>
@@ -5655,6 +5663,41 @@ function showFormError(msg) {
   formError.textContent = msg;
 }
 
+/* 表单错误要绑到具体字段：读屏用户回到输入框时还能听到"错在哪"，
+   而不是只在提交那一刻被 live region 播报一次。 */
+const FORM_FIELDS = [formDate, formWeek, formWeekday, formPeriod, formName, formPlace, formNote];
+
+function clearFieldErrors() {
+  FORM_FIELDS.forEach(field => {
+    if (!field) return;
+    field.removeAttribute('aria-invalid');
+    field.removeAttribute('aria-describedby');
+  });
+}
+
+function markFieldErrors(fields) {
+  clearFieldErrors();
+  fields.forEach(field => {
+    if (!field) return;
+    field.setAttribute('aria-invalid', 'true');
+    field.setAttribute('aria-describedby', 'formError');
+  });
+  if (fields[0]) {
+    try { fields[0].focus(); } catch (e) {}
+  }
+}
+
+// 用户动手改某个字段就先把它的错误标记清掉，不用等下次提交
+FORM_FIELDS.forEach(field => {
+  if (!field) return;
+  const clear = () => {
+    field.removeAttribute('aria-invalid');
+    field.removeAttribute('aria-describedby');
+  };
+  field.addEventListener('input', clear);
+  field.addEventListener('change', clear);
+});
+
 function resetForm() {
   const today = startOfDay(new Date());
   const currentWeek = weekNoOf(today);
@@ -5672,6 +5715,7 @@ function resetForm() {
   formNote.value = '';
   syncDateModeUI();
   showFormError('');
+  clearFieldErrors();
   updateFormConflictHint();
 }
 
@@ -5878,6 +5922,10 @@ modalMask.addEventListener('click', (e) => {
 // 提交
 modalSubmit.addEventListener('click', () => {
   const errs = [];
+  const invalidFields = [];
+  const markInvalid = field => {
+    if (field && invalidFields.indexOf(field) < 0) invalidFields.push(field);
+  };
   const mode = currentDateMode();
 
   let dt = null;
@@ -5885,9 +5933,10 @@ modalSubmit.addEventListener('click', () => {
     const v = formDate.value;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) {
       errs.push('请选择有效日期');
+      markInvalid(formDate);
     } else {
       const d = parseDate(v);
-      if (isNaN(d.getTime())) errs.push('日期无效');
+      if (isNaN(d.getTime())) { errs.push('日期无效'); markInvalid(formDate); }
       else dt = d;
     }
   } else {
@@ -5895,37 +5944,41 @@ modalSubmit.addEventListener('click', () => {
     const wd = parseInt(formWeekday.value, 10);
     if (!Number.isInteger(w) || w < 1 || w > MAX_WEEK) {
       errs.push('周次必须是 1-' + MAX_WEEK + ' 的整数');
+      markInvalid(formWeek);
     } else if (!(wd >= 1 && wd <= 7)) {
       errs.push('请选择星期');
+      markInvalid(formWeekday);
     } else {
       dt = dateFromWeekWeekday(w, wd);
     }
   }
 
   const rawPeriod = formPeriod.value.trim();
-  if (!rawPeriod) errs.push('请填写节次');
-  else if (rawPeriod.length > MAX_PERIOD_LEN) errs.push('节次不能超过 ' + MAX_PERIOD_LEN + ' 个字符');
+  if (!rawPeriod) { errs.push('请填写节次'); markInvalid(formPeriod); }
+  else if (rawPeriod.length > MAX_PERIOD_LEN) { errs.push('节次不能超过 ' + MAX_PERIOD_LEN + ' 个字符'); markInvalid(formPeriod); }
   const period = cleanText(rawPeriod, MAX_PERIOD_LEN);
-  if (rawPeriod && !period) errs.push('节次包含无效字符');
+  if (rawPeriod && !period) { errs.push('节次包含无效字符'); markInvalid(formPeriod); }
 
   const rawName = formName.value.trim();
-  if (!rawName) errs.push('请填写实验名称');
-  else if (rawName.length > MAX_NAME_LEN) errs.push('实验名称不能超过 ' + MAX_NAME_LEN + ' 个字符');
+  if (!rawName) { errs.push('请填写实验名称'); markInvalid(formName); }
+  else if (rawName.length > MAX_NAME_LEN) { errs.push('实验名称不能超过 ' + MAX_NAME_LEN + ' 个字符'); markInvalid(formName); }
   const name = cleanText(rawName, MAX_NAME_LEN);
-  if (rawName && !name) errs.push('实验名称包含无效字符');
+  if (rawName && !name) { errs.push('实验名称包含无效字符'); markInvalid(formName); }
 
   const rawPlace = formPlace.value.trim();
-  if (rawPlace.length > MAX_PLACE_LEN) errs.push('实验地点不能超过 ' + MAX_PLACE_LEN + ' 个字符');
+  if (rawPlace.length > MAX_PLACE_LEN) { errs.push('实验地点不能超过 ' + MAX_PLACE_LEN + ' 个字符'); markInvalid(formPlace); }
   const place = cleanText(rawPlace, MAX_PLACE_LEN) || '待定';
 
   const rawNote = formNote.value.trim();
-  if (rawNote.length > MAX_NOTE_LEN) errs.push('备注不能超过 ' + MAX_NOTE_LEN + ' 个字符');
+  if (rawNote.length > MAX_NOTE_LEN) { errs.push('备注不能超过 ' + MAX_NOTE_LEN + ' 个字符'); markInvalid(formNote); }
   const note = cleanNote(rawNote);
 
   if (errs.length) {
+    markFieldErrors(invalidFields);
     showFormError(errs.join('；'));
     return;
   }
+  clearFieldErrors();
 
   const isEditing = editingIndex !== null;
   const editIdx = editingIndex;
@@ -7246,6 +7299,17 @@ document.getElementById('icsCopyBtn').addEventListener('click', () => {
 });
 
 // 诊断信息：粘到群里就能定位"为什么显示不对"
+// 设备时区标签：页面按本地时区算"今天"，.ics 固定 UTC+8，不一致时容易差一天
+function timezoneOffsetMinutes() {
+  return -new Date().getTimezoneOffset();
+}
+
+function timezoneLabel() {
+  const offset = timezoneOffsetMinutes();
+  const abs = Math.abs(offset);
+  return (offset >= 0 ? '+' : '-') + pad2(Math.floor(abs / 60)) + ':' + pad2(abs % 60);
+}
+
 document.getElementById('diagBtn').addEventListener('click', () => {
   const shownRows = document.querySelectorAll('#tbody tr:not(.note-row)').length;
   // 本机存储占用：换学期/长期使用后，用户最需要知道这份缓存有多大
@@ -7282,6 +7346,7 @@ document.getElementById('diagBtn').addEventListener('click', () => {
     '视图：' + (document.body.classList.contains('view-week') ? '课表' : '列表'),
     '模式：' + (READ_ONLY ? '只读' : '可编辑'),
     '视口：' + window.innerWidth + '×' + window.innerHeight,
+    '时区：UTC' + timezoneLabel(),
     'UA：' + navigator.userAgent
   ].join('\n');
   const ok = () => showStatus('ok', '诊断信息已复制，粘贴到群里即可');
@@ -7467,6 +7532,16 @@ showFirstRunHint();
     + '需要保留请用「操作 → 数据 → 导出」备份。';
   el.hidden = false;
   document.body.classList.add('no-storage');
+})();
+
+// 设备时区不是 UTC+8 时提醒：页面按本地时区算"今天"，.ics 里固定 +08:00
+(function showTimezoneWarning() {
+  const el = document.getElementById('tzWarn');
+  if (!el) return;
+  if (timezoneOffsetMinutes() === 480) return;
+  el.textContent = '你的设备时区是 UTC' + timezoneLabel() + '，课表按 UTC+08:00 排课；'
+    + '两者不一致时，"今天"和日历时间可能相差一天，请自行换算。';
+  el.hidden = false;
 })();
 
 if (viewListBtn) viewListBtn.addEventListener('click', () => setView('list', true));

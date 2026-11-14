@@ -277,7 +277,7 @@ https://xiaoyu-oxyz.github.io/?class=Z2&mode=ro
 - **页眉会写明当前筛选**（如 `· 筛选：只看冲突 + 搜索「机械」`），否则纸面上看不出这是筛选结果，容易误传。
 - 打印表格固定铺满纸张，隐藏左侧删除标记空列；纵向/横向都使用 6 列固定宽度；备注并入实验名称单元格，不再生成额外备注行。
 - 页面保留 `<main id="main">` 地标；已完全移除 skip link。
-- 状态消息同步到 `role="status"` live region；模态框有 Tab 焦点循环、Esc 关闭和焦点归位；**弹窗打开时 `<main>` 设为 `inert` + `aria-hidden`**（老浏览器只有 `aria-hidden`），避免读屏的虚拟光标还能逛到弹窗背后的表格。
+- **表单校验错误绑到字段**：提交失败时给出错字段加 `aria-invalid="true"` + `aria-describedby="formError"`，并把焦点移到第一个出错项；用户开始改这个字段就自动解除。视觉上同时标红边框（`aria-invalid` 用样式）。\n- **时区一致性提示**：诊断信息里带「时区：UTC±HH:MM」；设备时区不是 UTC+8 时顶部常驻提示——页面按本地时区算"今天"，而 `.ics` 里固定 `Asia/Shanghai`，两边会差一天。\n- 状态消息同步到 `role="status"` live region；模态框有 Tab 焦点循环、Esc 关闭和焦点归位；**弹窗打开时 `<main>` 设为 `inert` + `aria-hidden`**（老浏览器只有 `aria-hidden`），避免读屏的虚拟光标还能逛到弹窗背后的表格。
 - **未捕获异常**：`window.onerror` / `unhandledrejection` 会把现场写进 `sessionStorage`，然后跳到 `404.html?from=error` —— 那个页面显示「页面出错了」，并提供「复制错误信息」按钮。比白屏多一条出路，也不会让用户丢数据。
 - 表格有动态 `caption`、列头 `scope="col"`/固定 `id`，每个数据单元格通过 `headers` 关联对应列；表格本身 `tabindex="0"`，**行使用 roving tabindex：整张表只有一个行级 Tab 停靠点（当前行），方向键逐条移动焦点，Tab 直接离开表格**；Esc 回到表格；编辑/删除模式下 Tab 进入行内按钮。
 - 每条实验行 `aria-label` 都带列名和值：日期、周次、星期、节次、实验名称、实验地点、备注，并追加状态（已结束/今天/明天/下一次实验/时间冲突）；星期读“星期 星期一”，不缩写为“星期 一”。桌面和手机都读表头。
@@ -933,6 +933,7 @@ git push
 ## License
 
 本仓库未声明开源许可证。除非另有书面说明，默认保留所有权利；如需开源分发，请补充 `LICENSE` 文件。
+
 
 
 

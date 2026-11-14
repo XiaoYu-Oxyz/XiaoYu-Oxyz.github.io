@@ -334,6 +334,35 @@ try {
   await page.locator('#deleteModeBtn').click();
   await waitAttr(page.locator('th.col-mark'), 'aria-hidden', 'true');
 
+  // 3.5 表单校验：错误必须绑到具体字段（aria-invalid + aria-describedby），并聚焦第一个出错项。
+  //     只给 live region 播报是不够的——读屏用户回到输入框时就听不到原因了。
+  await page.locator('#actionsToggle').click();
+  if (!(await page.locator('#addBtn').isVisible())) {
+    // 面板本来就是开着的：再点一次会关掉，补一次
+    await page.locator('#actionsToggle').click();
+  }
+  await page.locator('#addBtn').click();
+  await page.waitForSelector('#modalMask.show');
+  await page.locator('#modalSubmit').click();
+  await settle(page);
+  assert.equal(await page.locator('#formPeriod').getAttribute('aria-invalid'), 'true');
+  assert.equal(await page.locator('#formName').getAttribute('aria-invalid'), 'true');
+  assert.equal(await page.locator('#formName').getAttribute('aria-describedby'), 'formError');
+  assert.equal(await page.evaluate(() => document.activeElement && document.activeElement.id), 'formPeriod');
+  assert.equal(await page.locator('#formDate').getAttribute('aria-invalid'), null);
+  // 动手改过的字段立刻解除自己的错误标记，另一个字段保持不变
+  await page.locator('#formPeriod').fill('第3-4节');
+  await settle(page);
+  assert.equal(await page.locator('#formPeriod').getAttribute('aria-invalid'), null);
+  assert.equal(await page.locator('#formName').getAttribute('aria-invalid'), 'true');
+  await page.locator('#modalCancel').click();
+  await settle(page);
+  // 收起操作面板，免得挡住后面要点的班级按钮
+  if (await page.locator('#addBtn').isVisible()) {
+    await page.locator('#actionsToggle').click();
+    await settle(page);
+  }
+
   // 4. 班级管理：新建、重命名、删除本机班级；内置班级只提示。
   await page.locator('#newClassBtn').click();
   await page.waitForSelector('#classMask.show');
