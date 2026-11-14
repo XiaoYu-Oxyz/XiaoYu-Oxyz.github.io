@@ -267,6 +267,44 @@ def describe(path: Path) -> str:
         return "(unparseable)"
 
 
+def verify_ics_files() -> list:
+    """构建期生成的日历订阅文件：结构、CRLF、折行，以及事件数必须大于 0。"""
+    errors = []
+    for path in sorted(BASE.glob("*.ics")):
+        name = path.name
+        raw = path.read_bytes()
+        if b"\r\n" not in raw:
+            errors.append("%s: 缺少 CRLF 行尾" % name)
+        if re.search(rb"(?<!\r)\n", raw):
+            errors.append("%s: 含裸 LF（iCalendar 要求 CRLF）" % name)
+        try:
+            text = raw.decode("utf-8")
+        except UnicodeDecodeError as exc:
+            errors.append("%s: 不是有效 UTF-8：%s" % (name, exc))
+            continue
+        if not text.startswith("BEGIN:VCALENDAR\r\n"):
+            errors.append("%s: 不是以 BEGIN:VCALENDAR 开头" % name)
+        if not text.endswith("END:VCALENDAR\r\n"):
+            errors.append("%s: 不是以 END:VCALENDAR 结尾" % name)
+        if "BEGIN:VTIMEZONE" not in text or "TZID:Asia/Shanghai" not in text:
+            errors.append("%s: 缺少 Asia/Shanghai 时区定义" % name)
+        if "TRIGGER:-PT2H" not in text:
+            errors.append("%s: 缺少提前 2 小时的提醒" % name)
+        events = text.count("BEGIN:VEVENT")
+        alarms = text.count("BEGIN:VALARM")
+        if events == 0:
+            errors.append("%s: 没有任何事件" % name)
+        if events != alarms:
+            errors.append("%s: 事件数 %d 与提醒数 %d 不一致" % (name, events, alarms))
+        for line in text.split("\r\n"):
+            if len(line.encode("utf-8")) > 75:
+                errors.append("%s: 有一行超过 75 字节：%s" % (name, line[:20]))
+                break
+            if len(line) > 76 and line == line.strip():
+                pass
+    return errors
+
+
 def main(argv=None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
 
@@ -310,6 +348,11 @@ def main(argv=None) -> int:
         status = "PASS" if not extra_errors else "FAIL"
         print("[%s] %s: %s" % (status, extra.name, describe(extra)))
         errors.extend(extra_errors)
+
+    ics_files = sorted(BASE.glob("*.ics"))
+    ics_errors = verify_ics_files()
+    print("[%s] %d 个 .ics 订阅文件" % ("PASS" if not ics_errors else "FAIL", len(ics_files)))
+    errors.extend(ics_errors)
     if errors:
         for error in errors:
             print(" - " + error)

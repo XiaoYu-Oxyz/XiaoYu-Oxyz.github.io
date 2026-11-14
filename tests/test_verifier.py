@@ -102,5 +102,17 @@ class StaticPageTests(unittest.TestCase):
         self.assertTrue(has(VERIFY.verify_static_page(broken, "404.html"), "external <script src>"))
 
 
+class IcsFileTests(unittest.TestCase):
+    def test_generated_ics_files_are_valid(self):
+        errors = VERIFY.verify_ics_files()
+        self.assertEqual(errors, [])
+
+    def test_ics_files_exist_for_every_class(self):
+        classes = sorted(path.parent for path in (BASE / "data").glob("*.xlsx"))
+        for path in classes:
+            ics = BASE / (path.stem + ".ics")
+            self.assertTrue(ics.exists(), "%s 缺少订阅文件，先运行 build-html.py" % path.stem)
+
+
 if __name__ == "__main__":
     unittest.main()

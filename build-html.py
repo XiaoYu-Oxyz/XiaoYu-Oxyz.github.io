@@ -25,6 +25,7 @@ import os
 import re
 import subprocess
 import sys
+import unicodedata
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
@@ -35,6 +36,7 @@ BASE = Path(__file__).resolve().parent
 DATA_DIR = BASE / "data"
 SETTINGS = DATA_DIR / "设置.json"
 DEPLOY = BASE / "index.html"
+ICS_SUFFIX = ".ics"
 
 TEMPLATE_RE = re.compile(r'(<template id="defaultData">)([\s\S]*?)(</template>)')
 META_SHEET_NAME = "班级信息"
@@ -59,6 +61,183 @@ MAX_NOTE_LEN = 500
 
 def fail(message):
     raise SystemExit("BUILD FAILED: " + message)
+
+
+# ---------------------------------------------------------------------------
+# 日历订阅（.ics）
+#
+# 页面里的「导出 .ics」由 JS 现场生成（离线可用）；这里生成的是**订阅文件**，
+# 放在仓库根目录，同学用日历 App 的「订阅日历」填一次地址即可。
+# 两边的事件规则必须完全一致，否则同一节课会出现两条：
+#   UID = base36(hash(class|date|norm(period)|norm(name))) + "-" + YYYYMMDD + "@crsecue"
+# 哈希算法刻意与 JS 的 `uid = uid * 31 + charCodeAt(i) >>> 0` 对齐（按 UTF-16 码元）。
+# ---------------------------------------------------------------------------
+PERIOD_TIME_SLOTS = [
+    ((1, 2), (8, 0), (9, 40)),
+    ((3, 4), (10, 0), (11, 40)),
+    ((5, 6), (14, 0), (15, 40)),
+    ((7, 8), (16, 0), (17, 40)),
+    ((9, 10), (19, 0), (20, 40)),
+]
+ICS_TZ_BLOCK = [
+    "BEGIN:VTIMEZONE",
+    "TZID:Asia/Shanghai",
+    "BEGIN:STANDARD",
+    "DTSTART:19700101T000000",
+    "TZOFFSETFROM:+0800",
+    "TZOFFSETTO:+0800",
+    "TZNAME:CST",
+    "END:STANDARD",
+    "END:VTIMEZONE",
+]
+
+
+def norm_key_text(value):
+    """与前端 normKeyText 一致：NFKC、去空白、统一横线、小写。"""
+    text = unicodedata.normalize("NFKC", "" if value is None else str(value))
+    text = re.sub(r"[\s\u3000]+", "", text)
+    text = re.sub(r"[\uFF0D\u2014\u2013\u2212\uFE63]", "-", text)
+    return text.lower()
+
+
+def base36(value):
+    digits = "0123456789abcdefghijklmnopqrstuvwxyz"
+    if value == 0:
+        return "0"
+    out = []
+    while value:
+        value, rem = divmod(value, 36)
+        out.append(digits[rem])
+    return "".join(reversed(out))
+
+
+def event_uid(class_id, date_str, period, name):
+    seed = "%s|%s|%s|%s" % (class_id, date_str, norm_key_text(period), norm_key_text(name))
+    units = seed.encode("utf-16-le")
+    uid = 0
+    for i in range(0, len(units), 2):
+        code_unit = units[i] | (units[i + 1] << 8)
+        uid = (uid * 31 + code_unit) & 0xFFFFFFFF
+    return "%s-%s@crsecue" % (base36(uid), date_str.replace("-", ""))
+
+
+def ics_escape(value):
+    text = "" if value is None else str(value)
+    text = text.replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,")
+    return re.sub(r"\r?\n", "\\n", text)
+
+
+def ics_fold(line):
+    """RFC 5545：内容行不超过 75 个八位组，超出用 CRLF + 空格折行。"""
+    if len(line.encode("utf-8")) <= 75:
+        return line
+    out, current, used = [], [], 0
+    for ch in line:
+        size = len(ch.encode("utf-8"))
+        if used + size > 73:
+            out.append("".join(current))
+            current, used = [], 0
+        current.append(ch)
+        used += size
+    out.append("".join(current))
+    return "\r\n ".join(out)
+
+
+def resolve_period_times(period):
+    ranges = parse_period_ranges(period)
+    if not ranges:
+        return None
+    first = min(r[0] for r in ranges)
+    last = max(r[1] for r in ranges)
+    start = next((slot for slot in PERIOD_TIME_SLOTS if slot[0][0] == first), None)
+    end = next((slot for slot in PERIOD_TIME_SLOTS if slot[0][1] == last), None)
+    if not start or not end:
+        return None
+    return start[1], end[2]
+
+
+def parse_period_ranges(value):
+    """与前端 parsePeriodRanges 一致：把「第3-4节」「3、4节」解析成闭区间列表。"""
+    text = norm_key_text(value).replace("节", "").replace("第", "")
+    text = re.sub(r"[~\uFF5E\u81F3]", "-", text)
+    if not text:
+        return None
+    parts = [part for part in re.split(r"[、,，;；/]", text) if part]
+    if not parts:
+        return None
+    ranges = []
+    for part in parts:
+        match = re.fullmatch(r"(\d+)(?:-(\d+))?", part)
+        if not match:
+            return None
+        start = int(match.group(1))
+        end = start if match.group(2) is None else int(match.group(2))
+        if start > end:
+            start, end = end, start
+        ranges.append((start, end))
+    return ranges
+
+
+def build_ics_text(class_id, experiments, stamp):
+    lines = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//CrseCue//实验课提醒//CN",
+        "CALSCALE:GREGORIAN",
+        "METHOD:PUBLISH",
+        "X-WR-CALNAME:" + ics_escape("实验课 " + class_id),
+        "X-WR-TIMEZONE:Asia/Shanghai",
+    ] + ICS_TZ_BLOCK
+
+    for item in sorted(experiments, key=lambda e: e["date"]):
+        ymd = item["date"].replace("-", "")
+        slot = resolve_period_times(item["period"])
+        lines.append("BEGIN:VEVENT")
+        lines.append("UID:" + event_uid(class_id, item["date"], item["period"], item["name"]))
+        lines.append("DTSTAMP:" + stamp)
+        if slot:
+            start, end = slot
+            lines.append("DTSTART;TZID=Asia/Shanghai:%sT%02d%02d00" % (ymd, start[0], start[1]))
+            lines.append("DTEND;TZID=Asia/Shanghai:%sT%02d%02d00" % (ymd, end[0], end[1]))
+        else:
+            day = date.fromisoformat(item["date"]) + timedelta(days=1)
+            lines.append("DTSTART;VALUE=DATE:" + ymd)
+            lines.append("DTEND;VALUE=DATE:" + day.strftime("%Y%m%d"))
+        lines.append("SUMMARY:" + ics_escape(item["name"] or "实验课"))
+        if item.get("place"):
+            lines.append("LOCATION:" + ics_escape(item["place"]))
+        desc = [d for d in (item["period"] and ("节次 " + item["period"]), item.get("note") and ("备注：" + item["note"])) if d]
+        if desc:
+            lines.append("DESCRIPTION:" + ics_escape("\n".join(desc)))
+        lines += [
+            "BEGIN:VALARM",
+            "TRIGGER:-PT2H",
+            "ACTION:DISPLAY",
+            "DESCRIPTION:" + ics_escape("实验课提醒：" + (item["name"] or "实验课")),
+            "END:VALARM",
+            "END:VEVENT",
+        ]
+
+    lines.append("END:VCALENDAR")
+    return "\r\n".join(ics_fold(line) for line in lines) + "\r\n"
+
+
+def write_ics_files(classes, updated_at):
+    """为每个班级写 <班级>.ics，并清理已经不存在班级的旧文件。"""
+    stamp = (updated_at or "19700101").replace("-", "") + "T000000Z"
+    written = []
+    for item in classes:
+        class_id = item["id"]
+        text = build_ics_text(class_id, item["experiments"], stamp)
+        path = BASE / (class_id + ICS_SUFFIX)
+        write_atomic(path, text.encode("utf-8"))
+        written.append(path)
+    keep = {path.name for path in written}
+    for stale in BASE.glob("*" + ICS_SUFFIX):
+        if stale.name not in keep:
+            stale.unlink()
+            print("removed stale %s" % stale.name)
+    return written
 
 
 def write_atomic(path: Path, data: bytes) -> None:
@@ -414,10 +593,11 @@ def main(argv=None):
         experiments = read_class_file(path, class_id, date.fromisoformat(class_week1))
         classes.append({"id": class_id, "week1": class_week1, "experiments": experiments})
 
+    updated_at = resolve_updated_at(settings)
     payload = {
         "version": 2,
         "week1": settings["week1"],
-        "updatedAt": resolve_updated_at(settings),
+        "updatedAt": updated_at,
         "classes": classes,
     }
 
@@ -452,6 +632,9 @@ def main(argv=None):
     errors = verifier.verify_bytes(encoded, DEPLOY.name)
     if errors:
         fail("写盘后自检失败：\n  " + "\n  ".join(errors))
+
+    ics_files = write_ics_files(classes, updated_at)
+    print("wrote %d ics files: %s" % (len(ics_files), ", ".join(p.name for p in ics_files)))
     print("OK: 产物已写入并通过 CSP/模板校验")
     return 0
 

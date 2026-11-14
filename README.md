@@ -81,6 +81,9 @@
 
 - 导入 `.xlsx` / `.json`；导出当前班级 `${班级}.xlsx` 或 `${班级}.json`。
 - 「操作 → 数据 → 日历（.ics）」导出 `${班级}-实验课.ics`：每条实验一个 `VEVENT`（节次按 1-2/3-4/5-6/7-8/9-10 映射到 08:00–20:40），带 `VALARM` 提前 2 小时提醒。导入 iOS/Android 日历后由系统负责提醒 —— 这是纯静态页面唯一能做到“真正提醒”的方式，不需要任何后端。
+- **订阅日历**：构建时在仓库根目录生成 `Z1.ics`、`Z2.ics`…（每班一个）。「复制订阅地址」给出 `https://<站点>/<班级>.ics`，在手机日历里选「订阅日历」粘贴一次，以后数据更新会自动同步。
+- 订阅文件与页面导出的文件使用**完全相同的 UID**（班级+日期+节次+名称的哈希），所以两者不会产生重复事件；`DTSTAMP` 固定取 `data/设置.json` 的 `updatedAt`，保证构建结果可复现、CI 不会因时间戳产生 diff。
+- 注意：GitHub Pages 对 `.ics` 返回的 Content-Type 可能是 `application/octet-stream`，部分日历客户端会拒绝直接订阅；此时用「日历（.ics）」下载后导入即可。
 - 导出弹窗先选范围：**默认“全部实验”**；也可选“当前筛选”（受本周、只看冲突和搜索影响），筛选导出文件名加 `-筛选` 后缀。
 - 导出当前班一个文件，不生成全部班级合并文件；
 - `实验安排` sheet 固定 7 列：日期、周次、星期、节次、实验名称、实验地点、备注；
@@ -244,8 +247,8 @@ https://xiaoyu-oxyz.github.io/?class=Z2&mode=ro
 ```text
 CrseCue/
 ├─ index.html                 # 唯一真源 + GitHub Pages 部署入口
-
 ├─ 404.html                   # 自定义 404 页面（缺失路径时使用）
+├─ Z1.ics / Z2.ics / Z5.ics   # 构建期生成的日历订阅文件（每班一个）
 ├─ data/
 │  ├─ Z1.xlsx                 # 班级 Z1：当前 25 条
 │  ├─ Z2.xlsx                 # 班级 Z2：当前 27 条
@@ -265,6 +268,7 @@ CrseCue/
 │  ├─ ui-smoke.mjs            # Playwright UI 冒烟测试（Chromium/WebKit）
 │  └─ logic.mjs               # 纯函数回归（page.evaluate 直接调用全局函数）
 ├─ .github/workflows/verify.yml # CI：构建 + CSP + 单元/UI 测试 + 产物检查
+├─ .github/workflows/update-data.yml # 手动触发：构建+校验+自动提交（一键更新数据）
 ├─ SECURITY.md                # 安全设计、残余风险、维护说明
 ├─ README.md                  # 本文件
 ├─ .nojekyll                  # 阻止 GitHub Pages 使用 Jekyll
@@ -591,7 +595,18 @@ git commit -m "data: 更新实验安排"
 git push
 ```
 
-只上传 `data/*.xlsx` 不会改变网页；必须重新 build 并提交 `index.html`。
+只上传 `data/*.xlsx` 不会改变网页；必须重新 build 并提交 `index.html`（以及重新生成的 `*.ics`）。
+
+### 6.5 一键更新数据（不需要本地 Python）
+
+仓库里有 `.github/workflows/update-data.yml`，可以在 GitHub 网页上手动跑：
+
+1. 改好 `data/*.xlsx`（网页编辑器里直接上传替换也行）；
+2. 进入 **Actions → update-data → Run workflow**，`stamp` 勾选表示把 `updatedAt` 改成今天；
+3. 它会依次执行 构建 → `verify-csp.py` → 单元测试，**全部通过才**提交并 push，push 后 Pages 自动重新发布。
+
+前置条件：**Settings → Actions → General → Workflow permissions** 选 “Read and write permissions”，否则最后一步 push 会被拒绝。
+班委只需要会改 xlsx、会点按钮，不必安装 Python/openpyxl/git。
 
 ---
 

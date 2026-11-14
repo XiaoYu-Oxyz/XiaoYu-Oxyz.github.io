@@ -1,0 +1,66 @@
+name: update-data
+
+# 手动触发的"一键更新数据"：在 GitHub 网页点 Run workflow 即可。
+# 流程：构建 → 校验 → 单测 → 有变化才提交 → push 触发 Pages 重新发布。
+# 需要仓库 Settings → Actions → General → Workflow permissions 允许 Read and write。
+on:
+  workflow_dispatch:
+    inputs:
+      stamp:
+        description: "把 data/设置.json 的 updatedAt 改成今天"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-data
+  cancel-in-progress: false
+
+jobs:
+  update:
+    name: rebuild and commit
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install build dependency
+        run: python -m pip install --disable-pip-version-check -r requirements.txt
+
+      - name: Build
+        run: |
+          if [ "${{ inputs.stamp }}" = "true" ]; then
+            python build-html.py --stamp
+          else
+            python build-html.py
+          fi
+
+      - name: Verify CSP hashes and template
+        run: python verify-csp.py
+
+      - name: Unit tests
+        run: python -m unittest discover -s tests -p "test_*.py" -v
+
+      - name: Commit and push when something changed
+        run: |
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "没有变化，跳过提交。"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "data: 通过 Actions 更新实验安排"
+          git push

@@ -45,10 +45,10 @@ jobs:
 
       - name: Ensure generated files are committed
         run: |
-          if ! git diff --quiet; then
-            echo "::error::构建产物与提交不一致：请本地运行 build-html.py 和 verify-csp.py --apply 后一起提交"
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::error::构建产物与提交不一致（含新增的 .ics）：请本地运行 build-html.py 与 verify-csp.py --apply 后一起提交"
+            git --no-pager status --porcelain
             git --no-pager diff --stat
-            git --no-pager diff --numstat -- index.html 404.html | head -5
             exit 1
           fi
 

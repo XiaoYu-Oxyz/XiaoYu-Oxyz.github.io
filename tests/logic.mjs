@@ -1,6 +1,7 @@
 // 纯逻辑回归：日期/周次/节次/冲突/ICS 生成。
 // 这些函数在页面里是全局的，直接 page.evaluate 调用即可，不需要重构源码或引入构建工具。
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { chromium, webkit } from 'playwright';
@@ -137,6 +138,20 @@ for (const [name, actual, expected] of cases) {
 }
 assert.ok(r.icsMaxLineBytes <= 75, `iCalendar 单行超过 75 字节：${r.icsMaxLineBytes}`);
 assert.deepEqual(pageErrors, [], '页面脚本不应有报错');
+
+// 订阅文件必须与页面现场生成的 .ics 一致，否则同一节课会在日历里出现两条
+const icsPath = path.join(root, 'Z1.ics');
+assert.ok(fs.existsSync(icsPath), '缺少 Z1.ics：先运行 python build-html.py');
+const fileIcs = fs.readFileSync(icsPath, 'utf8');
+const pageIcs = await page.evaluate(() => buildIcsText(experiments, 'Z1'));
+const pickIcsKeys = text => (text.match(/^(?:UID|DTSTART|DTEND|SUMMARY|LOCATION)[^\r]*$/gm) || []).sort();
+assert.deepEqual(pickIcsKeys(pageIcs), pickIcsKeys(fileIcs),
+  '页面生成的 .ics 与构建产物 Z1.ics 不一致（UID/时间/标题必须相同）');
+assert.deepEqual(
+  (fileIcs.match(/^UID:[^\r]+$/gm) || []).sort(),
+  (pageIcs.match(/^UID:[^\r]+$/gm) || []).sort(),
+  'UID 必须完全一致，否则订阅后旧事件不会被替换'
+);
 
 await browser.close();
 if (failed) {
