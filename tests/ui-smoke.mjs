@@ -699,7 +699,35 @@ try {
   assert.match(await midnightPage.locator('#cueText').innerText(), /第3-4节/);
   await midnightCtx.close();
 
-  console.log('UI smoke OK');} finally {
+  // 13. 冲突（卡片布局）：2px 圆角描边 + 同组最短连线，不靠文字表达。
+  const confCtx = await browser.newContext({ viewport: { width: 800, height: 900 } });
+  const confPage = await confCtx.newPage();
+  await confPage.goto(`${appUrl}?class=Z2`);
+  await confPage.waitForSelector('#tbody tr');
+  await confPage.waitForTimeout(350);
+  const conflict = await confPage.evaluate(() => {
+    const row = document.querySelector('tr.row-conflict');
+    const cs = row ? getComputedStyle(row) : null;
+    const lines = Array.from(document.querySelectorAll('.conflict-link-line')).map(line => Math.hypot(
+      Number(line.getAttribute('x2')) - Number(line.getAttribute('x1')),
+      Number(line.getAttribute('y2')) - Number(line.getAttribute('y1'))
+    ));
+    return {
+      borderWidth: cs ? cs.borderTopWidth : null,
+      borderStyle: cs ? cs.borderTopStyle : null,
+      radius: cs ? cs.borderTopLeftRadius : null,
+      lines: lines.map(n => Number(n.toFixed(1)))
+    };
+  });
+  assert.equal(conflict.borderWidth, '2px', '冲突卡应有 2px 描边');
+  assert.equal(conflict.borderStyle, 'solid');
+  assert.equal(conflict.radius, '10px', '描边应跟随卡片圆角');
+  assert.ok(conflict.lines.length >= 1, '冲突组应画出连线');
+  assert.ok(conflict.lines.every(n => n <= 40), `连线应是最短线段：${conflict.lines.join(',')}`);
+  await confCtx.close();
+
+  console.log('UI smoke OK');
+} finally {
   fs.rmSync(fixtureDir, { force: true, recursive: true });
   await browser.close();
 }

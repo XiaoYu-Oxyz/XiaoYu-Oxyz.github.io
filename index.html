@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-6yorD83uBsyxEgcxWuG6qBD5WxO1WVbfemo/ZgFlAjE='; script-src-elem 'sha256-6yorD83uBsyxEgcxWuG6qBD5WxO1WVbfemo/ZgFlAjE='; script-src-attr 'none'; style-src 'sha256-XtSZkvrEHiko8sw6WrUKULWzpT06Ci0xIL92ziYvf1A='; style-src-elem 'sha256-XtSZkvrEHiko8sw6WrUKULWzpT06Ci0xIL92ziYvf1A='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-bH01SmiDKhju70U+wLqpNhl0GI9mXlsi+PVzHh2uUGs='; script-src-elem 'sha256-bH01SmiDKhju70U+wLqpNhl0GI9mXlsi+PVzHh2uUGs='; script-src-attr 'none'; style-src 'sha256-u7ZrBUCu/UpaU3tFIysxksigmL5qoz7zx7IFiOy3LPc='; style-src-elem 'sha256-u7ZrBUCu/UpaU3tFIysxksigmL5qoz7zx7IFiOy3LPc='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>CrseCue</title>
 <style>
@@ -413,7 +413,12 @@
     .wg-item.is-conflict { border: 3px solid CanvasText; box-shadow: none; }
   }
 
-  .table-wrap { overflow: visible; }
+  .table-wrap { position: relative; overflow: visible; }
+  /* 冲突连线：绝对定位在表格容器里，z-index 低于卡片，所以线段只在行距/列距里露出来 */
+  .conflict-link-layer { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+  .conflict-link-layer svg { display: block; width: 100%; height: 100%; overflow: visible; }
+  .conflict-link-line { stroke: #c28a12; stroke-width: 2; stroke-linecap: round; fill: none; }
+  tbody { position: relative; z-index: 1; }
   table { width: 100%; min-width: 860px; border-collapse: collapse; font-size: 14px; }
   #scheduleTable:focus-visible { outline: 2px solid #0969da; outline-offset: 3px; }
   #tbody tr:focus-visible { outline: 2px solid #0969da; outline-offset: -2px; }
@@ -1079,13 +1084,17 @@
     }
     tbody { display: block; }
     /* 手机卡片改成"一周一组"：周与周之间用一条居中的细横线分隔。
-       横线画在卡片的 .cell-mobile 上（tr 是表格行，伪元素在 Chrome 里不渲染）。 */
-    tbody tr.week-start { margin-top: 24px; }
+       横线画在卡片的 .cell-mobile 上（tr 是表格行，伪元素在 Chrome 里不渲染）。
+       行距变量：单列 24px、两列由 grid gap 提供 10px；线的位置用公式严格居中：
+       top = -(行距 / 2) - (线高 / 2) */
+    tbody { --week-gap: 24px; --week-line: 2px; }
+    tbody tr.week-start { margin-top: var(--week-gap); }
     tbody tr.week-start > td { border-top: 0; }
-    /* 周分隔线：左右略长于列宽、垂直落在 24px 行距正中（24/2 − 线高/2 = 11） */
+    /* 周分隔线：左右略长于列宽，垂直严格落在行距正中 */
     tbody tr.week-start td.cell-mobile::before {
-      content: ''; position: absolute; top: -11px; left: 50%;
-      width: calc(100% + 12px); height: 2px;
+      content: ''; position: absolute;
+      top: calc(var(--week-gap) / -2 - var(--week-line) / 2);
+      left: 50%; width: calc(100% + 12px); height: var(--week-line);
       transform: translateX(-50%);
       background: #d0d7de; border-radius: 1px;
     }
@@ -1126,21 +1135,20 @@
     tbody tr.row-tomorrow td.cell-mobile { color: #1a7f37; font-weight: 700; }
     tbody tr.row-past td.cell-mobile { color: #6e7781; }
     tbody tr.row-past .m-name { color: #6e7781; }
-    /* 冲突：卡片自带一条完整的琥珀色左边 + 极浅底纹。
-       两列并排时左右各成一条，不再用"跨卡片接续"的桥接块（那种画法在并排时会断裂）。 */
+    /* 冲突：整张卡片描一圈琥珀色边框 + 极浅底纹（都是跟随卡片圆角的"填充"），
+       同组的两条再用一条最短对角线段连起来（见 .conflict-link-layer）。 */
     tbody tr.row-conflict {
-      border-left: 5px solid #c28a12;
+      border: 2px solid #c28a12;
+      border-radius: 10px;
       background: #fffaf0;
     }
-    tbody tr.row-past.row-conflict { border-left-color: #c49a45; background: #fdfaf3; }
-    tbody tr.row-conflict.conflict-peer { border-left-color: #8a5306; background: #fff5e0; }
+    tbody tr.row-past.row-conflict { border-color: #c49a45; background: #fdfaf3; }
+    tbody tr.row-conflict.conflict-peer { border-color: #8a5306; background: #fff5e0; }
+    /* 边框已经表达了冲突，标记列不再重复填色 */
     tbody tr.row-conflict td.cell-mark,
     tbody tr.row-conflict.row-past td.cell-mark {
       background: transparent; box-shadow: none;
     }
-    /* 同周内上下相邻的冲突卡：只把中间那段圆角和间距收掉，左边线照样连续 */
-    tbody tr.row-conflict.conflict-join-next { border-bottom-left-radius: 0; }
-    tbody tr.row-conflict.conflict-join-top { border-top-left-radius: 0; }
     .cell-mobile .m-line1 {
       display: flex; align-items: center; flex-wrap: wrap; gap: 2px 6px;
       font-size: 12.5px; color: #57606a; line-height: 1.6; overflow-wrap: anywhere;
@@ -1192,13 +1200,14 @@
   }
   /* ---------- 平板 / 窄桌面：两列卡片，避免 700px 宽的"单列巨型卡片" ---------- */
   @media (min-width: 561px) and (max-width: 940px) {
-    tbody { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: start; }
+    /* 两列的行距由 grid gap 提供；线和 margin 都从这个变量推出来 */
+    tbody { --week-gap: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: var(--week-gap); align-items: start; }
     tbody tr { margin-bottom: 0; }
     /* 换周时强制落到新一行的左列：不同周的实验不并排，分隔线才有意义 */
     tbody tr.week-start { grid-column-start: 1; margin-top: 0; }
-    /* 两列时隔线横跨整行（左右各比一列宽出一点），垂直落在 10px 行距正中 */
+    /* 两列时隔线横跨整行（200% + 列距），top 仍用同一个居中公式 */
     tbody tr.week-start td.cell-mobile::before {
-      left: 0; width: calc(200% + 10px); transform: none; top: -6px;
+      left: 0; width: calc(200% + var(--week-gap)); transform: none;
     }
     tbody tr.empty-row { grid-column: 1 / -1; }
     tbody tr.note-row { display: none; }
@@ -1257,9 +1266,9 @@
     .cue-close { width: 22px; height: 22px; font-size: 12px; }
     .clock { font-size: 11.5px; margin-bottom: 4px; }
     .action-panel { margin-bottom: 6px; }
-    tbody tr { margin-bottom: 6px; }
-    /* 周分隔在横屏（两列）时同样收窄，避免压到上一行卡片 */
-
+    /* 注意：这里不要再给 tbody tr 加 margin-bottom。
+       两列布局下行距来自 grid gap，任何 margin 都会让分隔线偏离行距正中
+       （top 是按 --week-gap 算的）。 */
   }
 
   /* ---------- 深色模式 ----------
@@ -1315,9 +1324,10 @@
     .cell-mobile .m-place { color: #8b949e; }
     .cell-mobile .m-note { border-top-color: #21262d; color: #8b949e; }
     /* 冲突卡：深底 + 琥珀左边，两条并排时各自完整 */
-    tbody tr.row-conflict { background: #241d10; border-left-color: #9e6a03; }
-    tbody tr.row-conflict.conflict-peer { background: #2c2311; border-left-color: #bb8009; }
-    tbody tr.row-past.row-conflict { background: #1d1810; border-left-color: #7d5b12; }
+    tbody tr.row-conflict { background: #241d10; border-color: #9e6a03; }
+    tbody tr.row-conflict.conflict-peer { background: #2c2311; border-color: #bb8009; }
+    tbody tr.row-past.row-conflict { background: #1d1810; border-color: #7d5b12; }
+    .conflict-link-line { stroke: #d29922; }
     /* 周分隔线 */
     tbody tr.week-start td.cell-mobile::before { background: #30363d; }
     tbody tr.week-start.row-today td.cell-mobile::before { background: #6b1f24; }
@@ -1488,6 +1498,10 @@
       </thead>
       <tbody id="tbody"></tbody>
     </table>
+    <!-- 冲突连线层：卡片布局下把同组的两条用最短线段连起来（纯装饰，读屏忽略） -->
+    <div class="conflict-link-layer" id="conflictLinkLayer" hidden aria-hidden="true">
+      <svg xmlns="http://www.w3.org/2000/svg" focusable="false"></svg>
+    </div>
   </div>
 
   <section class="week-view" id="weekView" aria-label="周课表"></section>
@@ -3788,7 +3802,113 @@ function render() {
   syncTableA11y();
   syncConflictFilter(conflictInfo);
   lastRenderedDay = toDateStr(today);
+  scheduleConflictLinks(conflictInfo);
 }
+
+/* ---------- 冲突连线 ----------
+   卡片布局（手机 / 两列）下，把同一冲突组的两张卡用"最短线段"连起来：
+   取两张卡 4×4 个顶点里距离最近的一对，连一条琥珀色线。
+   线段画在卡片下层（z-index 0），所以只在行距/列距里露出来，不会压住文字。 */
+let conflictLinkRaf = 0;
+let lastConflictInfo = null;
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+function scheduleConflictLinks(info) {
+  lastConflictInfo = info || null;
+  if (conflictLinkRaf) window.cancelAnimationFrame(conflictLinkRaf);
+  // 等一次布局再量，避免刚 replaceChildren 时拿到旧几何
+  conflictLinkRaf = window.requestAnimationFrame(() => {
+    conflictLinkRaf = 0;
+    drawConflictLinks();
+  });
+}
+
+function cardCorners(rect, origin) {
+  const left = rect.left - origin.left;
+  const top = rect.top - origin.top;
+  const right = left + rect.width;
+  const bottom = top + rect.height;
+  return [
+    { x: left, y: top }, { x: right, y: top },
+    { x: left, y: bottom }, { x: right, y: bottom }
+  ];
+}
+
+function nearestCornerPair(trA, trB, origin) {
+  const a = cardCorners(trA.getBoundingClientRect(), origin);
+  const b = cardCorners(trB.getBoundingClientRect(), origin);
+  let best = null;
+  a.forEach(pa => b.forEach(pb => {
+    const dx = pa.x - pb.x;
+    const dy = pa.y - pb.y;
+    const dist = dx * dx + dy * dy;
+    if (!best || dist < best.dist) best = { dist, pa, pb };
+  }));
+  return best;
+}
+
+function drawConflictLinks() {
+  const layer = document.getElementById('conflictLinkLayer');
+  if (!layer) return;
+  const svg = layer.querySelector('svg');
+  if (!svg) return;
+  const cardsMode = window.matchMedia('(max-width: 940px)').matches
+    && !document.body.classList.contains('view-week');
+  const groups = lastConflictInfo && lastConflictInfo.groups ? lastConflictInfo.groups : [];
+  if (!cardsMode || !groups.length) {
+    layer.hidden = true;
+    svg.replaceChildren();
+    return;
+  }
+
+  // 只连"当前看得见"的行：筛选后组员可能只显示一条，那就没有线可画
+  const byGroup = new Map();
+  tbodyEl.querySelectorAll('tr[data-idx]').forEach(tr => {
+    const group = lastConflictInfo.byIndex.get(Number(tr.dataset.idx));
+    if (!group) return;
+    if (!byGroup.has(group.id)) byGroup.set(group.id, []);
+    byGroup.get(group.id).push(tr);
+  });
+
+  const wrap = layer.parentElement;
+  const origin = wrap.getBoundingClientRect();
+  const segments = [];
+  byGroup.forEach(rows => {
+    for (let i = 1; i < rows.length; i += 1) {
+      const pair = nearestCornerPair(rows[i - 1], rows[i], origin);
+      if (pair) segments.push(pair);
+    }
+  });
+
+  if (!segments.length) {
+    layer.hidden = true;
+    svg.replaceChildren();
+    return;
+  }
+
+  svg.setAttribute('viewBox', `0 0 ${Math.round(origin.width)} ${Math.round(origin.height)}`);
+  const frag = document.createDocumentFragment();
+  segments.forEach(({ pa, pb }) => {
+    const line = document.createElementNS(SVG_NS, 'line');
+    line.setAttribute('class', 'conflict-link-line');
+    line.setAttribute('x1', pa.x.toFixed(1));
+    line.setAttribute('y1', pa.y.toFixed(1));
+    line.setAttribute('x2', pb.x.toFixed(1));
+    line.setAttribute('y2', pb.y.toFixed(1));
+    frag.appendChild(line);
+  });
+  svg.replaceChildren(frag);
+  layer.hidden = false;
+}
+
+// 窗口尺寸变化会重排卡片，连线得跟着重算（防抖，避免拖动窗口时狂算）
+let conflictLinkResize = 0;
+window.addEventListener('resize', () => {
+  window.clearTimeout(conflictLinkResize);
+  conflictLinkResize = window.setTimeout(drawConflictLinks, 150);
+});
+window.addEventListener('orientationchange', () => window.setTimeout(drawConflictLinks, 250));
 
 /* 跨天刷新：页面挂一夜后，时钟已经跳到新的一天，
    但"今天/明天"标签、顶部提示条、课表的今天列都还停在昨天。
