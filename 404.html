@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-ZGxAbb6tq4cpGkFv9MXSYGlny3BxwvtPbLTkewe61vA='; script-src-attr 'none'; style-src 'sha256-6RvCk6RZCDDfdpXdvKOfLC+VSqIzEl3gCz8A1MRU9ww='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'" />
 <title>404 · 页面走丢了</title>
 <style>
   /* ---------- 基础 ---------- */
@@ -112,6 +113,12 @@
     animation: reveal .9s cubic-bezier(.2, .7, .2, 1) forwards;
     animation-delay: var(--d, 0s);
   }
+  /* 交错延迟：用类而不是 style="--d:..."，这样 CSP 可以保持 style-src-attr 'none' */
+  .d1 { --d: .05s; }
+  .d2 { --d: .15s; }
+  .d3 { --d: .3s; }
+  .d4 { --d: .4s; }
+  .d5 { --d: .52s; }
   @keyframes reveal {
     from { opacity: 0; transform: translateY(28px); filter: blur(8px); }
     to   { opacity: 1; transform: translateY(0);    filter: blur(0); }
@@ -306,20 +313,20 @@
   <div class="glow glow-3" aria-hidden="true"></div>
 
   <main class="stage">
-    <p class="eyebrow reveal" style="--d:.05s">Error 404</p>
+    <p class="eyebrow reveal d1">Error 404</p>
 
-    <div class="code-wrap reveal" style="--d:.15s">
+    <div class="code-wrap reveal d2">
       <h1 class="code">404</h1>
     </div>
 
-    <h2 class="title reveal" style="--d:.3s">页面走丢了</h2>
+    <h2 class="title reveal d3">页面走丢了</h2>
 
-    <p class="desc reveal" style="--d:.4s">
+    <p class="desc reveal d4">
       你访问的页面不存在，可能已被移动或删除。<br />
       不如回到首页，重新出发吧。
     </p>
 
-    <div class="actions reveal" style="--d:.52s">
+    <div class="actions reveal d5">
       <a class="btn btn-primary" href="/">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
              stroke="currentColor" stroke-width="2.2"
@@ -329,14 +336,16 @@
         </svg>
         返回首页
       </a>
-      <button class="btn btn-ghost" type="button" onclick="history.back()">
+      <button class="btn btn-ghost" type="button" id="backBtn">
         返回上一页
       </button>
     </div>
   </main>
 
   <p class="footer">
-    如果你认为这是一个错误，欢迎 <a href="mailto:hello@example.com">联系我们</a>
+    如果你认为这是一个错误，欢迎到
+    <a href="https://github.com/XiaoYu-Oxyz/XiaoYu-Oxyz.github.io/issues">项目仓库</a>
+    反馈。
   </p>
 
 <script>
@@ -428,6 +437,11 @@
         document.documentElement.style.setProperty("--my", (y * 14).toFixed(2) + "px");
       });
     });
+  }
+  /* ---------- 返回上一页（替代内联 onclick，让 CSP 可以禁止内联事件） ---------- */
+  var backBtn = document.getElementById("backBtn");
+  if (backBtn) {
+    backBtn.addEventListener("click", function () { history.back(); });
   }
 })();
 </script>

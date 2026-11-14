@@ -23,8 +23,10 @@ BASE = Path(__file__).resolve().parent
 # index.html 是唯一真源（GitHub Pages 直接托管它）；实验提醒.html 只是同步副本。
 DEPLOY = BASE / "index.html"
 SOURCE = BASE / "实验提醒.html"
+# 独立页面：同样要求 CSP 哈希与外部资源禁令，但不跑应用专用的表格/模板检查。
+EXTRA_PAGES = [BASE / "404.html"]
 
-META_RE = re.compile(r'<meta http-equiv="Content-Security-Policy" content="([^"]*)">')
+META_RE = re.compile(r'<meta http-equiv="Content-Security-Policy" content="([^"]*)"\s*/?>')
 STYLE_RE = re.compile(r"<style>([\s\S]*?)</style>")
 SCRIPT_RE = re.compile(r"<script>([\s\S]*?)</script>")
 TEMPLATE_RE = re.compile(r'<template id="defaultData">([\s\S]*?)</template>')
@@ -72,9 +74,9 @@ def apply_hashes_to_html(html: str):
     policy, style_count = STYLE_HASH_RE.subn(
         lambda m: m.group(1) + style_hash + m.group(2), policy
     )
-    if script_count != 2 or style_count != 2:
+    if script_count < 1 or style_count < 1:
         raise ValueError(
-            "expected 2 script-src and 2 style-src hashes, replaced %d/%d"
+            "no sha256 placeholder found for script-src/style-src (%d/%d)"
             % (script_count, style_count)
         )
     return html[: match.start(1)] + policy + html[match.end(1):], script_hash, style_hash
@@ -91,6 +93,13 @@ def verify_html(html: str, name: str, check_newlines: bool = True) -> list:
         err("contains CR characters; CSP hashes must be computed on LF-only text")
     if "\x00" in html:
         err("contains NUL characters")
+    # 外部资源检查放在最前：否则 <script src> 会先触发"内联脚本数量不对"这种更难懂的错误
+    if re.search(r"<script\b[^>]*\bsrc\s*=", html, re.I):
+        err("external <script src> present")
+    if re.search(r"<link\b", html, re.I):
+        err("<link> present")
+    if re.search(r"<img\b", html, re.I):
+        err("<img> present")
 
     try:
         style, script = extract(html)
@@ -161,12 +170,6 @@ def verify_html(html: str, name: str, check_newlines: bool = True) -> list:
     if "report-uri" in policy:
         err("meta CSP contains report-uri (browsers ignore it in meta)")
 
-    if re.search(r"<script\b[^>]*\bsrc\s*=", html, re.I):
-        err("external <script src> present")
-    if re.search(r"<link\b", html, re.I):
-        err("<link> present")
-    if re.search(r"<img\b", html, re.I):
-        err("<img> present")
     if DANGEROUS_SINK_RE.search(script):
         err("dangerous DOM/code sink found in script")
     if "XML_POLICY_NAME" not in script or "'xlsx-xml'" not in script:
@@ -180,7 +183,57 @@ def verify_html(html: str, name: str, check_newlines: bool = True) -> list:
     return errors
 
 
-def verify_bytes(raw: bytes, name: str) -> list:
+def verify_static_page(html: str, name: str) -> list:
+    """CSP + 外部资源检查，用于 404.html 这类独立页面（没有数据模板/表格）。"""
+    errors = []
+
+    def err(reason: str) -> None:
+        errors.append("%s: %s" % (name, reason))
+
+    # 先查外部资源：<script src> 必须先被识别为"外部脚本"，而不是"内联脚本数量不对"
+    if re.search(r"<script\b[^>]*\bsrc\s*=", html, re.I):
+        err("external <script src> present")
+    if re.search(r"<link\b", html, re.I):
+        err("<link> present")
+    if re.search(r"<img\b", html, re.I):
+        err("<img> present")
+    if re.search(r"\son[a-z]+\s*=", html, re.I):
+        err("inline event handler attribute present (needs 'unsafe-inline')")
+
+    try:
+        style, script = extract(html)
+    except ValueError as exc:
+        err(str(exc))
+        return errors
+    try:
+        policy = find_policy(html).group(1)
+    except ValueError as exc:
+        err(str(exc))
+        return errors
+    checks = [
+        ("script-src hash", "script-src 'sha256-%s'" % digest(script)),
+        ("style-src hash", "style-src 'sha256-%s'" % digest(style)),
+        ("default-src none", "default-src 'none'"),
+        ("script-src-attr none", "script-src-attr 'none'"),
+        ("style-src-attr none", "style-src-attr 'none'"),
+        ("base-uri none", "base-uri 'none'"),
+        ("form-action none", "form-action 'none'"),
+        ("connect-src none", "connect-src 'none'"),
+    ]
+    for label, needle in checks:
+        if needle not in policy:
+            err("missing CSP %s" % label)
+
+    for bad in ("'unsafe-inline'", "'unsafe-hashes'", "'unsafe-eval'"):
+        if bad in policy:
+            err("CSP contains %s" % bad)
+
+    if DANGEROUS_SINK_RE.search(script):
+        err("dangerous DOM/code sink found in script")
+    return errors
+
+
+def verify_bytes(raw: bytes, name: str, html_check=None) -> list:
     """Byte-level checks (BOM / CRLF / bare CR / NUL) plus the HTML-level checks."""
     errors = []
     if raw.startswith(b"\xef\xbb\xbf"):
@@ -195,7 +248,9 @@ def verify_bytes(raw: bytes, name: str) -> list:
         html = raw.decode("utf-8")
     except UnicodeDecodeError as exc:
         return errors + ["%s: not valid UTF-8: %s" % (name, exc)]
-    return errors + verify_html(html, name, check_newlines=False)
+    if html_check is None:
+        return errors + verify_html(html, name, check_newlines=False)
+    return errors + html_check(html, name)
 
 
 def write_atomic(path: Path, data: bytes) -> None:
@@ -230,6 +285,13 @@ def main(argv=None) -> int:
         if target == DEPLOY:
             write_atomic(SOURCE, encoded)
             print("synced 实验提醒.html from index.html")
+        for extra in EXTRA_PAGES:
+            if not extra.exists():
+                continue
+            extra_html = extra.read_bytes().decode("utf-8-sig").replace("\r\n", "\n")
+            extra_new, extra_script, extra_style = apply_hashes_to_html(extra_html)
+            write_atomic(extra, extra_new.encode("utf-8"))
+            print("updated %s: script=%s style=%s" % (extra.name, extra_script, extra_style))
 
     paths = [p for p in (SOURCE, DEPLOY) if p.exists()]
     if not paths:
@@ -245,6 +307,13 @@ def main(argv=None) -> int:
         status = "PASS" if not file_errors else "FAIL"
         print("[%s] %s: %s" % (status, path.name, describe(path)))
         errors.extend(file_errors)
+    for extra in EXTRA_PAGES:
+        if not extra.exists():
+            continue
+        extra_errors = verify_bytes(extra.read_bytes(), extra.name, verify_static_page)
+        status = "PASS" if not extra_errors else "FAIL"
+        print("[%s] %s: %s" % (status, extra.name, describe(extra)))
+        errors.extend(extra_errors)
     if errors:
         for error in errors:
             print(" - " + error)

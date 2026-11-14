@@ -255,6 +255,7 @@ https://xiaoyu-oxyz.github.io/?class=Z2&mode=ro
 ├─ ACCESSIBILITY.md           # 读屏人工回归清单
 ├─ tests/
 │  ├─ test_build.py           # build reader 回归测试（metadata/week1/旧格式）
+│  ├─ test_verifier.py        # 校验器回归（哈希过期/CRLF/裸 CR/NUL/BOM/外部脚本/内联事件）
 │  ├─ fixtures/
 │  │  └─ Z1-import.json       # UI 导入固定样本
 │  ├─ ui-smoke.mjs            # Playwright UI 冒烟测试（Chromium/WebKit）
@@ -602,7 +603,8 @@ git push
 - 导入只读缓存值，不执行公式；导出使用 `inlineStr` 文本；
 - 构建时校验并转义 `<`、`>`、`&`，防止模板注入；
 - `localStorage` 按班级隔离，校验 schema、类型、长度和条数；
-- `verify-csp.py` 检查哈希、模板、默认数据解析和源/部署字节一致。
+- `verify-csp.py` 检查哈希、模板、默认数据解析和源/部署字节一致；
+- `404.html` 使用同一套哈希 CSP，`verify-csp.py --apply` 会一起更新，并拒绝内联事件属性与外部脚本/样式。
 
 详见 [SECURITY.md](SECURITY.md)。
 
@@ -612,7 +614,7 @@ git push
 - GitHub Pages 站点和仓库文件默认公开；没有登录、权限或访问控制。需要私密数据时不要使用公开 Pages。
 - `*.github.io` 同账号项目共享源，`localStorage` 可能被同源其他项目读取/覆盖；项目前缀只能防误撞。
 - 页面是纯客户端应用；有 DevTools 的用户可以修改自己的数据。
-- `404.html` 是独立页面，不受主应用的 CSP 约束；它自身的内联样式/脚本在部署后仍会执行。它不含用户数据。
+- `404.html` 也使用哈希 CSP（`verify-csp.py --apply` 会一起更新），并禁止内联事件属性；它不含用户数据。
 - 免费 GitHub Pages 没有 WAF/DDoS 防护。
 
 如果数据敏感或需要访问控制，应改用支持身份认证和自定义响应头的托管方案，而不是仅调整前端代码。
@@ -624,7 +626,7 @@ git push
 以下为 2026-10-31 版本及 2026-11-06 时间冲突增量的验证，不等同于对所有历史版本的永久保证：
 
 - 构建：`3 classes, 65 experiments`（Z1 25 / Z2 27 / Z5 13）。
-- 单元测试：`tests/test_build.py` 6/6 通过（metadata、week1 周一校验、旧格式、工作表选择）。
+- 单元测试：`tests/test_build.py` 6/6、`tests/test_verifier.py` 16/16 通过（metadata、week1 周一校验、旧格式、工作表选择；哈希过期、CRLF、裸 CR、NUL、BOM、危险 sink、404 页面 CSP 与内联事件）。
 - UI 冒烟（Chromium + WebKit）：`tests/ui-smoke.mjs` 通过（week1 校验/切班、搜索、导出默认全部/当前筛选、筛选备份导入警告与替换二次确认、JSON 导入、撤销导入、班级新建/重命名/删除、内置班修改/撤销/恢复、隐藏班同名警告与恢复冲突、删除到空状态及刷新持久化、复制失败文本框、跨标签页 week1/实验数据/班级切换、焦点循环/Esc 归位、aria-live、表格 caption/scope/headers、全部数据表头摘要、操作列普通阅读隐藏/模式内可见、表格与行 Tab 聚焦、roving tabindex 单停靠点、方向键逐条、行摘要含全部列名与状态且“星期 星期一”、手机端读表头、空操作列不读空白、编辑/删除按钮完整数据标签含“节次”、当前筛选打印、36px 班级图标热区、320px、`.ics` 导出、`?mode=ro` 只读链接）。
 - 纯逻辑回归（Chromium + WebKit）：`tests/logic.mjs` 34 个用例覆盖日期/周次/节次区间/冲突分组/ICS 生成与折行/转义/控件字符清理。
 - 所有 UI 断言都走 `poll()` 轮询而非固定 `sleep`，测试数据（班级条数、全局 week1）从 `data/` 读取，改一条实验不需要改测试。
