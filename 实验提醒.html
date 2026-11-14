@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Jz4zx5z3SzE0mS2gAq6SmCtmNlaX9eZg6lmyC/TdlHI='; script-src-elem 'sha256-Jz4zx5z3SzE0mS2gAq6SmCtmNlaX9eZg6lmyC/TdlHI='; script-src-attr 'none'; style-src 'sha256-G1zJtQsd2K2XVtBUvX6Vm+oEbWn7qrkxZviAi6d0mU4='; style-src-elem 'sha256-G1zJtQsd2K2XVtBUvX6Vm+oEbWn7qrkxZviAi6d0mU4='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Jz4zx5z3SzE0mS2gAq6SmCtmNlaX9eZg6lmyC/TdlHI='; script-src-elem 'sha256-Jz4zx5z3SzE0mS2gAq6SmCtmNlaX9eZg6lmyC/TdlHI='; script-src-attr 'none'; style-src 'sha256-NL+iLB8obGIEA5obGdmEUX8Pb3Hyzd55CV5nWNulMzs='; style-src-elem 'sha256-NL+iLB8obGIEA5obGdmEUX8Pb3Hyzd55CV5nWNulMzs='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>实验课提醒</title>
 <style>
@@ -178,9 +178,11 @@
   /* 只读链接（?mode=ro）：隐藏所有会写本机数据或改班级的入口 */
   body.readonly .class-tools,
   body.readonly .action-group-edit,
-  body.readonly #importBtn,
-  body.readonly .settings-row { display: none !important; }
-  .data-updated { font-size: 11.5px; color: #6e7781; white-space: nowrap; }
+  body.readonly #importBtn { display: none !important; }
+  /* 但「数据更新至」要留着——只读用户同样需要知道数据是哪天的 */
+  body.readonly .settings-row label,
+  body.readonly .settings-row .settings-hint { display: none !important; }
+  .data-updated { font-size: 11.5px; color: #6e7781; white-space: nowrap; margin-left: auto; }
   .data-updated[hidden] { display: none !important; }
   .import-btn {
     padding: 8px 16px; font-size: 14px; font-weight: 600; line-height: 1.4;
@@ -818,15 +820,20 @@
     .class-tools { flex: none; gap: 6px; }
     .head-filters { grid-area: filters; gap: 10px; }
     .head-actions { grid-area: actions; margin-left: 0; gap: 6px; flex-wrap: nowrap; }
-    .data-updated { display: none; }
+    /* 与桌面功能一致：第 1 周设置与「数据更新至」在手机端同样显示，
+       只是用短标签 + 小字号压成一行，避免又占掉一大块首屏。 */
+    .settings-row { order: 4; margin: 0 0 8px; gap: 6px; }
+    .settings-row label { gap: 6px; font-size: 12px; }
+    .settings-row input[type="date"] { font-size: 12px; padding: 3px 6px; }
+    .settings-hint { display: none; }
+    .data-updated { font-size: 11px; }
     /* 显式排序：.wrap 是 flex 容器，未指定 order 的子元素会落到最前面（诊断行曾在表格之上） */
     .first-run { order: 2; }
     .action-panel { order: 3; }
-    .import-status { order: 4; }
-    .clock { order: 5; font-size: 12px; margin-bottom: 8px; }
+    .import-status { order: 5; }
+    .clock { order: 6; font-size: 12px; margin-bottom: 8px; }
     .legend { display: none; }
-    .table-wrap { order: 6; min-width: 0; }
-    .settings-row { order: 7; margin: 14px 0 0; }
+    .table-wrap { order: 7; min-width: 0; }
     .diag-row { order: 8; margin-top: 12px; }
     .actions-toggle { padding: 7px 11px; font-size: 12.5px; min-height: 36px; }
     .copy-week-outside { padding: 7px 6px; font-size: 11.5px; min-height: 36px; }
@@ -1066,7 +1073,6 @@
       <span class="recent-count" id="recentCount"></span>
       <span class="mode-badge" id="modeBadge" hidden></span>
     </div>
-    <span class="data-updated" id="dataUpdated" hidden></span>
     <div class="head-actions">
       <button class="ghost-btn copy-week-outside" id="copyWeekBtn" type="button">复制本周</button>
       <button class="actions-toggle" id="actionsToggle" type="button" aria-expanded="false" aria-controls="actionPanel">操作 <span class="caret" aria-hidden="true">▾</span></button>
@@ -1095,10 +1101,13 @@
   </div>
 
   <div class="settings-row">
-    <label>第 1 周星期一（本班）：
+    <label for="week1Input">
+      <span class="label-long">第 1 周星期一（本班）：</span>
+      <span class="label-short">第1周周一：</span>
       <input type="date" id="week1Input">
     </label>
     <span class="settings-hint" title="每个班分别保存；未设置时使用 data/设置.json 的全局值">按班级保存，未设置用全局值</span>
+    <span class="data-updated" id="dataUpdated" hidden></span>
   </div>
 
   <div class="import-status" id="importStatus"></div>
@@ -1115,7 +1124,8 @@
   </div>
 
   <div class="table-wrap">
-    <div class="print-head" id="printHead" aria-hidden="true"></div>    <p class="sr-only" id="tableKeyboardHint">实验表格。按 Tab 进入第一行并逐行前进，Shift+Tab 反向；上下方向键也可逐条朗读；编辑/删除模式下 Tab 到行内按钮；按 Esc 返回表格。</p>
+    <div class="print-head" id="printHead" aria-hidden="true"></div>
+    <p class="sr-only" id="tableKeyboardHint">实验表格。按 Tab 进入第一行并逐行前进，Shift+Tab 反向；上下方向键也可逐条朗读；编辑/删除模式下 Tab 到行内按钮；按 Esc 返回表格。</p>
     <p class="sr-only" id="tableHeaderSummary">表头：日期、周次、星期、节次、实验名称、实验地点。</p>
     <table id="scheduleTable" tabindex="0" aria-labelledby="tableCaption" aria-describedby="tableKeyboardHint tableHeaderSummary">
       <caption class="sr-only" id="tableCaption"></caption>
