@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-IY67a+8utYNr4UQsykbUmkbdQx6gKsNbtUFnPLHrH3Q='; script-src-elem 'sha256-IY67a+8utYNr4UQsykbUmkbdQx6gKsNbtUFnPLHrH3Q='; script-src-attr 'none'; style-src 'sha256-yWBuiy7a4QE2krgO6eX8Fd1Cy8uoY7kE3TWnuwp5btQ='; style-src-elem 'sha256-yWBuiy7a4QE2krgO6eX8Fd1Cy8uoY7kE3TWnuwp5btQ='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-prIpqh0u8LH4eI59/rZJA98RSSnN2ybJ1OkuLN28oXw='; script-src-elem 'sha256-prIpqh0u8LH4eI59/rZJA98RSSnN2ybJ1OkuLN28oXw='; script-src-attr 'none'; style-src 'sha256-yWBuiy7a4QE2krgO6eX8Fd1Cy8uoY7kE3TWnuwp5btQ='; style-src-elem 'sha256-yWBuiy7a4QE2krgO6eX8Fd1Cy8uoY7kE3TWnuwp5btQ='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>CrseCue</title>
 <style>
@@ -3751,6 +3751,21 @@ function render() {
   syncRowFocusability();
   syncTableA11y();
   syncConflictFilter(conflictInfo);
+  lastRenderedDay = toDateStr(today);
+}
+
+/* 跨天刷新：页面挂一夜后，时钟已经跳到新的一天，
+   但"今天/明天"标签、顶部提示条、课表的今天列都还停在昨天。
+   30 秒心跳 + 回到前台各查一次（后台标签页的定时器会被浏览器节流）。 */
+let lastRenderedDay = '';
+
+function refreshIfDayChanged() {
+  if (!lastRenderedDay) return false;
+  if (toDateStr(new Date()) === lastRenderedDay) return false;
+  render();
+  updateClock();
+  showStatus('ok', '日期已变化，列表已刷新到今天');
+  return true;
 }
 
 
@@ -7612,8 +7627,19 @@ function autoLocateToday() {
 }
 autoLocateToday();
 
-// 时钟要显示 hh:mm，每 30 秒刷一次
-window.setInterval(updateClock, 30000);
+// 时钟每 30 秒刷一次；顺带检查是否跨天（页面挂一夜也会自己对齐）
+window.setInterval(() => {
+  updateClock();
+  refreshIfDayChanged();
+}, 30000);
+
+// 回到前台立刻查一次：后台标签页的定时器会被节流，光靠心跳不够
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible') return;
+  updateClock();
+  refreshIfDayChanged();
+});
+window.addEventListener('focus', refreshIfDayChanged);
 
 /* 弹窗打开时把 <main> 设为 inert：
    JS 的焦点陷阱挡得住 Tab，挡不住读屏的虚拟光标 —— 否则打开弹窗后还能"逛"到后面的表格。

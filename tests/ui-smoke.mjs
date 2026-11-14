@@ -670,8 +670,35 @@ try {
   assert.match(await badPage.locator('#errDesc').innerText(), /不存在的班级/);
   await badCtx.close();
 
-  console.log('UI smoke OK');
-} finally {
+  // 12. 跨天自动刷新：页面挂一夜后，时钟、"今天/明天"标签、提示条必须一起对齐。
+  const midnightCtx = await browser.newContext({ viewport: { width: 1200, height: 900 } });
+  const midnightPage = await midnightCtx.newPage();
+  await midnightPage.clock.install({ time: new Date('2026-11-14T22:00:00') });
+  await midnightPage.addInitScript(() => {
+    localStorage.setItem('ghpages:zhizao2402:classdata:v1:Z1', JSON.stringify([
+      { date: '2026-11-14', period: '第5-6节', name: '跨天实验A', place: 'A101', note: '' },
+      { date: '2026-11-15', period: '第3-4节', name: '跨天实验B', place: 'A102', note: '' }
+    ]));
+  });
+  await midnightPage.goto(`${appUrl}?class=Z1`);
+  await midnightPage.waitForSelector('#tbody tr');
+  const badgeOf = name => midnightPage.evaluate(n => {
+    const row = Array.from(document.querySelectorAll('#tbody tr')).find(r => r.textContent.includes(n));
+    if (!row) return null;
+    const tag = row.querySelector('.tag-today, .tag-tomorrow, .tag-past, .tag-next');
+    return tag ? tag.textContent : '';
+  }, name);
+  assert.equal(await badgeOf('跨天实验A'), '今天');
+  assert.equal(await badgeOf('跨天实验B'), '明天');
+  await midnightPage.clock.fastForward('03:00:00');   // 跨到 11-15 01:00
+  await midnightPage.waitForTimeout(900);
+  assert.match(await midnightPage.locator('#clock').innerText(), /2026-11-15/);
+  assert.equal(await badgeOf('跨天实验A'), '已结束');
+  assert.equal(await badgeOf('跨天实验B'), '今天');
+  assert.match(await midnightPage.locator('#cueText').innerText(), /第3-4节/);
+  await midnightCtx.close();
+
+  console.log('UI smoke OK');} finally {
   fs.rmSync(fixtureDir, { force: true, recursive: true });
   await browser.close();
 }
