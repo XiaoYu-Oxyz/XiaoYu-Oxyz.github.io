@@ -242,9 +242,9 @@ https://xiaoyu-oxyz.github.io/?class=Z2&mode=ro
 ## 3. 目录结构
 
 ```text
-实验提醒/
+CrseCue/
 ├─ index.html                 # 唯一真源 + GitHub Pages 部署入口
-├─ 实验提醒.html              # index.html 的同步副本（字节一致），方便本地双击打开
+
 ├─ 404.html                   # 自定义 404 页面（缺失路径时使用）
 ├─ data/
 │  ├─ Z1.xlsx                 # 班级 Z1：当前 25 条
@@ -477,7 +477,7 @@ python verify-csp.py
 - `build-html.py` 读取 `data/*.xlsx` 和 `data/设置.json`；
 - 校验表头、日期/周次、字段长度、控制字符、重复班级；
 - 转义 `<>&` 后写入 `<template id="defaultData">`；
-- 同时写 `实验提醒.html` 和 `index.html`；
+- 写回 `index.html`（页面只有一个真源，旧的双副本已删除）；
 - 自动调用 `verify-csp.py`。
 
 `build-html.py` 先在内存里拼出完整页面并跑一遍 CSP/模板校验，**校验通过才写盘**（临时文件 + 原子替换）。所以哈希过期、模板损坏、危险 DOM sink 这几种情况都会让构建以非 0 退出码失败，并且两个 HTML 一个字节都不会被改动。
@@ -797,7 +797,7 @@ git push
    ```
 
 2. 只改数据时不要执行 `--apply`，避免不必要的哈希变化。
-3. 以 `index.html` 为唯一真源（`实验提醒.html` 是它的同步副本）；不要手改 CSP 里的哈希，改完代码跑 `verify-csp.py --apply` 即可。
+3. `index.html` 是唯一页面文件；不要手改 CSP 里的哈希，改完代码跑 `verify-csp.py --apply` 即可。
 4. 保持 HTML/Python/Markdown/JSON 为 UTF-8、LF；`.gitattributes` 已配置。
 5. 不要提交 `__pycache__/`、导出的临时 xlsx、token、`.env`。
 6. 部署前确认 `404.html` 与 `index.html` 同目录。

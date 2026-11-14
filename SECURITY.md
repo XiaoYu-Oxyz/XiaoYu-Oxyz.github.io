@@ -10,7 +10,7 @@
 | `data/设置.json` | 全局设置：`{"version":1,"week1":"2026-08-31"}` |
 | `build-html.py` | 用 Python + openpyxl 读 `data/`，写入 `<template id="defaultData">`，生成源文件和 `index.html`，再运行 verify |
 | `requirements.txt` | 构建依赖：`openpyxl==3.1.5`；网页运行不需要 |
-| `实验提醒.html` | 构建后的源文件（开发/维护用） |
+
 | `index.html` | GitHub Pages 部署入口，与源文件字节一致 |
 | `verify-csp.py` | 校验 CSP 哈希、模板 JSON、默认数据解析和安全限制；`--apply` 重算代码哈希并同步 `index.html` |
 | `.gitattributes` | HTML/Python/Markdown/JSON 使用 LF；xlsx 标记为 binary，避免损坏 |
@@ -104,7 +104,7 @@
 - 每个班可以使用自己的 `week1`（页面本地设置或 `班级信息`）；没有时回退到 `data/设置.json` 全局值。`week1` 必须是星期一；页面、导入和 build 都校验。`班级信息` 的 `班级` 与文件名不一致时构建直接失败。
 - `build-html.py` 校验日期、表头、字段长度、控制字符、重复班级，把 `<`、`>`、`&` 转义成 `\u003c`/`\u003e`/`\u0026`，避免 `</template>`、`<img>` 或实体注入。
 - 构建只改模板数据，不改 `<script>`/`<style>`，所以**数据变化不需要重算 CSP 哈希**。
-- 构建同时写入 `实验提醒.html` 和 `index.html`，然后运行 `verify-csp.py`。
+- 构建写回 `index.html`，然后运行 `verify-csp.py`。
 - 运行时仍然是单文件、无 fetch、`connect-src 'none'`，可完全离线；`data/` 只在构建时读取。
 - 第 1 周按班级独立：页面修改只保存当前班；没有独立值时使用全局 `data/设置.json`。部署默认值可写在该班 xlsx 的 `班级信息`，或使用全局值；“恢复默认数据”不清 week1。
 - 班级名不限制字符（以操作系统允许的文件名为准）；页面显示和 xlsx 走文本/固定 sheet，不拼 HTML。新班级可以往 `data/` 放 xlsx 后 build；页面导入时新建的班只在本机保留，导出该班 xlsx 并 build 后才成为部署默认。
@@ -180,7 +180,7 @@ python verify-csp.py
 1. 读取 `data/*.xlsx` 和 `data/设置.json`；
 2. 校验班级名、日期、表头、字段长度、控制字符、重复班级；
 3. 转义 `<`、`>`、`&`，写入 `<template id="defaultData">`；
-4. 同时写入 `实验提醒.html` 和 `index.html`；
+4. 写回 `index.html`；
 5. 运行 `verify-csp.py`，确认 CSP/TT/模板都正常。
 
 数据构建**不需要** `verify-csp.py --apply`，脚本/样式哈希保持不变。
@@ -220,7 +220,7 @@ python verify-csp.py
 
 ## 5. 部署到 GitHub Pages
 
-1. 确保提交：`index.html`、`实验提醒.html`、`data/*.xlsx`、`data/设置.json`、`build-html.py`、`requirements.txt`、`verify-csp.py`、`.nojekyll`、`.gitattributes`、`.editorconfig`、`SECURITY.md`。
+1. 确保提交：`index.html`、`404.html`、`data/*.xlsx`、`data/设置.json`、`build-html.py`、`requirements.txt`、`verify-csp.py`、`.nojekyll`、`.gitattributes`、`.editorconfig`、`SECURITY.md`。
 2. 不要提交：导出的、不在 `data/` 下的 `*.xlsx`、备份、测试 fixture、`.DS_Store`。`.gitignore` 已排除；`data/*.xlsx` 有提交例外，因为它们是发布源。
 3. **公开数据警告**：`data/*.xlsx`、`data/设置.json` 和 `index.html` 都会公开。不要把个人敏感实验数据提交到公开仓库/公开 Pages；需要私密数据时不要用公开 GitHub Pages，改用本地文件或私有部署。
 4. GitHub 仓库设置开启 2FA、分支保护；Pages 仍从 `main` 根目录部署。新增的 `.github/workflows/verify.yml` 只做构建/CSP/diff 校验，权限仅 `contents: read`，不部署、不持有凭据；两个 Action 已固定到 commit SHA，checkout 使用 `fetch-depth: 0` 以读取 data 提交日期。
@@ -255,7 +255,7 @@ python verify-csp.py
 python build-html.py
 python verify-csp.py
         ↓
-git add data/*.xlsx data/设置.json 实验提醒.html index.html
+git add data/*.xlsx data/设置.json index.html 404.html
 git commit / git push
 ```
 

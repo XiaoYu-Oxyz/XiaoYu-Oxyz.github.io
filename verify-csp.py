@@ -2,8 +2,8 @@
 """Verify (or re-apply) the CSP hashes and security invariants for the offline app.
 
 Usage:
-    python verify-csp.py           # verify 实验提醒.html and index.html
-    python verify-csp.py --apply   # recompute hashes in the source, then sync index.html
+    python verify-csp.py           # verify index.html, 404.html and generated .ics files
+    python verify-csp.py --apply   # recompute hashes in index.html and 404.html
 
 No third-party packages; Python standard library only.
 
@@ -20,9 +20,8 @@ import sys
 from pathlib import Path
 
 BASE = Path(__file__).resolve().parent
-# index.html 是唯一真源（GitHub Pages 直接托管它）；实验提醒.html 只是同步副本。
+# index.html 是唯一页面文件；404.html 与构建期生成的 .ics 是附带产物。
 DEPLOY = BASE / "index.html"
-SOURCE = BASE / "实验提醒.html"
 # 独立页面：同样要求 CSP 哈希与外部资源禁令，但不跑应用专用的表格/模板检查。
 EXTRA_PAGES = [BASE / "404.html"]
 
@@ -272,7 +271,10 @@ def main(argv=None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
 
     if "--apply" in argv:
-        target = DEPLOY if DEPLOY.exists() else SOURCE
+        target = DEPLOY
+        if not target.exists():
+            print("APPLY FAILED: %s 不存在" % target.name)
+            return 1
         try:
             html = target.read_bytes().decode("utf-8-sig").replace("\r\n", "\n")
             new_html, script_hash, style_hash = apply_hashes_to_html(html)
@@ -282,9 +284,6 @@ def main(argv=None) -> int:
         encoded = new_html.encode("utf-8")
         write_atomic(target, encoded)
         print("updated %s: script=%s style=%s" % (target.name, script_hash, style_hash))
-        if target == DEPLOY:
-            write_atomic(SOURCE, encoded)
-            print("synced 实验提醒.html from index.html")
         for extra in EXTRA_PAGES:
             if not extra.exists():
                 continue
@@ -293,12 +292,9 @@ def main(argv=None) -> int:
             write_atomic(extra, extra_new.encode("utf-8"))
             print("updated %s: script=%s style=%s" % (extra.name, extra_script, extra_style))
 
-    paths = [p for p in (SOURCE, DEPLOY) if p.exists()]
+    paths = [p for p in (DEPLOY,) if p.exists()]
     if not paths:
         print("no HTML files found")
-        return 1
-    if len(paths) == 2 and paths[0].read_bytes() != paths[1].read_bytes():
-        print("FAIL: 实验提醒.html and index.html differ; run --apply")
         return 1
 
     errors = []

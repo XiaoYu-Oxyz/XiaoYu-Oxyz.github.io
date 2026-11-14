@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Jz4zx5z3SzE0mS2gAq6SmCtmNlaX9eZg6lmyC/TdlHI='; script-src-elem 'sha256-Jz4zx5z3SzE0mS2gAq6SmCtmNlaX9eZg6lmyC/TdlHI='; script-src-attr 'none'; style-src 'sha256-NL+iLB8obGIEA5obGdmEUX8Pb3Hyzd55CV5nWNulMzs='; style-src-elem 'sha256-NL+iLB8obGIEA5obGdmEUX8Pb3Hyzd55CV5nWNulMzs='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-A+qyawjdRCx6M5ApmIyfu5xdprSWqhvGiUkHetPw5P0='; script-src-elem 'sha256-A+qyawjdRCx6M5ApmIyfu5xdprSWqhvGiUkHetPw5P0='; script-src-attr 'none'; style-src 'sha256-rtFIxgSLAvREQj4kYwbibDSIYTI1dDVebV1wxknerUQ='; style-src-elem 'sha256-rtFIxgSLAvREQj4kYwbibDSIYTI1dDVebV1wxknerUQ='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>实验课提醒</title>
 <style>
@@ -415,6 +415,12 @@
 
   /* 左侧删除标记列：始终占位，进入删除模式只显示/隐藏图标，表格不位移、行高不变 */
   th.col-mark { width: 46px; }
+  /* 无冲突的班级：把 46px 的冲突轨道收起来（进入编辑/删除模式时恢复，按钮还在） */
+  body.no-conflict:not(.editing):not(.deleting) th.col-mark,
+  body.no-conflict:not(.editing):not(.deleting) td.cell-mark {
+    width: 0; max-width: 0; padding: 0; border: 0; background: transparent; overflow: hidden;
+  }
+  body.no-conflict:not(.editing):not(.deleting) td.cell-mark > * { display: none; }
   td.cell-mark { padding: 8px 4px 8px 10px; line-height: 0; text-align: left; }
 
   .mark-btn {
@@ -851,7 +857,7 @@
     .action-panel .edit-btn,
     .action-panel .delete-btn {
       flex: 1 1 0; min-width: 0;
-      padding: 7px 6px; font-size: 12px;
+      padding: 7px 6px; font-size: 12.5px;
     }
     .label-long { display: none; }
     .label-short { display: inline; }
@@ -930,7 +936,12 @@
       margin-top: 3px; line-height: 1.5; overflow-wrap: anywhere;
     }
     .cell-mobile .m-name { font-size: 15px; font-weight: 700; color: #24292f; }
-    .cell-mobile .m-place { font-size: 13px; color: #57606a; }
+    .cell-mobile .m-place { font-size: 13px; color: #57606a; display: inline-flex; align-items: center; gap: 2px; }
+    .cell-mobile .m-pin {
+      width: 12px; height: 12px; flex: none;
+      fill: none; stroke: currentColor; stroke-width: 2;
+      stroke-linejoin: round; stroke-linecap: round;
+    }
     .cell-mobile .m-note {
       margin-top: 4px; padding-top: 4px; border-top: 1px dashed #eaeef2;
       color: #57606a; font-size: 12px; line-height: 1.55;
@@ -1432,6 +1443,7 @@ const LEGACY_WEEK1_KEY = 'zhizao2402_week1_start_v1';
 const OLD_SINGLE_STORAGE_KEY = STORAGE_PREFIX + 'experiments:v1';
 const LEGACY_STORAGE_KEY = 'zhizao2402_experiments_v1';
 const CLASS_DATA_PREFIX = STORAGE_PREFIX + 'classdata:v1:';
+const CLASS_VERSION_PREFIX = STORAGE_PREFIX + 'classversion:v1:';
 const CLASS_WEEK1_PREFIX = STORAGE_PREFIX + 'classweek1:v1:';
 const CLASS_SELECTED_KEY = STORAGE_PREFIX + 'selected-class:v1';
 const CLASS_EXTRA_KEY = STORAGE_PREFIX + 'extra-classes:v1';
@@ -2012,6 +2024,7 @@ function saveWeek1Start() {
    ============================================================ */
 let experiments = [];
 let usingSaved = false;
+let savedDataVersion = '';
 let lastImportUndo = null;
 let lastClassUndo = null;
 
@@ -2053,6 +2066,10 @@ function classDataKey(id) {
   return CLASS_DATA_PREFIX + encodeURIComponent(id);
 }
 
+function classVersionKey(id) {
+  return CLASS_VERSION_PREFIX + encodeURIComponent(id);
+}
+
 function readClassStored(id) {
   try {
     const raw = localStorage.getItem(classDataKey(id));
@@ -2066,9 +2083,21 @@ function readClassStored(id) {
 function saveClassStored(id, list) {
   try {
     localStorage.setItem(classDataKey(id), JSON.stringify(list));
+    // 记下这份本机数据是基于哪个部署版本存的：页面数据更新后就能提示"你这份是旧的"
+    if (DATA_UPDATED_AT) {
+      try { localStorage.setItem(classVersionKey(id), DATA_UPDATED_AT); } catch (e) {}
+    }
     return true;
   } catch (e) {
     return false;
+  }
+}
+
+function readClassVersion(id) {
+  try {
+    return localStorage.getItem(classVersionKey(id)) || '';
+  } catch (e) {
+    return '';
   }
 }
 
@@ -2111,11 +2140,13 @@ function setCurrentClassData(id) {
   if (!id) {
     experiments = [];
     usingSaved = false;
+    savedDataVersion = '';
     return;
   }
   const state = loadClassState(id);
   experiments = state.list;
   usingSaved = state.saved;
+  savedDataVersion = state.saved ? readClassVersion(id) : '';
 }
 
 function saveExperiments() {
@@ -2619,6 +2650,7 @@ function render() {
   const frag = document.createDocumentFragment();
 
   const conflictInfo = computeConflictInfo(experiments);
+  document.body.classList.toggle('no-conflict', conflictInfo.groups.length === 0);
   if (!conflictInfo.groups.length && conflictOnly) {
     conflictOnly = false;
     conflictFilter.checked = false;
@@ -2890,7 +2922,17 @@ function render() {
     appendHighlighted(mName, e.name);
     const mPlace = document.createElement('span');
     mPlace.className = 'm-place';
-    appendHighlighted(mPlace, `地点：${e.place}`);
+    // 用定位图标代替"地点："三个字，窄屏更省地方；读屏仍读整段摘要
+    const mPin = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    mPin.setAttribute('viewBox', '0 0 24 24');
+    mPin.setAttribute('class', 'm-pin');
+    mPin.setAttribute('aria-hidden', 'true');
+    mPin.setAttribute('focusable', 'false');
+    const mPinPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    mPinPath.setAttribute('d', 'M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z');
+    mPin.appendChild(mPinPath);
+    mPlace.appendChild(mPin);
+    appendHighlighted(mPlace, e.place);
     mLine2.appendChild(mName);
     mLine2.appendChild(mPlace);
     mobileTd.appendChild(mLine1);
@@ -3997,7 +4039,7 @@ function showFirstRunHint() {
   saveSelectedClass();
 }
 
-// 「本机数据 / 只读」徽标：不是装饰，是把"我改了但同学看不到"变成显式信息
+// 「本机数据 / 只读 / 本机数据已过期」徽标：不是装饰，是把"我改了但同学看不到"变成显式信息
 function syncModeBadge() {
   if (!modeBadgeEl) return;
   if (READ_ONLY) {
@@ -4008,10 +4050,13 @@ function syncModeBadge() {
     return;
   }
   if (usingSaved) {
+    const stale = !!(savedDataVersion && DATA_UPDATED_AT && savedDataVersion !== DATA_UPDATED_AT);
     modeBadgeEl.hidden = false;
     modeBadgeEl.className = 'mode-badge is-local';
-    modeBadgeEl.textContent = '本机数据';
-    modeBadgeEl.title = '这些改动只存在这台设备，不会同步给同学；发布需要导出后重新 build';
+    modeBadgeEl.textContent = stale ? '本机数据较旧' : '本机数据';
+    modeBadgeEl.title = stale
+      ? `页面数据已更新到 ${DATA_UPDATED_AT}，你这份本机改动基于 ${savedDataVersion}；需要的话先导出备份，再点「恢复」重新载入`
+      : '这些改动只存在这台设备，不会同步给同学；发布需要导出后重新 build';
     return;
   }
   modeBadgeEl.hidden = true;

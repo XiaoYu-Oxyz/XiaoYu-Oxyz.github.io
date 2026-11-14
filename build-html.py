@@ -34,7 +34,6 @@ from openpyxl.utils.datetime import from_excel
 BASE = Path(__file__).resolve().parent
 DATA_DIR = BASE / "data"
 SETTINGS = DATA_DIR / "设置.json"
-SOURCE = BASE / "实验提醒.html"
 DEPLOY = BASE / "index.html"
 
 TEMPLATE_RE = re.compile(r'(<template id="defaultData">)([\s\S]*?)(</template>)')
@@ -424,7 +423,6 @@ def main(argv=None):
 
     if not DEPLOY.exists():
         fail("找不到 %s" % DEPLOY.name)
-    # index.html 是唯一真源；改页面只改它，build/apply 负责同步 实验提醒.html。
     html = DEPLOY.read_bytes().decode("utf-8-sig").replace("\r\n", "\n")
     matches = list(TEMPLATE_RE.finditer(html))
     if len(matches) != 1:
@@ -435,13 +433,12 @@ def main(argv=None):
     encoded = html.encode("utf-8")
 
     # 先校验内存里的产物，通过后才允许写盘：这样"哈希过期/模板坏掉/危险 sink"
-    # 永远不会以半成品形式落到 实验提醒.html 和 index.html 上。
+    # 永远不会以半成品形式落到 index.html 上。
     verifier = load_verifier()
     errors = verifier.verify_html(html, DEPLOY.name)
     if errors:
         fail("产物未通过校验，未写入任何文件：\n  " + "\n  ".join(errors))
 
-    write_atomic(SOURCE, encoded)
     write_atomic(DEPLOY, encoded)
 
     print("built %s: %d classes, %d experiments total" % (
