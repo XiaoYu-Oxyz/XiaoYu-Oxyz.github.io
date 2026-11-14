@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-bH01SmiDKhju70U+wLqpNhl0GI9mXlsi+PVzHh2uUGs='; script-src-elem 'sha256-bH01SmiDKhju70U+wLqpNhl0GI9mXlsi+PVzHh2uUGs='; script-src-attr 'none'; style-src 'sha256-u7ZrBUCu/UpaU3tFIysxksigmL5qoz7zx7IFiOy3LPc='; style-src-elem 'sha256-u7ZrBUCu/UpaU3tFIysxksigmL5qoz7zx7IFiOy3LPc='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-bH01SmiDKhju70U+wLqpNhl0GI9mXlsi+PVzHh2uUGs='; script-src-elem 'sha256-bH01SmiDKhju70U+wLqpNhl0GI9mXlsi+PVzHh2uUGs='; script-src-attr 'none'; style-src 'sha256-zfjQgPqe1aP284plexuGkuFZChU2C+wn4mpl7nzjkO8='; style-src-elem 'sha256-zfjQgPqe1aP284plexuGkuFZChU2C+wn4mpl7nzjkO8='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>CrseCue</title>
 <style>
@@ -1104,7 +1104,7 @@
       position: relative;
       display: flex; align-items: stretch;
       margin-bottom: 10px; border: 1px solid #e1e6eb;
-      border-radius: 10px; overflow: visible; background: #fff;
+      border-radius: 0; overflow: visible; background: #fff;
     }
     tbody tr td { display: none; }
     tbody tr.note-row { display: none; }
@@ -1135,11 +1135,10 @@
     tbody tr.row-tomorrow td.cell-mobile { color: #1a7f37; font-weight: 700; }
     tbody tr.row-past td.cell-mobile { color: #6e7781; }
     tbody tr.row-past .m-name { color: #6e7781; }
-    /* 冲突：整张卡片描一圈琥珀色边框 + 极浅底纹（都是跟随卡片圆角的"填充"），
+    /* 冲突：整张卡片描一圈琥珀色边框 + 极浅底纹（卡片是方角，填充也跟着方角），
        同组的两条再用一条最短对角线段连起来（见 .conflict-link-layer）。 */
     tbody tr.row-conflict {
       border: 2px solid #c28a12;
-      border-radius: 10px;
       background: #fffaf0;
     }
     tbody tr.row-past.row-conflict { border-color: #c49a45; background: #fdfaf3; }

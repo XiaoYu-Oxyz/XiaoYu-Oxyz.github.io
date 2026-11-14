@@ -699,7 +699,7 @@ try {
   assert.match(await midnightPage.locator('#cueText').innerText(), /第3-4节/);
   await midnightCtx.close();
 
-  // 13. 冲突（卡片布局）：2px 圆角描边 + 同组最短连线，不靠文字表达。
+  // 13. 冲突（卡片布局）：2px 方角描边 + 同组最短连线，不靠文字表达。
   const confCtx = await browser.newContext({ viewport: { width: 800, height: 900 } });
   const confPage = await confCtx.newPage();
   await confPage.goto(`${appUrl}?class=Z2`);
@@ -721,7 +721,7 @@ try {
   });
   assert.equal(conflict.borderWidth, '2px', '冲突卡应有 2px 描边');
   assert.equal(conflict.borderStyle, 'solid');
-  assert.equal(conflict.radius, '10px', '描边应跟随卡片圆角');
+  assert.equal(conflict.radius, '0px', '卡片是方角，描边也跟着方角');
   assert.ok(conflict.lines.length >= 1, '冲突组应画出连线');
   assert.ok(conflict.lines.every(n => n <= 40), `连线应是最短线段：${conflict.lines.join(',')}`);
   await confCtx.close();
