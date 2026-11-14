@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-YKsav32phLkq5HcbTcjmRhULQBtbX/7Ap2vbhGu54JU='; script-src-elem 'sha256-YKsav32phLkq5HcbTcjmRhULQBtbX/7Ap2vbhGu54JU='; script-src-attr 'none'; style-src 'sha256-B6n1HEp97uBHF3S1qVspdlFrqdkU/kIWJLeP2ZNX+eA='; style-src-elem 'sha256-B6n1HEp97uBHF3S1qVspdlFrqdkU/kIWJLeP2ZNX+eA='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-V/4pKKw8bqipd3oWPXfPUNG2Yq892bFSJ7VALeOxrQQ='; script-src-elem 'sha256-V/4pKKw8bqipd3oWPXfPUNG2Yq892bFSJ7VALeOxrQQ='; script-src-attr 'none'; style-src 'sha256-v8lIEGZbqZSryPHhMP9MBekneVVEEfWFzkppmjLMadc='; style-src-elem 'sha256-v8lIEGZbqZSryPHhMP9MBekneVVEEfWFzkppmjLMadc='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>实验课提醒</title>
 <style>
@@ -143,7 +143,8 @@
   .recent-filter.is-disabled { color: #6e7781; cursor: not-allowed; opacity: .6; }
   .recent-filter.is-disabled input { cursor: not-allowed; }
   .recent-count { font-size: 12px; color: #6e7781; white-space: nowrap; }
-  /* 首次访问提示：默认班不是"你的班"时最容易看错课表 */  .first-run {
+  /* 首次访问提示：默认班不是"你的班"时最容易看错课表 */
+  .first-run {
     display: flex; align-items: center; gap: 8px;
     margin: 0 0 10px; padding: 7px 10px;
     border: 1px solid #b6d4fb; border-radius: 8px;
@@ -158,6 +159,36 @@
     font-family: inherit; font-size: 14px; line-height: 1;
   }
   .first-run-close:hover { background: #e3f0ff; }
+  /* 手机端搜索入口：放在操作区，不额外占一行（桌面用 / 快捷键，不需要按钮） */
+  .search-jump { display: none; }
+  @media (max-width: 940px) {
+    .search-jump {
+      display: inline-flex; align-items: center; justify-content: center; flex: none;
+      width: 32px; height: 32px; padding: 0;
+      border: 1px solid #d0d7de; border-radius: 8px; background: #fff; color: #57606a;
+      cursor: pointer; font-family: inherit;
+    }
+    .search-jump:active { background: #f6f8fa; }
+    .search-jump svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  }
+  /* 顶部「今天 / 下一节」提示条 */
+  .cue-bar {
+    display: flex; align-items: center; gap: 8px;
+    margin: 0 0 10px; padding: 8px 12px;
+    border: 1px solid #b6d4fb; border-radius: 8px;
+    background: #f2f8ff; color: #0757b8;
+    font-size: 13px; line-height: 1.5;
+  }
+  .cue-bar.is-today { border-color: #ffc9c7; background: #fff3f2; color: #a40e26; }
+  .cue-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .cue-close {
+    margin-left: auto; flex: none;
+    width: 26px; height: 26px; padding: 0;
+    border: 1px solid currentColor; border-radius: 6px;
+    background: transparent; color: inherit; opacity: .65;
+    cursor: pointer; font-family: inherit; font-size: 14px; line-height: 1;
+  }
+  .cue-close:hover { opacity: 1; }
   /* ---------- 周视图（桌面 demo）：≥1120px 才出现切换按钮 ---------- */
   .view-switch { display: none; gap: 4px; align-items: center; }
   .view-btn {
@@ -200,6 +231,17 @@
   }
   .wg-item b { display: block; font-size: 11.5px; line-height: 1.25; }
   .wg-item span { display: block; font-size: 10.5px; line-height: 1.25; color: #57606a; }
+  /* 节次超出上限被截断时的标记 */
+  .wg-clipped { position: absolute; right: 3px; bottom: 0; font-size: 12px; line-height: 1; color: #8a5306; }
+  /* 点空格添加实验 */
+  .wg-cell-add { cursor: pointer; transition: background .12s, border-color .12s; }
+  .wg-cell-add:hover { background: #f2f8ff; border-color: #b6d4fb; }
+  body.readonly .wg-cell-add { cursor: default; }
+  body.readonly .wg-cell-add:hover { background: #fff; border-color: #d8dee4; }
+  /* 点实验块编辑 */
+  .wg-clickable { cursor: pointer; }
+  .wg-clickable:hover { filter: brightness(.96); }
+  .wg-clickable:focus-visible { outline: 2px solid #0969da; outline-offset: 1px; }
   /* 填充色取图例色：今天 / 明天 / 已结束 / 冲突 / 下一次 */
   .wg-item.st-past { background: #eaeef2; color: #57606a; }
   .wg-item.st-today { background: #ffd7d5; color: #a40e26; }
@@ -655,6 +697,8 @@
     display: flex; justify-content: flex-end; gap: 8px;
     padding: 12px 20px 18px;
   }
+  /* 编辑时左侧放"删除实验"，与右侧的取消/保存分开，避免误触 */
+  #modalDelete { margin-right: auto; }
 
   /* ---------- 导入方式选择 ---------- */
   .import-modal { max-width: 490px; }
@@ -889,19 +933,22 @@
     .head-actions { grid-area: actions; margin-left: 0; gap: 6px; flex-wrap: nowrap; }
     /* 与桌面功能一致：第 1 周设置与「数据更新至」在手机端同样显示，
        只是用短标签 + 小字号压成一行，避免又占掉一大块首屏。 */
-    .settings-row { order: 4; margin: 0 0 8px; gap: 6px; }
+    .settings-row { margin: 0 0 8px; gap: 6px; }
     .settings-row label { gap: 6px; font-size: 12px; }
     .settings-row input[type="date"] { font-size: 12px; padding: 3px 6px; }
     .settings-hint { display: none; }
     .data-updated { font-size: 11px; }
     /* 显式排序：.wrap 是 flex 容器，未指定 order 的子元素会落到最前面（诊断行曾在表格之上） */
+    .head { order: 1; }
     .first-run { order: 2; }
-    .action-panel { order: 3; }
-    .import-status { order: 5; }
-    .clock { order: 6; font-size: 12px; margin-bottom: 8px; }
+    .cue-bar { order: 3; }
+    .action-panel { order: 4; }
+    .settings-row { order: 5; }
+    .import-status { order: 6; }
+    .clock { order: 7; font-size: 12px; margin-bottom: 8px; }
     .legend { display: none; }
-    .table-wrap { order: 7; min-width: 0; }
-    .diag-row { order: 8; margin-top: 12px; }
+    .table-wrap { order: 8; min-width: 0; }
+    .diag-row { order: 9; }
     .actions-toggle { padding: 7px 11px; font-size: 12.5px; min-height: 36px; }
     .copy-week-outside { padding: 7px 6px; font-size: 11.5px; min-height: 36px; }
     .export-choice { flex: 1 1 100%; }
@@ -1150,11 +1197,18 @@
         <button class="view-btn" id="viewListBtn" type="button" aria-pressed="true">列表</button>
         <button class="view-btn" id="viewWeekBtn" type="button" aria-pressed="false">课表</button>
       </div>
+      <button class="search-jump" id="searchJumpBtn" type="button" aria-label="搜索实验" title="搜索实验（键盘 /）">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg>
+      </button>
       <button class="ghost-btn copy-week-outside" id="copyWeekBtn" type="button">复制本周</button>
       <button class="actions-toggle" id="actionsToggle" type="button" aria-expanded="false" aria-controls="actionPanel">操作 <span class="caret" aria-hidden="true">▾</span></button>
     </div>
   </header>
   <div class="first-run" id="firstRunHint" hidden></div>
+  <div class="cue-bar" id="cueBar" hidden>
+    <span class="cue-text" id="cueText"></span>
+    <button class="cue-close" id="cueClose" type="button" aria-label="关闭提示">×</button>
+  </div>
 
   <div class="action-panel" id="actionPanel" role="group" aria-label="实验操作" hidden>
     <div class="action-search">
@@ -1301,6 +1355,7 @@
       <div class="form-error" id="formError" role="status" aria-live="polite"></div>
     </div>
     <div class="modal-foot">
+      <button class="danger-btn" id="modalDelete" type="button" hidden>删除实验</button>
       <button class="ghost-btn" id="modalCancel" type="button">取消</button>
       <button class="add-btn"   id="modalSubmit" type="button">确认添加</button>
     </div>
@@ -2716,7 +2771,7 @@ function updateRecentCount(visible, total) {
    只读呈现"这一周哪天哪几节有课"，与列表共用同一套筛选（本周/只看冲突/搜索）。
    ============================================================ */
 const WEEK_MIN_ROWS = 10;      // 至少 1…10 十个节次行
-const WEEK_MAX_ROWS = 16;      // 异常数据（如第1-1000节）不至于把页面撑爆
+const WEEK_MAX_ROWS = 14;      // 上限：一条写错的节次不该把表格撑到几十行
 const WEEK_VIEW_MIN_WIDTH = 1120;
 const weekViewEl = document.getElementById('weekView');
 const viewListBtn = document.getElementById('viewListBtn');
@@ -2759,7 +2814,8 @@ function layoutWeek(entries) {
         entry: item.entry,
         day,
         start: Math.min(item.start, rowCount),
-        end: Math.min(item.end, rowCount)
+        end: Math.min(item.end, rowCount),
+        clipped: item.end > rowCount
       }))
       .sort((a, b) => (a.start - b.start) || (a.end - b.end));
     let current = null;
@@ -2817,6 +2873,20 @@ function renderWeekView() {
     + (weekNo === null ? '' : ` · 第 ${weekNo} 周`)
     + ` · ${entries.length} 条`;
   toolbar.append(prevBtn, label, nextBtn);
+  // 翻远了以后一键回到当前周
+  const thisWeekStart = startOfWeekMonday(today);
+  if (start.getTime() !== thisWeekStart.getTime()) {
+    const backBtn = document.createElement('button');
+    backBtn.type = 'button';
+    backBtn.className = 'ghost-btn';
+    backBtn.id = 'weekTodayBtn';
+    backBtn.textContent = '回到本周';
+    backBtn.addEventListener('click', () => {
+      weekViewStart = startOfWeekMonday(startOfDay(new Date()));
+      renderWeekView();
+    });
+    toolbar.appendChild(backBtn);
+  }
   fragment.appendChild(toolbar);
 
   const grid = document.createElement('div');
@@ -2875,14 +2945,24 @@ function renderWeekView() {
     grid.appendChild(rowLabel);
     for (let day = 0; day < 7; day += 1) {
       const cell = document.createElement('div');
-      cell.className = 'wg-cell';
+      cell.className = 'wg-cell wg-cell-add';
       cell.style.gridRow = String(period + 1);
       cell.style.gridColumn = String(day + 2);
+      // 点空格直接添加：预填这天的日期与这个节次
+      const dateStr = toDateStr(days[day]);
+      cell.dataset.date = dateStr;
+      cell.dataset.period = String(period);
+      cell.title = READ_ONLY ? '' : `点击添加：${dateStr} 第 ${period} 节`;
+      if (!READ_ONLY) {
+        cell.addEventListener('click', () => {
+          openModal({ date: dateStr, period: String(period) });
+        });
+      }
       grid.appendChild(cell);
     }
   }
 
-  // 同一天里时间段重叠的记录：横向分栏，但每一栏仍按自己的节次高度定位
+  // 同一天里时间段重叠的记录：横向分栏（按名称长度加权），纵向仍按各自节次
   layout.stacks.forEach(stack => {
     const span = `${stack.start + 1} / ${stack.end + 2}`;
     const column = String(stack.day + 2);
@@ -2895,17 +2975,22 @@ function renderWeekView() {
       grid.appendChild(wrapper);
     }
     const rows = stack.end - stack.start + 1;
+    // 名称越长分到越宽，避免长名字在窄栏里折两行
+    const weights = stack.items.map(item => Math.max(4, String(item.entry.name || '').length));
+    const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+    let offset = 0;
     stack.items.forEach((item, index) => {
       const entry = item.entry;
       const block = document.createElement('div');
       block.className = stateClasses(entry);
       if (wrapper) {
-        // 横向等分，纵向按自己的起止节次（不会被拉成整格高）
+        const share = (weights[index] / totalWeight) * 100;
         block.classList.add('wg-in-stack');
-        block.style.left = `${(index / count) * 100}%`;
-        block.style.width = `${100 / count}%`;
+        block.style.left = `${offset}%`;
+        block.style.width = `${share}%`;
         block.style.top = `${((item.start - stack.start) / rows) * 100}%`;
         block.style.height = `${((item.end - item.start + 1) / rows) * 100}%`;
+        offset += share;
       } else {
         block.style.gridRow = span;
         block.style.gridColumn = column;
@@ -2918,6 +3003,21 @@ function renderWeekView() {
         const place = document.createElement('span');
         place.textContent = entry.place;
         block.appendChild(place);
+      }
+      // 节次超出上限被截断时明确标出来，不静默缩短
+      if (item.clipped) {
+        const clipped = document.createElement('span');
+        clipped.className = 'wg-clipped';
+        clipped.textContent = '…';
+        clipped.setAttribute('aria-label', '节次超出显示范围，已截断');
+        block.appendChild(clipped);
+        block.title += '（节次超出 ' + WEEK_MAX_ROWS + ' 节，显示已截断）';
+      }
+      // 点课表里的实验块 = 编辑这条实验（只读模式和删除模式下不响应）
+      if (!READ_ONLY && !deleteMode) {
+        block.tabIndex = -1;
+        block.classList.add('wg-clickable');
+        block.addEventListener('click', () => openEditModal(entry._idx, block));
       }
       (wrapper || grid).appendChild(block);
     });
@@ -2959,6 +3059,18 @@ function setView(view, persist) {
   document.body.classList.toggle('view-week', isWeek);
   if (viewListBtn) viewListBtn.setAttribute('aria-pressed', String(!isWeek));
   if (viewWeekBtn) viewWeekBtn.setAttribute('aria-pressed', String(isWeek));
+  // 课表按周浏览，忽略"已结束仅显示本周"；把复选框置灰，避免"勾着却没生效"的错觉
+  const recentLabel = recentFilter ? recentFilter.closest('label') : null;
+  if (recentFilter) {
+    recentFilter.disabled = isWeek;
+    recentFilter.setAttribute('aria-disabled', String(isWeek));
+  }
+  if (recentLabel) {
+    recentLabel.classList.toggle('is-disabled', isWeek);
+    recentLabel.title = isWeek
+      ? '课表按周浏览，本选项在课表里不生效'
+      : '隐藏本周一之前已结束的实验；今天及未来始终显示';
+  }
   if (persist) {
     try { sessionStorage.setItem(VIEW_STATE_KEY, isWeek ? 'week' : 'list'); } catch (e) {}
   }
@@ -2967,6 +3079,7 @@ function setView(view, persist) {
 
 function render() {
   syncModeBadge();
+  syncCueBar();
   if (document.body.classList.contains('view-week')) renderWeekView();
   const today = startOfDay(new Date());
   const tbody = tbodyEl;
@@ -4386,6 +4499,58 @@ function syncModeBadge() {
   }
   modeBadgeEl.hidden = true;
 }
+
+/* ---------- 顶部「今天 / 下一节」提示条 ---------- */
+const cueBarEl = document.getElementById('cueBar');
+const cueTextEl = document.getElementById('cueText');
+let cueBarDismissed = false;
+
+function syncCueBar() {
+  if (!cueBarEl || !cueTextEl) return;
+  if (cueBarDismissed || !selectedClass) {
+    cueBarEl.hidden = true;
+    return;
+  }
+  const today = startOfDay(new Date());
+  const list = getExperimentEntries();
+  if (!list.length) {
+    cueBarEl.hidden = true;
+    return;
+  }
+
+  const todays = list.filter(entry => entry._date.getTime() === today.getTime());
+  if (todays.length) {
+    const first = todays[0];
+    const detail = todays.length === 1
+      ? `${first.period} ${first.name}${first.place ? ' · ' + first.place : ''}`
+      : todays.map(entry => `${entry.period} ${entry.name}`).join('；');
+    cueTextEl.textContent = `今天 ${todays.length} 节：${detail}`;
+    cueBarEl.classList.add('is-today');
+    cueBarEl.hidden = false;
+    return;
+  }
+
+  const next = list.find(entry => entry._date > today);
+  cueBarEl.classList.remove('is-today');
+  if (!next) {
+    cueTextEl.textContent = '这门课暂时没有更多实验了';
+    cueBarEl.hidden = false;
+    return;
+  }
+  const days = dayDiff(next._date, today);
+  const dayName = WEEK_NAMES[next._date.getDay()].replace('星期', '周');
+  cueTextEl.textContent = `下一节：${pad2(next._date.getMonth() + 1)}-${pad2(next._date.getDate())} ${dayName}`
+    + ` ${next.period} ${next.name}${next.place ? ' · ' + next.place : ''}（${days} 天后）`;
+  cueBarEl.hidden = false;
+}
+
+const cueCloseBtn = document.getElementById('cueClose');
+if (cueCloseBtn) {
+  cueCloseBtn.addEventListener('click', () => {
+    cueBarDismissed = true;
+    if (cueBarEl) cueBarEl.hidden = true;
+  });
+}
 const dataUpdatedEl = document.getElementById('dataUpdated');
 const searchInput = document.getElementById('searchInput');
 const copyWeekBtn = document.getElementById('copyWeekBtn');
@@ -4951,6 +5116,7 @@ const modalMask   = document.getElementById('modalMask');
 const modalClose  = document.getElementById('modalClose');
 const modalCancel = document.getElementById('modalCancel');
 const modalSubmit = document.getElementById('modalSubmit');
+const modalDelete = document.getElementById('modalDelete');
 const modalTitle  = document.getElementById('modalTitle');
 const editA11ySummary = document.getElementById('editA11ySummary');
 const modalDialog = modalMask.querySelector('.modal');
@@ -5116,22 +5282,35 @@ function resetForm() {
   updateFormConflictHint();
 }
 
-function openModal() {
+function openModal(prefill) {
   editingIndex = null;
   resetForm();
+  // 课表里点空格：按日期模式预填该天与节次，直接输入名称即可
+  const prefilled = !!(prefill && prefill.date);
+  if (prefilled) {
+    document.querySelector('input[name="dateMode"][value="date"]').checked = true;
+    formDate.value = prefill.date;
+    if (prefill.period) formPeriod.value = prefill.period;
+    syncDateModeUI();
+    updateFormConflictHint();
+  }
   modalTitle.textContent = '添加实验';
   modalSubmit.textContent = '确认添加';
   editA11ySummary.textContent = '';
+  if (modalDelete) modalDelete.hidden = true;
   modalDialog.removeAttribute('aria-describedby');
   rememberModalFocus(modalMask, addBtn);
   modalMask.classList.add('show');
-  // 打开后聚焦当前可编辑的那一侧
+  // 打开后聚焦：预填过就跳名称，否则聚焦当前可编辑的那一侧
   setTimeout(() => {
-    try { (currentDateMode() === 'week' ? formWeek : formDate).focus(); } catch (e) {}
+    try {
+      const target = prefilled ? formName : (currentDateMode() === 'week' ? formWeek : formDate);
+      target.focus();
+    } catch (e) {}
   }, 0);
 }
 
-function openEditModal(idx) {
+function openEditModal(idx, opener) {
   const item = experiments[idx];
   if (!item) return;
 
@@ -5139,6 +5318,7 @@ function openEditModal(idx) {
   editingIndex = idx;
   modalTitle.textContent = '编辑实验';
   modalSubmit.textContent = '保存修改';
+  if (modalDelete) modalDelete.hidden = false;
   editA11ySummary.textContent = experimentA11ySummary(item);
   modalDialog.setAttribute('aria-describedby', 'editA11ySummary');
 
@@ -5163,7 +5343,7 @@ function openEditModal(idx) {
   syncDateModeUI();
   showFormError('');
   updateFormConflictHint();
-  rememberModalFocus(modalMask, editModeBtn);
+  rememberModalFocus(modalMask, opener || editModeBtn);
 
   modalMask.classList.add('show');
   setTimeout(() => {
@@ -5177,6 +5357,7 @@ function closeModal() {
   editingIndex = null;
   modalTitle.textContent = '添加实验';
   modalSubmit.textContent = '确认添加';
+  if (modalDelete) modalDelete.hidden = true;
   formConflict.hidden = true;
   formConflict.textContent = '';
 }
@@ -5184,6 +5365,23 @@ function closeModal() {
 addBtn.addEventListener('click', openModal);
 modalClose.addEventListener('click', closeModal);
 modalCancel.addEventListener('click', closeModal);
+
+// 编辑弹窗里直接删除（可撤销）
+if (modalDelete) {
+  modalDelete.addEventListener('click', async () => {
+    const idx = editingIndex;
+    const target = idx === null ? null : experiments[idx];
+    if (!target) return;
+    const ok = await askConfirm({
+      title: '删除这条实验？',
+      message: `${target.date} ${target.period} ${target.name}`,
+      detail: '删除后可以用状态栏的「撤销」恢复。',
+      okText: '删除'
+    });
+    if (!ok) return;
+    deleteExperimentAt(idx);
+  });
+}
 
 // 点击遮罩空白处关闭
 modalMask.addEventListener('click', (e) => {
@@ -5499,6 +5697,29 @@ function finishDeleteMode() {
   showStatus(
     savedOk ? 'ok' : 'warn',
     message,
+    { label: '撤销', onClick: undoLastDelete }
+  );
+}
+
+// 单条删除：给编辑弹窗里的「删除实验」用，撤销沿用 lastDeletedByClass
+function deleteExperimentAt(idx) {
+  const target = experiments[idx];
+  if (!target) return;
+
+  const snapshot = { index: idx, item: { ...target } };
+  experiments.splice(idx, 1);
+  const savedOk = saveExperiments();
+  if (savedOk) usingSaved = true;
+
+  lastDeletedByClass.set(selectedClass, { items: [snapshot], message: '' });
+  lastEditedByClass.delete(selectedClass);
+
+  closeModal();
+  render();
+  updateClock();
+  showStatus(
+    savedOk ? 'ok' : 'warn',
+    `已删除：${snapshot.item.date} ${snapshot.item.name}` + (savedOk ? '' : '；本地保存失败，刷新后会恢复'),
     { label: '撤销', onClick: undoLastDelete }
   );
 }
@@ -6482,7 +6703,7 @@ document.getElementById('diagBtn').addEventListener('click', () => {
   }
 });
 
-// 键盘 /：展开「操作」面板并聚焦搜索（零布局代价；手机上仍从「操作」进入）
+// 键盘 /：展开「操作」面板并聚焦搜索（桌面）；手机端用操作区的搜索图标
 document.addEventListener('keydown', ev => {
   if (ev.key !== '/' || ev.ctrlKey || ev.metaKey || ev.altKey) return;
   const active = document.activeElement;
@@ -6493,6 +6714,16 @@ document.addEventListener('keydown', ev => {
   searchInput.focus();
   searchInput.select();
 });
+
+// 手机端搜索图标：一次点击展开面板并聚焦（不占额外高度，放在操作区）
+const searchJumpBtn = document.getElementById('searchJumpBtn');
+if (searchJumpBtn) {
+  searchJumpBtn.addEventListener('click', () => {
+    if (actionPanel.hidden) actionsToggle.click();
+    searchInput.focus();
+    searchInput.select();
+  });
+}
 
 
 /* ============================================================
