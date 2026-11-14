@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-LeCepyhbZSRVCiJcD0sR8mbvlV8EY2PZF8afCIh5qRU='; script-src-elem 'sha256-LeCepyhbZSRVCiJcD0sR8mbvlV8EY2PZF8afCIh5qRU='; script-src-attr 'none'; style-src 'sha256-02GcEPiVu/+CpEllLMO/sJQtxmvZIuxpg4iUhnUU7Xo='; style-src-elem 'sha256-02GcEPiVu/+CpEllLMO/sJQtxmvZIuxpg4iUhnUU7Xo='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-36Vq9oj99WhKEEK43PuIGCX9zaMI5tx7rLrAOO4i7MM='; script-src-elem 'sha256-36Vq9oj99WhKEEK43PuIGCX9zaMI5tx7rLrAOO4i7MM='; script-src-attr 'none'; style-src 'sha256-RxtHp+SmcSiB/G+Ruw5QQF1VEkEmgxess7cHhaUi4TA='; style-src-elem 'sha256-RxtHp+SmcSiB/G+Ruw5QQF1VEkEmgxess7cHhaUi4TA='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>CrseCue</title>
 <style>
@@ -159,25 +159,6 @@
     font-family: inherit; font-size: 14px; line-height: 1;
   }
   .first-run-close:hover { background: #e3f0ff; }
-  /* 手机端搜索入口：放在操作区，不额外占一行（桌面用 / 快捷键，不需要按钮） */
-  .search-jump { display: none; }
-  @media (max-width: 940px) {
-    .search-jump {
-      position: relative;
-      display: inline-flex; align-items: center; justify-content: center; flex: none;
-      width: 32px; height: 32px; padding: 0;
-      border: 1px solid #d0d7de; border-radius: 8px; background: #fff; color: #57606a;
-      cursor: pointer; font-family: inherit;
-    }
-    /* 32px 视觉 + 两侧各 6px 透明热区 = 44px（正好填满与相邻按钮的间距，不会抢点击） */
-    .search-jump::after { content: ''; position: absolute; inset: -6px; border-radius: 10px; }
-    .search-jump:active { background: #f6f8fa; }
-    .search-jump svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-  }
-  /* 320px 时操作区放不下这个图标（会挤成两行、首屏 +16px），窄屏退回从「操作」进入 */
-  @media (max-width: 359px) {
-    .search-jump { display: none; }
-  }
   /* 顶部「今天 / 下一节」提示条 */
   .cue-bar {
     display: flex; align-items: center; gap: 8px;
@@ -841,7 +822,7 @@
     .head, .action-panel, .settings-row, .legend, .clock, .diag-row,
     .import-status, .sr-only, .copy-week-outside, .actions-toggle, .class-picker,
     .recent-filter, .recent-count, .data-updated, .saved-tip,
-    .cue-bar, .first-run, .week-view, .view-switch, .search-jump { display: none !important; }
+    .cue-bar, .first-run, .week-view, .view-switch { display: none !important; }
     .wrap { max-width: none; margin: 0; padding: 0 !important; box-shadow: none; border-radius: 0; }
     .print-head { display: block; margin: 0 0 10px; font-size: 16px; font-weight: 700; }
     .table-wrap { overflow: visible; }
@@ -1252,9 +1233,6 @@
         <button class="view-btn" id="viewListBtn" type="button" aria-pressed="true">列表</button>
         <button class="view-btn" id="viewWeekBtn" type="button" aria-pressed="false">课表</button>
       </div>
-      <button class="search-jump" id="searchJumpBtn" type="button" aria-label="搜索实验" title="搜索实验（键盘 /）">
-        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/></svg>
-      </button>
       <button class="ghost-btn copy-week-outside" id="copyWeekBtn" type="button">复制本周</button>
       <button class="actions-toggle" id="actionsToggle" type="button" aria-expanded="false" aria-controls="actionPanel">操作 <span class="caret" aria-hidden="true">▾</span></button>
     </div>
@@ -6911,7 +6889,7 @@ document.getElementById('diagBtn').addEventListener('click', () => {
   }
 });
 
-// 键盘 /：展开「操作」面板并聚焦搜索（桌面）；手机端用操作区的搜索图标
+// 键盘 /：展开「操作」面板并聚焦搜索（桌面快捷入口；手机从「操作」进入）
 document.addEventListener('keydown', ev => {
   if (ev.key !== '/' || ev.ctrlKey || ev.metaKey || ev.altKey) return;
   const active = document.activeElement;
@@ -6922,16 +6900,6 @@ document.addEventListener('keydown', ev => {
   searchInput.focus();
   searchInput.select();
 });
-
-// 手机端搜索图标：一次点击展开面板并聚焦（不占额外高度，放在操作区）
-const searchJumpBtn = document.getElementById('searchJumpBtn');
-if (searchJumpBtn) {
-  searchJumpBtn.addEventListener('click', () => {
-    if (actionPanel.hidden) actionsToggle.click();
-    searchInput.focus();
-    searchInput.select();
-  });
-}
 
 
 /* ============================================================
