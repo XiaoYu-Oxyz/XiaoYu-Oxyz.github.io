@@ -27,6 +27,8 @@ const PALETTE = {
 };
 
 const cases = [
+  // 360×640 = vivo Y66i 这类 5.5 寸 720p 老机型
+  { name: 'mobile-360', width: 360, height: 640 },
   { name: 'mobile-320', width: 320, height: 640 },
   { name: 'mobile-list', width: 390, height: 844 },
   { name: 'mobile-dark', width: 390, height: 844, dark: true },
@@ -54,6 +56,9 @@ for (const item of cases) {
     await page.waitForSelector('.week-grid');
   }
   await page.waitForTimeout(200);
+  // 小屏上「打开页面定位到今天」会自动滚动，先回到顶部再量首屏几何
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.waitForTimeout(120);
 
   const metrics = await page.evaluate(() => {
     const doc = document.documentElement;
@@ -95,8 +100,8 @@ for (const item of cases) {
     assert.ok(metrics.headerVisible, '标题不可见');
     assert.ok(metrics.firstRowTop !== null && metrics.firstRowTop < item.height, '首行跑到视口外');
     // 头部高度守卫：超过这个数说明又堆了一层东西
-    // （44px 触控目标让 320px 从 314 涨到 342，所以上限放到 360）
-    if (!item.week) assert.ok(metrics.firstRowTop <= 360, `首屏首行过高：${metrics.firstRowTop}px > 360px`);
+    // （360px 宽带提示条时约 352；提示条正文含节次时间后会再高一点）
+    if (!item.week) assert.ok(metrics.firstRowTop <= 380, `首屏首行过高：${metrics.firstRowTop}px > 380px`);
     if (afterCueClose !== null) {
       const delta = metrics.firstRowTop - afterCueClose;
       assert.ok(

@@ -70,6 +70,17 @@ def check_settings(errors, warnings):
     updated = data.get("updatedAt")
     if updated is not None and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(updated)):
         errors.append("data/设置.json 的 updatedAt 必须是 YYYY-MM-DD")
+    elif updated:
+        # 页面顶部写着"数据更新至 X"：改了数据却忘记 --stamp，这句话就是假的
+        try:
+            latest = BUILD.latest_data_commit_date()
+        except Exception:
+            latest = ""
+        if latest and str(updated) < latest:
+            warnings.append(
+                "data/设置.json 的 updatedAt（%s）早于 data/ 最后一次提交（%s）；"
+                "页面会显示旧日期，需要的话跑 python build-html.py --stamp" % (updated, latest)
+            )
     times = data.get("periodTimes")
     if times is not None:
         try:

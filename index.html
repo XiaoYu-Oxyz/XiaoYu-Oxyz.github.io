@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-/cqLv8UBeSlz54grXHMXzLIDNExcyhcWGLcDOR4JjKc='; script-src-elem 'sha256-/cqLv8UBeSlz54grXHMXzLIDNExcyhcWGLcDOR4JjKc='; script-src-attr 'none'; style-src 'sha256-755/EyQt4CwDWbKGOEEnq8Nc5sxKM38TgJmkYWZ9M1Y='; style-src-elem 'sha256-755/EyQt4CwDWbKGOEEnq8Nc5sxKM38TgJmkYWZ9M1Y='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-44KcCO+RzQBY28l05piLQFpr0KzzF9nOpT2BsZB7we8='; script-src-elem 'sha256-44KcCO+RzQBY28l05piLQFpr0KzzF9nOpT2BsZB7we8='; script-src-attr 'none'; style-src 'sha256-9cNqXrehG/X7fkB1FGG/KsLg0Ti3QmBFF5QEjwTd09w='; style-src-elem 'sha256-9cNqXrehG/X7fkB1FGG/KsLg0Ti3QmBFF5QEjwTd09w='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>CrseCue</title>
 <style>
@@ -118,7 +118,8 @@
     border-radius: 8px; cursor: pointer; font-family: inherit;
   }
   .class-tool::before {
-    content: ""; position: absolute; inset: 4px;
+    content: ""; position: absolute;
+    top: 4px; right: 4px; bottom: 4px; left: 4px;
     background: #fff; border: 1px solid #d0d7de; border-radius: 6px;
   }
   .class-tool svg {
@@ -185,7 +186,11 @@
   }
   .cue-close:hover { opacity: 1; }
   /* 触控热区：视觉还是 26px，实际可点是 44px（WCAG 2.5.5 建议值） */
-  .cue-close::after { content: ''; position: absolute; inset: -9px; border-radius: 8px; }
+  .cue-close::after {
+    content: ''; position: absolute;
+    top: -9px; right: -9px; bottom: -9px; left: -9px;
+    border-radius: 8px;
+  }
   /* ---------- 周视图（桌面 demo）：≥1120px 才出现切换按钮 ---------- */
   .view-switch { display: none; gap: 4px; align-items: center; }
   .view-btn {
@@ -353,6 +358,16 @@
   .clock { font-size: 14px; color: #57606a; margin-bottom: 16px; }
   .clock b { color: #0969da; }
   .saved-tip { color: #2da44e; }
+  /* 「现在第几节 / 离下一节多久」：跟着"今天"后面，只在今天有课时出现 */
+  .period-status {
+    padding: 1px 8px; border-radius: 10px;
+    background: #eaf3ff; color: #0757b8; font-weight: 700;
+  }
+  .period-range { font-weight: 400; }
+  /* 320/360 这类窄屏：时间范围会把时钟行多折一行，直接省掉 */
+  @media (max-width: 400px) {
+    .period-range { display: none; }
+  }
 
   .legend {
     display: flex; gap: 20px; flex-wrap: wrap;
@@ -395,6 +410,8 @@
   table { width: 100%; min-width: 860px; border-collapse: collapse; font-size: 14px; }
   #scheduleTable:focus-visible { outline: 2px solid #0969da; outline-offset: 3px; }
   #tbody tr:focus-visible { outline: 2px solid #0969da; outline-offset: -2px; }
+  /* 跳转/定位时别被吸顶表头盖住 */
+  #tbody tr { scroll-margin-top: 64px; }
   thead th {
     position: sticky; top: 0; z-index: 5;
     background: #f0f3f6; text-align: left; padding: 11px 12px;
@@ -630,7 +647,7 @@
 
   /* ---------- 模态框 ---------- */
   .modal-mask {
-    position: fixed; inset: 0; background: rgba(0,0,0,.45);
+    position: fixed; top: 0; right: 0; bottom: 0; left: 0; background: rgba(0,0,0,.45);
     display: none; align-items: center; justify-content: center;
     padding: 16px; padding-bottom: calc(16px + env(safe-area-inset-bottom));
     z-index: 100;
@@ -822,6 +839,22 @@
   }
   .print-head { display: none; }
   .print-note { display: none; }
+
+  /* ---------- 老浏览器兜底（Chrome < 84 的 flex gap、< 86 的 focus-visible） ----------
+     这些设备（如 2017 年的 vivo Y66i）通常仍在用老 WebView：不兜底的话
+     按钮会全挤在一起、表格边框贴死。功能不受影响，只是留白塌陷。 */
+  @supports not (gap: 1px) {
+    .head-main > * + * { margin-left: 10px; }
+    .head-filters > * + * { margin-left: 12px; }
+    .head-actions > * + * { margin-left: 8px; }
+    .action-groups > * + * { margin-left: 16px; }
+    .action-group > * + * { margin-left: 8px; }
+    .modal-foot > * + * { margin-left: 8px; }
+    .cue-bar > * + * { margin-left: 8px; }
+    .week-toolbar > * + * { margin-left: 8px; }
+    .form-row > * + * { margin-top: 6px; }
+    .week-grid { grid-gap: 3px; }
+  }
   @media print {
     @page { margin: 12mm; }
     body { background: #fff; padding: 0 !important; color: #000; }
@@ -845,7 +878,8 @@
     tbody tr {
       display: table-row !important; margin: 0 !important; border: 0 !important;
       border-radius: 0 !important; box-shadow: none !important; background: #fff !important;
-      break-inside: auto; page-break-inside: auto;
+      /* 一行不要被页边界切成两半；行本身很矮，不会被撑破 */
+      break-inside: avoid; page-break-inside: avoid;
     }
     tbody tr::before, tbody tr::after { display: none !important; content: none !important; }
     tbody tr td {
@@ -1096,6 +1130,17 @@
       margin-top: 4px; padding-top: 4px; border-top: 1px dashed #eaeef2;
       color: #57606a; font-size: 12px; line-height: 1.55;
       white-space: pre-wrap; overflow-wrap: anywhere;
+    }
+    /* 长备注折三行 + "展开备注"（-webkit-line-clamp 在 Android 老 WebView 也可用） */
+    .cell-mobile .m-note.is-clamped {
+      display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3;
+      overflow: hidden;
+    }
+    .m-note-toggle {
+      display: block; margin: 2px 0 0; padding: 0;
+      border: 0; background: none; color: #0969da;
+      font-family: inherit; font-size: 12px; line-height: 1.6;
+      cursor: pointer; text-decoration: underline;
     }
     .cell-mobile .tag { margin-left: 0; }
     tbody tr.empty-row { border: 0; background: transparent; }
@@ -1593,6 +1638,19 @@
 
 <script>
 /* 说明：本页所有功能（包括 xlsx 导入/导出）均在本文件内实现，不加载任何网络资源，可完全离线运行。 */
+
+/* 老设备兼容（如 2017 年的 vivo Y66i，WebView/Chrome 可能停在 60 左右）：
+   replaceChildren 是 Chrome 86 才有的 API，缺了会让整页在渲染时抛错。 */
+if (typeof Element !== 'undefined' && !Element.prototype.replaceChildren) {
+  Element.prototype.replaceChildren = function replaceChildren() {
+    while (this.firstChild) this.removeChild(this.firstChild);
+    for (let i = 0; i < arguments.length; i += 1) {
+      const node = arguments[i];
+      if (node == null) continue;
+      this.appendChild(typeof node === 'string' ? document.createTextNode(node) : node);
+    }
+  };
+}
 // 不在 iframe/预览中强制跳转顶层页面：GitHub Pages 没有 frame-ancestors，
 // 但 JS frame-buster 在预览/嵌入环境可能把顶层导航到 404，且本身可被绕过。
 // 点击劫持作为残余风险记录在 SECURITY.md，不再做客户端强制跳转。
@@ -3500,6 +3558,21 @@ function render() {
       mNote.appendChild(document.createTextNode('备注：'));
       appendHighlighted(mNote, e.note);
       mobileTd.appendChild(mNote);
+      // 长备注会把一张卡片撑满整屏：先折三行，"展开备注"放在下面
+      if (e.note.length > 60) {
+        mNote.classList.add('is-clamped');
+        const toggle = document.createElement('button');
+        toggle.type = 'button';
+        toggle.className = 'm-note-toggle';
+        toggle.textContent = '展开备注';
+        toggle.setAttribute('aria-expanded', 'false');
+        toggle.addEventListener('click', () => {
+          const clamped = mNote.classList.toggle('is-clamped');
+          toggle.textContent = clamped ? '展开备注' : '收起备注';
+          toggle.setAttribute('aria-expanded', String(!clamped));
+        });
+        mobileTd.appendChild(toggle);
+      }
     }
     mobileTd.setAttribute('aria-label', [
       `日期 ${e.date}`,
@@ -5190,6 +5263,40 @@ window.addEventListener('resize', () => {
 /* ============================================================
    9. 顶部时间
    ============================================================ */
+// 用节次时间算「此刻在第几节 / 离下一节还有多久」；今天没课就不显示
+function currentPeriodStatus(now) {
+  const today = startOfDay(now);
+  const hasToday = getExperimentEntries().some(entry => entry._date.getTime() === today.getTime());
+  if (!hasToday) return '';
+
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const slots = Object.keys(currentPeriodTimes()).map(key => {
+    const parts = key.split('-').map(Number);
+    const start = currentPeriodTimes()[key][0];
+    const end = currentPeriodTimes()[key][1];
+    return {
+      label: `${parts[0]}-${parts[1]}节`,
+      startText: start,
+      endText: end,
+      startMin: Number(start.slice(0, 2)) * 60 + Number(start.slice(3)),
+      endMin: Number(end.slice(0, 2)) * 60 + Number(end.slice(3))
+    };
+  }).sort((a, b) => a.startMin - b.startMin);
+
+  const ongoing = slots.find(slot => nowMin >= slot.startMin && nowMin < slot.endMin);
+  if (ongoing) {
+    return { text: `${ongoing.label} 进行中`, range: `${ongoing.startText}–${ongoing.endText}` };
+  }
+
+  const upcoming = slots.find(slot => slot.startMin > nowMin);
+  if (upcoming) {
+    const mins = upcoming.startMin - nowMin;
+    const left = mins >= 60 ? `${Math.floor(mins / 60)} 小时 ${mins % 60} 分` : `${mins} 分钟`;
+    return { text: `距 ${upcoming.label} 还有 ${left}`, range: upcoming.startText };
+  }
+  return { text: '今天的课已结束', range: '' };
+}
+
 function updateClock() {
   const now = new Date();
   const wkNow = weekNoOf(now);
@@ -5200,6 +5307,22 @@ function updateClock() {
   b.textContent = `${toDateStr(now)} ${WEEK_NAMES[now.getDay()]}`;
   frag.appendChild(b);
   frag.appendChild(document.createTextNode(wkNow ? ` · 第 ${wkNow} 周` : ' · 学期未开始'));
+
+  const periodStatus = currentPeriodStatus(now);
+  if (periodStatus) {
+    frag.appendChild(document.createTextNode(' · '));
+    const span = document.createElement('span');
+    span.className = 'period-status';
+    span.textContent = periodStatus.text;
+    // 窄屏放不下具体时间：单独包一层，≤400px 时隐藏，保证时钟行不多折一行
+    if (periodStatus.range) {
+      const range = document.createElement('span');
+      range.className = 'period-range';
+      range.textContent = `（${periodStatus.range}）`;
+      span.appendChild(range);
+    }
+    frag.appendChild(span);
+  }
 
   if (usingSaved) {
     frag.appendChild(document.createTextNode(' · '));
@@ -5221,6 +5344,9 @@ week1Input.value = toDateStr(week1Start);
 recentFilter.addEventListener('change', () => {
   recentOnly = recentFilter.checked;
   render();
+  // 关掉「已结束仅显示本周」后列表会从学期初排起：这时滚到今天才有意义
+  autoLocated = false;
+  if (!recentOnly) autoLocateToday();
 });
 
 week1Input.addEventListener('change', () => {
@@ -7204,6 +7330,29 @@ syncHeaderActions();
 syncUrlClass();
 updateClock();
 render();
+
+// 打开页面时定位到今天/下一节：数据有十几周时，默认停在最上面那一周没有意义
+let autoLocated = false;
+function autoLocateToday() {
+  if (autoLocated) return;
+  autoLocated = true;
+  if (document.body.classList.contains('view-week')) return;
+  const today = startOfDay(new Date());
+  const rows = Array.prototype.slice.call(tableBodyEl.querySelectorAll('tr[data-idx]'));
+  if (!rows.length) return;
+  const dateOf = tr => {
+    const entry = experiments[Number(tr.dataset.idx)];
+    return entry ? parseDate(entry.date) : new Date(NaN);
+  };
+  const target = rows.find(tr => dateOf(tr).getTime() === today.getTime())
+    || rows.find(tr => dateOf(tr) > today);
+  if (!target) return;
+  if (target.getBoundingClientRect().top <= window.innerHeight * 0.6) return;
+  target.scrollIntoView({ block: 'start' });
+  // 只闪一下表示落点，不弹状态栏：小屏上状态栏会把首屏再顶高 42px
+  flashElement(target);
+}
+autoLocateToday();
 </script>
 </body>
 </html>
