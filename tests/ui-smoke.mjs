@@ -138,6 +138,46 @@ try {
   await page.locator('#exportJsonChoice').click();
   const filteredDownload = await filteredDownloadPromise;
   assert.equal(filteredDownload.suggestedFilename(), 'Z1-筛选.json');
+  const filteredPath = await filteredDownload.path();
+
+  // 筛选备份导入：显示警告，替换前二次确认，取消后不写入。
+  await page.locator('#fileInput').setInputFiles({
+    name: 'Z1-筛选.json',
+    mimeType: 'application/json',
+    buffer: fs.readFileSync(filteredPath)
+  });
+  await page.waitForSelector('#importMask.show');
+  assert.equal(await page.locator('#importScopeWarning').isVisible(), true);
+  assert.match(await page.locator('#importScopeWarning').innerText(), /当前筛选.*不是完整班级/);
+  await page.locator('.mode-card[data-mode="replace"]').click();
+  await page.locator('#importConfirm').click();
+  await page.waitForSelector('#confirmMask.show');
+  assert.match(await page.locator('#confirmDetail').innerText(), /替换会清空/);
+  await page.locator('#confirmCancel').click();
+  await page.waitForTimeout(50);
+  await page.locator('#importCancel').click();
+  await page.waitForTimeout(50);
+  assert.equal(await page.locator('#importMask').isVisible(), false);
+
+  // xlsx 筛选备份同样识别导出范围并警告。
+  await page.locator('#exportBtn').click();
+  await page.waitForSelector('#exportMask.show');
+  await page.locator('#exportScopeFiltered').check();
+  const filteredXlsxPromise = page.waitForEvent('download');
+  await page.locator('#exportXlsxChoice').click();
+  const filteredXlsx = await filteredXlsxPromise;
+  assert.equal(filteredXlsx.suggestedFilename(), 'Z1-筛选.xlsx');
+  const filteredXlsxPath = await filteredXlsx.path();
+  await page.locator('#fileInput').setInputFiles({
+    name: 'Z1-筛选.xlsx',
+    mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    buffer: fs.readFileSync(filteredXlsxPath)
+  });
+  await page.waitForSelector('#importMask.show');
+  assert.equal(await page.locator('#importScopeWarning').isVisible(), true);
+  assert.match(await page.locator('#importScopeWarning').innerText(), /当前筛选.*不是完整班级/);
+  await page.locator('#importCancel').click();
+  await page.waitForTimeout(50);
 
   await page.locator('#searchInput').fill('');
   await page.waitForTimeout(120);

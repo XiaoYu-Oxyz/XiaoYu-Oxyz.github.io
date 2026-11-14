@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-5eO0mxXb09EnXL1PBVg0Srbk7XOTcPCObWyBL5uoTeI='; script-src-elem 'sha256-5eO0mxXb09EnXL1PBVg0Srbk7XOTcPCObWyBL5uoTeI='; script-src-attr 'none'; style-src 'sha256-0h7a4hseBNqfx6gWSrrxKRwQllHFsSBn6TuZ5s8AgYM='; style-src-elem 'sha256-0h7a4hseBNqfx6gWSrrxKRwQllHFsSBn6TuZ5s8AgYM='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-aa9hV70vG0zYBCOF1SH8IS4BlabFJGwUppJVcxvUWfc='; script-src-elem 'sha256-aa9hV70vG0zYBCOF1SH8IS4BlabFJGwUppJVcxvUWfc='; script-src-attr 'none'; style-src 'sha256-RkiMyBeD4hV/7y9j2iB5e/4OO71G1LHPo41E/jiN+gA='; style-src-elem 'sha256-RkiMyBeD4hV/7y9j2iB5e/4OO71G1LHPo41E/jiN+gA='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>实验课提醒</title>
 <style>
@@ -534,6 +534,11 @@
     padding: 10px 12px; margin-bottom: 16px; word-break: break-word;
   }
   .import-summary b { color: #0969da; }
+  .import-warning {
+    margin: -6px 0 14px; padding: 9px 11px;
+    border: 1px solid #f0d38a; border-radius: 8px;
+    background: #fff8e6; color: #7a4b00; font-size: 12.5px; line-height: 1.65;
+  }
   .target-box { margin-bottom: 14px; }
   .target-title { margin-bottom: 8px; font-size: 13px; font-weight: 700; color: #424a53; }
   .target-cards { display: flex; flex-direction: column; gap: 8px; }
@@ -1052,6 +1057,7 @@
     </div>
     <div class="modal-body">
       <div class="import-summary" id="importSummary"></div>
+      <div class="import-warning" id="importScopeWarning" role="status" hidden></div>
       <div class="import-conflict" id="importConflict" hidden></div>
 
       <div class="target-box" id="importTargetBox" hidden>
@@ -3458,13 +3464,17 @@ async function importXlsx(file) {
 
   const rows = parsed.rows;
   const meta = parseClassInfoRows(parsed.metaRows);
-  const fileClass = classIdFromFileName(file.name);
+  let fileClass = classIdFromFileName(file.name);
+  let exportScope = 'all';
   let importWeek1 = week1Start;
   if (meta) {
     const metaClass = cleanText(meta['班级'], 160).trim();
+    fileClass = resolveImportFileClass(fileClass, metaClass);
     if (metaClass && fileClass && metaClass !== fileClass) {
       throw new Error(`班级信息为 ${metaClass}，与文件名班级 ${fileClass} 不一致，已阻止导入`);
     }
+    const metaScope = cleanText(meta['导出范围'], 20).trim();
+    if (metaScope.includes('筛选')) exportScope = 'filtered';
     const metaVersion = cleanText(meta['备份格式版本'], 20).trim();
     if (metaVersion && metaVersion !== '1') {
       throw new Error(`不支持的备份格式版本：${metaVersion}`);
@@ -3577,7 +3587,9 @@ async function importXlsx(file) {
     skipped,
     timeMode,
     meta,
+    fileClass,
     metaClass: meta ? cleanText(meta['班级'], 160).trim() : '',
+    exportScope,
     week1: meta ? cleanText(meta['week1'], 20).trim() : ''
   };
 }
@@ -3612,11 +3624,13 @@ async function importJsonFile(file) {
     throw new Error(`不支持的 JSON 备份版本：${obj.version}`);
   }
 
-  const fileClass = classIdFromFileName(file.name);
+  let fileClass = classIdFromFileName(file.name);
   const metaClass = cleanText(obj.class, 160).trim();
+  fileClass = resolveImportFileClass(fileClass, metaClass);
   if (metaClass && fileClass && metaClass !== fileClass) {
     throw new Error(`备份班级为 ${metaClass}，与文件名班级 ${fileClass} 不一致，已阻止导入`);
   }
+  const exportScope = String(obj.scope || 'all').toLowerCase() === 'filtered' ? 'filtered' : 'all';
   const week1 = cleanText(obj.week1, 20).trim();
   if (week1 && !isValidDateStr(week1)) {
     throw new Error('JSON 中的 week1 不是有效日期，已阻止导入');
@@ -3681,6 +3695,8 @@ async function importJsonFile(file) {
       'week1': week1
     },
     metaClass,
+    fileClass,
+    exportScope,
     week1
   };
 }
@@ -5068,6 +5084,7 @@ const importCancelBtn  = document.getElementById('importCancel');
 const importConfirmBtn = document.getElementById('importConfirm');
 const importSummary    = document.getElementById('importSummary');
 const importConflict   = document.getElementById('importConflict');
+const importScopeWarning = document.getElementById('importScopeWarning');
 const mergeDesc        = document.getElementById('mergeDesc');
 const replaceDesc      = document.getElementById('replaceDesc');
 const importNote       = document.getElementById('importNote');
@@ -5090,6 +5107,11 @@ function classIdFromFileName(name) {
   const s = String(name || '');
   if (!/\.(xlsx|json)$/i.test(s)) return '';
   return s.slice(0, -5);
+}
+
+function resolveImportFileClass(fileClass, metaClass) {
+  if (metaClass && fileClass === metaClass + '-筛选') return metaClass;
+  return fileClass;
 }
 
 function selectedImportTarget() {
@@ -5359,6 +5381,11 @@ function openImportModal(data) {
   }
 
   pendingImport = data;
+  const filteredBackup = data.exportScope === 'filtered';
+  importScopeWarning.hidden = !filteredBackup;
+  importScopeWarning.textContent = filteredBackup
+    ? '这是“当前筛选”导出的备份，不是完整班级。叠加只导入这些记录；替换会清空未包含在备份中的实验。'
+    : '';
   document.querySelector('input[name="importMode"][value="merge"]').checked = true;
   conflictSelect.value = 'keep';
 
@@ -5382,6 +5409,8 @@ function closeImportModal(skipReload) {
   pendingImport = null;
   importConflict.hidden = true;
   importConflict.textContent = '';
+  importScopeWarning.hidden = true;
+  importScopeWarning.textContent = '';
   if (!skipReload && pendingStorageRefresh && !hasOpenOverlay() && !editMode && !deleteMode) {
     pendingStorageRefresh = false;
     setTimeout(() => { window.location.reload(); }, 0);
@@ -5394,10 +5423,27 @@ importMask.addEventListener('click', (e) => {
   if (e.target === importMask) closeImportModal();
 });
 
-importConfirmBtn.addEventListener('click', () => {
+importConfirmBtn.addEventListener('click', async () => {
   if (!pendingImport) return;
 
   const mode = selectedImportMode();
+  if (mode === 'replace' && pendingImport.exportScope === 'filtered') {
+    const targetId = importTargetId();
+    const targetNew = !classIds.includes(targetId);
+    const existingCount = targetNew
+      ? 0
+      : (targetId === selectedClass ? experiments.length : getImportTargetData().length);
+    if (existingCount > 0) {
+      const ok = await askConfirm({
+        title: '这是筛选备份',
+        message: `它只包含当前筛选出的 ${pendingImport.list.length} 条实验，不是完整班级。`,
+        detail: `替换会清空 ${targetId} 现有的 ${existingCount} 条记录，只保留备份中的记录。确定继续？`,
+        okText: '仍然替换'
+      });
+      if (!ok) return;
+    }
+  }
+
   const updatePlace = conflictSelect.value === 'update';
   const { list, skipped, timeMode, fileClass, week1: importedWeek1 } = pendingImport;
   const targetId = importTargetId();
@@ -5532,7 +5578,6 @@ fileInput.addEventListener('change', async () => {
   try {
     const data = isJson ? await importJsonFile(file) : await importXlsx(file);
     data.fileName = file.name;
-    data.fileClass = fileClass;
     openImportModal(data);
   } catch (err) {
     showStatus('error', '导入失败：' + (err && err.message ? err.message : String(err)));
