@@ -209,6 +209,13 @@ https://xiaoyu-oxyz.github.io/?class=Z2
 ```
 
 - 切换班级时地址栏自动同步 `?class=...`，方便直接分享到班级群。
+- **只读链接**：`?mode=ro` 隐藏新建/重命名/删除班级、添加/编辑/删除实验、导入与第 1 周设置，只保留查看、导出和日历导出，并在筛选行显示蓝色「只读」徽标。适合发到班级群让同学看而不是改：
+
+```text
+https://xiaoyu-oxyz.github.io/?class=Z2&mode=ro
+```
+
+- **本机数据徽标**：一旦本机有保存过该班数据，筛选行会显示黄色「本机数据」徽标（悬停说明"改动只在这台设备"）。这是把"我改了但同学看不到"变成显式提示，而不是靠时钟旁的小字。
 
 ### 2.11 打印与无障碍
 
@@ -249,7 +256,8 @@ https://xiaoyu-oxyz.github.io/?class=Z2
 │  ├─ test_build.py           # build reader 回归测试（metadata/week1/旧格式）
 │  ├─ fixtures/
 │  │  └─ Z1-import.json       # UI 导入固定样本
-│  └─ ui-smoke.mjs            # Playwright UI 冒烟测试（Chromium/WebKit）
+│  ├─ ui-smoke.mjs            # Playwright UI 冒烟测试（Chromium/WebKit）
+│  └─ logic.mjs               # 纯函数回归（page.evaluate 直接调用全局函数）
 ├─ .github/workflows/verify.yml # CI：构建 + CSP + 单元/UI 测试 + 产物检查
 ├─ SECURITY.md                # 安全设计、残余风险、维护说明
 ├─ README.md                  # 本文件
@@ -496,8 +504,10 @@ python -m unittest discover -s tests -p "test_*.py" -v
 
 npm ci --ignore-scripts
 npx playwright install chromium webkit   # 首次运行需要
-npm run test:ui
+npm run test:logic           # 纯逻辑：日期/周次/节次/冲突/ICS
+npm run test:ui              # UI 冒烟
 npm run test:ui:webkit
+npm run test:logic:webkit
 ```
 
 Windows 本机若已安装 Edge，Chromium 测试默认使用 `msedge`；CI Linux 使用 Playwright 自带 Chromium，并额外跑 WebKit。
@@ -614,7 +624,9 @@ git push
 
 - 构建：`3 classes, 65 experiments`（Z1 25 / Z2 27 / Z5 13）。
 - 单元测试：`tests/test_build.py` 6/6 通过（metadata、week1 周一校验、旧格式、工作表选择）。
-- UI 冒烟（Chromium + WebKit）：`tests/ui-smoke.mjs` 通过（week1 校验/切班、搜索、导出默认全部/当前筛选、筛选备份导入警告与替换二次确认、JSON 导入、撤销导入、班级新建/重命名/删除、内置班修改/撤销/恢复、隐藏班同名警告与恢复冲突、删除到空状态及刷新持久化、复制失败文本框、跨标签页 week1/实验数据/班级切换、焦点循环/Esc 归位、aria-live、表格 caption/scope/headers、全部数据表头摘要、操作列普通阅读隐藏/模式内可见、表格与行 Tab 聚焦、Tab 逐行朗读、行摘要含全部列名与状态且“星期 星期一”、手机端读表头、空操作列不读空白、编辑/删除按钮完整数据标签含“节次”、当前筛选打印、36px 班级图标热区、320px）。
+- UI 冒烟（Chromium + WebKit）：`tests/ui-smoke.mjs` 通过（week1 校验/切班、搜索、导出默认全部/当前筛选、筛选备份导入警告与替换二次确认、JSON 导入、撤销导入、班级新建/重命名/删除、内置班修改/撤销/恢复、隐藏班同名警告与恢复冲突、删除到空状态及刷新持久化、复制失败文本框、跨标签页 week1/实验数据/班级切换、焦点循环/Esc 归位、aria-live、表格 caption/scope/headers、全部数据表头摘要、操作列普通阅读隐藏/模式内可见、表格与行 Tab 聚焦、roving tabindex 单停靠点、方向键逐条、行摘要含全部列名与状态且“星期 星期一”、手机端读表头、空操作列不读空白、编辑/删除按钮完整数据标签含“节次”、当前筛选打印、36px 班级图标热区、320px、`.ics` 导出、`?mode=ro` 只读链接）。
+- 纯逻辑回归（Chromium + WebKit）：`tests/logic.mjs` 34 个用例覆盖日期/周次/节次区间/冲突分组/ICS 生成与折行/转义/控件字符清理。
+- 所有 UI 断言都走 `poll()` 轮询而非固定 `sleep`，测试数据（班级条数、全局 week1）从 `data/` 读取，改一条实验不需要改测试。
 - `verify-csp.py`：通过。
 - 当前 CSP 哈希（以 verify 输出为准）：
   - script：`aa9hV70vG0zYBCOF1SH8IS4BlabFJGwUppJVcxvUWfc=`

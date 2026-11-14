@@ -83,3 +83,11 @@ jobs:
       - name: UI smoke (WebKit)
         if: matrix.browser == 'webkit'
         run: npm run test:ui:webkit
+
+      - name: Logic tests (Chromium)
+        if: matrix.browser == 'chromium'
+        run: npm run test:logic
+
+      - name: Logic tests (WebKit)
+        if: matrix.browser == 'webkit'
+        run: npm run test:logic:webkit

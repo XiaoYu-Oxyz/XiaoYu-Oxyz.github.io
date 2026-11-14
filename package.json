@@ -4,7 +4,10 @@
   "version": "1.0.0",
   "scripts": {
     "test:ui": "node tests/ui-smoke.mjs",
-    "test:ui:webkit": "node tests/ui-smoke.mjs --webkit"
+    "test:ui:webkit": "node tests/ui-smoke.mjs --webkit",
+    "test:logic": "node tests/logic.mjs",
+    "test:logic:webkit": "node tests/logic.mjs --webkit",
+    "test": "npm run test:logic && npm run test:ui"
   },
   "devDependencies": {
     "playwright": "1.65.0"

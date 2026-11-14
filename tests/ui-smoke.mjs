@@ -20,6 +20,31 @@ page.on('pageerror', error => pageErrors.push(error.stack || error.message));
 
 const fixtureDir = fs.mkdtempSync(path.join(os.tmpdir(), 'crsecue-ui-'));
 const fixture = path.join(fixtureDir, 'Z1.json');
+
+// ---- 轮询断言：不再靠固定 sleep 猜渲染时机 ----
+async function poll(check, message, timeout = 4000) {
+  const startedAt = Date.now();
+  for (;;) {
+    let ok = false;
+    try { ok = await check(); } catch (e) { ok = false; }
+    if (ok) return;
+    if (Date.now() - startedAt > timeout) throw new Error(`等待超时：${message}`);
+    await new Promise(resolve => setTimeout(resolve, 25));
+  }
+}
+const waitValue = (locator, expected) => poll(async () => (await locator.inputValue()) === String(expected), `inputValue = ${expected}`);
+const waitNotValue = (locator, expected) => poll(async () => (await locator.inputValue()) !== String(expected), `inputValue ≠ ${expected}`);
+const waitText = (locator, pattern) => poll(async () => pattern.test(await locator.innerText()), `innerText 匹配 ${pattern}`);
+const waitAttr = (locator, name, expected) => poll(async () => (await locator.getAttribute(name)) === expected, `${name} = ${expected}`);
+const waitCount = (locator, expected) => poll(async () => (await locator.count()) === expected, `count = ${expected}`);
+const waitVisible = (locator, expected) => poll(async () => (await locator.isVisible()) === expected, `visible = ${expected}`);
+// 焦点归位走 setTimeout(0)，必须轮询，不能点完立刻断言
+const waitFocus = (page, id) => poll(async () => (await page.evaluate(() => document.activeElement.id)) === id, `focus = ${id}`);
+async function settle(page) {
+  await page.evaluate(() => new Promise(resolve =>
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+}
+
 fs.copyFileSync(path.join(root, 'tests', 'fixtures', 'Z1-import.json'), fixture);
 
 async function setWeek1(value) {
@@ -34,8 +59,11 @@ try {
   await page.setViewportSize({ width: 1200, height: 900 });
   await page.goto(appUrl);
   await page.waitForSelector('#tbody tr');
+  // 测试数据由 data/ 决定：条数与全局 week1 都从磁盘读，改一条实验不需要改测试。
+  const globalWeek1 = JSON.parse(fs.readFileSync(path.join(root, 'data', '设置.json'), 'utf8')).week1;
+  const totalZ1 = Number((await page.locator('#recentCount').innerText()).match(/共\s*(\d+)/)[1]);
   await page.uncheck('#recentFilter');
-  await page.waitForTimeout(50);
+  await settle(page);
 
   // 表格基础语义：caption、列头 scope、移动端摘要和冲突文本。
   assert.match(await page.locator('#tableCaption').innerText(), /班级 Z1 实验安排/);
@@ -56,12 +84,12 @@ try {
   assert.doesNotMatch(desktopAria, /删除标记|cell "操作"/);
   assert.doesNotMatch(desktopAria, /^\s*- cell$/m);
   await page.locator('#scheduleTable').focus();
-  assert.equal(await page.evaluate(() => document.activeElement.id), 'scheduleTable');
+  await waitFocus(page, 'scheduleTable');
   await page.keyboard.press('Tab');
   assert.equal(await page.evaluate(() => document.activeElement.tagName), 'TR');
   assert.ok(await page.evaluate(() => document.activeElement.getAttribute('aria-label')));
   await page.keyboard.press('Shift+Tab');
-  assert.equal(await page.evaluate(() => document.activeElement.id), 'scheduleTable');
+  await waitFocus(page, 'scheduleTable');
   await page.keyboard.press('ArrowDown');
   const firstFocusedRow = await page.evaluate(() => ({
     tag: document.activeElement.tagName,
@@ -75,7 +103,7 @@ try {
   await page.keyboard.press('ArrowUp');
   assert.equal(await page.evaluate(() => document.activeElement.getAttribute('aria-label')), firstFocusedRow.label);
   await page.keyboard.press('Escape');
-  assert.equal(await page.evaluate(() => document.activeElement.id), 'scheduleTable');
+  await waitFocus(page, 'scheduleTable');
   await page.keyboard.press('ArrowDown');
   const rovingLabel = await page.evaluate(() => document.activeElement.getAttribute('aria-label'));
   assert.equal(rovingLabel, firstFocusedRow.label);
@@ -105,30 +133,25 @@ try {
 
   // 1. week1：非星期一被拒绝，合法的周一按班保存。
   const initialWeek1 = await page.locator('#week1Input').inputValue();
-  assert.equal(initialWeek1, '2026-08-31');
+  assert.equal(initialWeek1, globalWeek1);
 
   await setWeek1('2026-09-08');
-  await page.waitForTimeout(50);
-  assert.equal(await page.locator('#week1Input').inputValue(), initialWeek1);
+  await waitValue(page.locator('#week1Input'), initialWeek1);
   assert.match(await page.locator('#importStatus').innerText(), /不是星期一/);
   assert.match(await page.locator('#liveStatus').innerText(), /不是星期一/);
 
   await setWeek1('2026-09-07');
-  await page.waitForTimeout(50);
-  assert.equal(await page.locator('#week1Input').inputValue(), '2026-09-07');
+  await waitValue(page.locator('#week1Input'), '2026-09-07');
 
   await page.selectOption('#classSelect', 'Z2');
-  await page.waitForTimeout(50);
-  assert.equal(await page.locator('#week1Input').inputValue(), '2026-08-31');
+  await waitValue(page.locator('#week1Input'), globalWeek1);
   await page.selectOption('#classSelect', 'Z1');
-  await page.waitForTimeout(50);
-  assert.equal(await page.locator('#week1Input').inputValue(), '2026-09-07');
+  await waitValue(page.locator('#week1Input'), '2026-09-07');
 
   // 2. 搜索和浏览器原生清除输入（通过 fill('') 模拟清空）。
   await page.locator('#actionsToggle').click();
   await page.locator('#searchInput').fill('A206');
-  await page.waitForTimeout(150);
-  assert.match(await page.locator('#recentCount').innerText(), /显示 1 \/ 共 25/);
+  await waitText(page.locator('#recentCount'), new RegExp(`显示 1 / 共 ${totalZ1}`));
   assert.equal(await page.locator('#tbody tr').count(), 1);
   await page.emulateMedia({ media: 'print' });
   assert.match(await page.locator('#printHead').innerText(), /1 条/);
@@ -138,7 +161,7 @@ try {
   await page.locator('#exportBtn').click();
   await page.waitForSelector('#exportMask.show');
   assert.equal(await page.locator('#exportScopeAll').isChecked(), true);
-  assert.equal(await page.locator('#exportAllCount').innerText(), '25');
+  assert.equal(await page.locator('#exportAllCount').innerText(), String(totalZ1));
   assert.equal(await page.locator('#exportFilteredCount').innerText(), '1');
   await page.locator('#exportScopeFiltered').check();
   const filteredDownloadPromise = page.waitForEvent('download');
@@ -161,10 +184,9 @@ try {
   await page.waitForSelector('#confirmMask.show');
   assert.match(await page.locator('#confirmDetail').innerText(), /替换会清空/);
   await page.locator('#confirmCancel').click();
-  await page.waitForTimeout(50);
+  await settle(page);
   await page.locator('#importCancel').click();
-  await page.waitForTimeout(50);
-  assert.equal(await page.locator('#importMask').isVisible(), false);
+  await waitVisible(page.locator('#importMask'), false);
 
   // xlsx 筛选备份同样识别导出范围并警告。
   await page.locator('#exportBtn').click();
@@ -184,7 +206,7 @@ try {
   assert.equal(await page.locator('#importScopeWarning').isVisible(), true);
   assert.match(await page.locator('#importScopeWarning').innerText(), /当前筛选.*不是完整班级/);
   await page.locator('#importCancel').click();
-  await page.waitForTimeout(50);
+  await settle(page);
 
   // 日历导出：标准 VCALENDAR，每条实验一个事件 + 提前 2 小时提醒。
   const icsTotal = Number((await page.locator('#recentCount').innerText()).match(/共\s*(\d+)/)[1]);
@@ -203,24 +225,22 @@ try {
     'iCalendar 单行不能超过 75 字节');
 
   await page.locator('#searchInput').fill('');
-  await page.waitForTimeout(120);
-  assert.match(await page.locator('#recentCount').innerText(), /显示 25 \/ 共 25/);
+  await waitText(page.locator('#recentCount'), new RegExp(`显示 25 / 共 ${totalZ1}`));
 
   // 3. 导出格式选择器：初始焦点、Tab 循环、Esc 关闭并回到触发按钮。
   await page.locator('#exportBtn').click();
   await page.waitForSelector('#exportMask.show');
-  await page.waitForTimeout(50);
-  assert.equal(await page.evaluate(() => document.activeElement.id), 'exportXlsxChoice');
+  await settle(page);
+  await waitFocus(page, 'exportXlsxChoice');
   assert.equal(await page.locator('#exportScopeAll').isChecked(), true);
-  assert.equal(await page.locator('#exportAllCount').innerText(), '25');
+  assert.equal(await page.locator('#exportAllCount').innerText(), String(totalZ1));
   assert.equal(await page.locator('#exportFilteredCount').innerText(), '25');
   await page.locator('#exportCancel').focus();
   await page.keyboard.press('Tab');
-  assert.equal(await page.evaluate(() => document.activeElement.id), 'exportClose');
+  await waitFocus(page, 'exportClose');
   await page.keyboard.press('Escape');
-  await page.waitForTimeout(50);
-  assert.equal(await page.locator('#exportMask').isVisible(), false);
-  assert.equal(await page.evaluate(() => document.activeElement.id), 'exportBtn');
+  await waitVisible(page.locator('#exportMask'), false);
+  await waitFocus(page, 'exportBtn');
 
   await page.locator('#exportBtn').click();
   await page.waitForSelector('#exportMask.show');
@@ -236,14 +256,12 @@ try {
   assert.match(await page.locator('#importSummary').innerText(), /来源：JSON/);
   assert.match(await page.locator('#importSummary').innerText(), /week1：2026-09-07（不变）/);
   await page.locator('#importConfirm').click();
-  await page.waitForTimeout(150);
-  assert.match(await page.locator('#importStatus').innerText(), /撤销导入/);
+  await waitText(page.locator('#importStatus'), /撤销导入/);
   assert.equal(await page.locator('#week1Input').inputValue(), '2026-09-07');
   assert.equal(await page.locator('#tbody').innerText().then(t => t.includes('UI冒烟实验')), true);
 
   await page.getByRole('button', { name: '撤销导入' }).click();
-  await page.waitForTimeout(120);
-  assert.match(await page.locator('#recentCount').innerText(), /显示 25 \/ 共 25/);
+  await waitText(page.locator('#recentCount'), new RegExp(`显示 25 / 共 ${totalZ1}`));
   assert.equal(await page.locator('#tbody').innerText().then(t => t.includes('UI冒烟实验')), false);
   assert.equal(await page.locator('#week1Input').inputValue(), '2026-09-07');
 
@@ -261,8 +279,7 @@ try {
   assert.ok(firstRowHeaders.includes('col-place'));
 
   await page.locator('#editModeBtn').click();
-  await page.waitForTimeout(80);
-  assert.equal(await page.locator('th.col-mark').getAttribute('aria-hidden'), null);
+  await waitAttr(page.locator('th.col-mark'), 'aria-hidden', null);
   assert.equal(await page.locator('td.cell-mark').first().getAttribute('aria-hidden'), null);
   await page.locator('#tbody tr').first().focus();
   await page.keyboard.press('Tab');
@@ -275,14 +292,13 @@ try {
   assert.match(await page.locator('#editA11ySummary').innerText(), /日期 .*周次.*节次.*实验名称/);
   assert.equal(await page.locator('#modalMask .modal').getAttribute('aria-describedby'), 'editA11ySummary');
   await page.locator('#modalClose').click();
-  await page.waitForTimeout(60);
+  await settle(page);
   await page.locator('#editModeBtn').click();
-  await page.waitForTimeout(60);
+  await settle(page);
   assert.equal(await page.locator('td.cell-mark').first().getAttribute('aria-hidden'), 'true');
 
   await page.locator('#deleteModeBtn').click();
-  await page.waitForTimeout(80);
-  assert.equal(await page.locator('th.col-mark').getAttribute('aria-hidden'), null);
+  await waitAttr(page.locator('th.col-mark'), 'aria-hidden', null);
   await page.locator('#tbody tr').first().focus();
   await page.keyboard.press('Tab');
   assert.match(await page.evaluate(() => document.activeElement.className), /mark-btn/);
@@ -295,30 +311,26 @@ try {
   await firstMarkBtn.click();
   assert.equal(await firstMarkBtn.getAttribute('aria-pressed'), 'false');
   await page.locator('#deleteModeBtn').click();
-  await page.waitForTimeout(60);
-  assert.equal(await page.locator('th.col-mark').getAttribute('aria-hidden'), 'true');
+  await waitAttr(page.locator('th.col-mark'), 'aria-hidden', 'true');
 
   // 4. 班级管理：新建、重命名、删除本机班级；内置班级只提示。
   await page.locator('#newClassBtn').click();
   await page.waitForSelector('#classMask.show');
   await page.locator('#classPromptInput').fill('测试班');
   await page.locator('#classPromptOk').click();
-  await page.waitForTimeout(80);
-  assert.equal(await page.locator('#classSelect').inputValue(), '测试班');
+  await waitValue(page.locator('#classSelect'), '测试班');
 
   await page.locator('#renameClassBtn').click();
   await page.waitForSelector('#classMask.show');
   assert.equal(await page.locator('#classPromptInput').inputValue(), '测试班');
   await page.locator('#classPromptInput').fill('测试班2');
   await page.locator('#classPromptOk').click();
-  await page.waitForTimeout(80);
-  assert.equal(await page.locator('#classSelect').inputValue(), '测试班2');
+  await waitValue(page.locator('#classSelect'), '测试班2');
 
   await page.locator('#deleteClassBtn').click();
   await page.waitForSelector('#confirmMask.show');
   await page.locator('#confirmOk').click();
-  await page.waitForTimeout(80);
-  assert.notEqual(await page.locator('#classSelect').inputValue(), '测试班2');
+  await waitNotValue(page.locator('#classSelect'), '测试班2');
   assert.equal(await page.locator('#classSelect option[value="测试班2"]').count(), 0);
 
   await page.selectOption('#classSelect', 'Z1');
@@ -337,8 +349,7 @@ try {
   await page.waitForSelector('#copyMask.show');
   assert.match(await page.locator('#copyFallbackText').inputValue(), /实验课提醒/);
   await page.locator('#copyFallbackDone').click();
-  await page.waitForTimeout(30);
-  assert.equal(await page.locator('#copyMask').isVisible(), false);
+  await waitVisible(page.locator('#copyMask'), false);
 
   // 6. 跨标签页：另一个页面修改 Z1 week1，当前页自动同步。
   const secondPage = await page.context().newPage();
@@ -349,8 +360,7 @@ try {
     input.value = '2026-09-14';
     input.dispatchEvent(new Event('change', { bubbles: true }));
   });
-  await page.waitForTimeout(180);
-  assert.equal(await page.locator('#week1Input').inputValue(), '2026-09-14');
+  await waitValue(page.locator('#week1Input'), '2026-09-14');
 
   await secondPage.evaluate(() => {
     saveClassStored('Z1', [{
@@ -361,8 +371,7 @@ try {
       note: ''
     }]);
   });
-  await page.waitForTimeout(180);
-  assert.match(await page.locator('#tbody').innerText(), /跨标签数据/);
+  await waitText(page.locator('#tbody'), /跨标签数据/);
 
   await secondPage.close();
 
@@ -373,8 +382,7 @@ try {
   await Promise.all([switchA.goto(appUrl), switchB.goto(appUrl)]);
   await Promise.all([switchA.waitForSelector('#tbody tr'), switchB.waitForSelector('#tbody tr')]);
   await switchB.selectOption('#classSelect', 'Z2');
-  await switchA.waitForTimeout(150);
-  assert.match(await switchA.locator('#importStatus').innerText(), /另一个标签页已切换到 Z2/);
+  await waitText(switchA.locator('#importStatus'), /另一个标签页已切换到 Z2/);
   await switchContext.close();
 
   // 7. 手机端只显示“导入/导出”，且无横向滚动。
@@ -396,15 +404,13 @@ try {
   assert.match(mobileAria, /columnheader/);
   assert.doesNotMatch(mobileAria, /^\s*- cell$/m);
   await page.selectOption('#classSelect', 'Z2');
-  await page.waitForTimeout(100);
-  assert.equal(await page.locator('#scheduleTable thead').getAttribute('aria-hidden'), null);
+  await waitAttr(page.locator('#scheduleTable thead'), 'aria-hidden', null);
   assert.ok(await page.locator('#tbody tr').first().getAttribute('aria-label'));
   assert.ok(await page.locator('#tbody td[headers]').count() > 0);
   await page.selectOption('#classSelect', 'Z1');
-  await page.waitForTimeout(100);
+  await settle(page);
   await page.setViewportSize({ width: 1200, height: 900 });
-  await page.waitForTimeout(100);
-  assert.equal(await page.locator('#scheduleTable thead').getAttribute('aria-hidden'), null);
+  await waitAttr(page.locator('#scheduleTable thead'), 'aria-hidden', null);
   assert.match(await page.locator('#scheduleTable').getAttribute('aria-describedby'), /tableHeaderSummary/);
   assert.equal(await page.locator('#tableHeaderSummary').getAttribute('aria-hidden'), null);
   assert.ok(await page.locator('#tbody tr').first().getAttribute('aria-label'));
@@ -433,16 +439,14 @@ try {
   await builtPage.waitForSelector('#classMask.show');
   await builtPage.locator('#classPromptInput').fill('Z1本机');
   await builtPage.locator('#classPromptOk').click();
-  await builtPage.waitForTimeout(100);
-  assert.equal(await builtPage.locator('#classSelect').inputValue(), 'Z1本机');
+  await waitValue(builtPage.locator('#classSelect'), 'Z1本机');
   assert.equal(await builtPage.locator('#classSelect option[value="Z1"]').count(), 0);
   // 状态栏可能被并发的跨标签页同步消息覆盖，直接断言"重命名产生了可撤销操作"更稳定。
   await builtPage.waitForFunction(() =>
     Array.from(document.querySelectorAll('#importStatus button')).some(btn => btn.textContent.includes('撤销')),
     null, { timeout: 3000 });
   await builtPage.getByRole('button', { name: '撤销' }).click();
-  await builtPage.waitForTimeout(100);
-  assert.equal(await builtPage.locator('#classSelect').inputValue(), 'Z1');
+  await waitValue(builtPage.locator('#classSelect'), 'Z1');
   assert.equal(await builtPage.locator('#classSelect option[value="Z1"]').count(), 1);
   assert.equal(await builtPage.locator('#classSelect option[value="Z1本机"]').count(), 0);
 
@@ -450,35 +454,31 @@ try {
   await builtPage.waitForSelector('#confirmMask.show');
   assert.match(await builtPage.locator('#confirmDetail').innerText(), /隐藏/);
   await builtPage.locator('#confirmOk').click();
-  await builtPage.waitForTimeout(100);
-  assert.equal(await builtPage.locator('#classSelect option[value="Z1"]').count(), 0);
+  await waitCount(builtPage.locator('#classSelect option[value="Z1"]'), 0);
   assert.match(await builtPage.locator('#importStatus').innerText(), /隐藏/);
   await builtPage.getByRole('button', { name: '撤销' }).click();
-  await builtPage.waitForTimeout(100);
-  assert.equal(await builtPage.locator('#classSelect').inputValue(), 'Z1');
+  await waitValue(builtPage.locator('#classSelect'), 'Z1');
 
   // 删除到没有班级：允许空状态，并可撤销最后一次隐藏。
   for (const id of ['Z1', 'Z2', 'Z5']) {
     await builtPage.locator('#deleteClassBtn').click();
     await builtPage.waitForSelector('#confirmMask.show');
     await builtPage.locator('#confirmOk').click();
-    await builtPage.waitForTimeout(80);
+    await settle(builtPage);
   }
   assert.equal(await builtPage.locator('#classSelect').inputValue(), '');
   assert.match(await builtPage.locator('#classSelect').innerText(), /无班级/);
   assert.equal(await builtPage.locator('#recentCount').innerText(), '显示 0 / 共 0');
   assert.equal(await builtPage.locator('#addBtn').isDisabled(), true);
   await builtPage.getByRole('button', { name: '撤销' }).click();
-  await builtPage.waitForTimeout(100);
-  assert.equal(await builtPage.locator('#classSelect').inputValue(), 'Z5');
+  await waitValue(builtPage.locator('#classSelect'), 'Z5');
 
   // 重命名不能占用已隐藏的内置班名称。
   await builtPage.locator('#newClassBtn').click();
   await builtPage.waitForSelector('#classMask.show');
   await builtPage.locator('#classPromptInput').fill('测试重名');
   await builtPage.locator('#classPromptOk').click();
-  await builtPage.waitForTimeout(80);
-  assert.equal(await builtPage.locator('#classSelect').inputValue(), '测试重名');
+  await waitValue(builtPage.locator('#classSelect'), '测试重名');
   await builtPage.locator('#renameClassBtn').click();
   await builtPage.waitForSelector('#classMask.show');
   await builtPage.locator('#classPromptInput').fill('Z1');
@@ -486,27 +486,24 @@ try {
   await builtPage.waitForSelector('#confirmMask.show');
   assert.match(await builtPage.locator('#confirmDetail').innerText(), /必须先删除这个同名班级/);
   await builtPage.locator('#confirmOk').click();
-  await builtPage.waitForTimeout(100);
-  assert.equal(await builtPage.locator('#classSelect').inputValue(), 'Z1');
+  await waitValue(builtPage.locator('#classSelect'), 'Z1');
 
   // 同名本机班存在时，恢复隐藏班会报错并要求先删除。
   await builtPage.locator('#restoreToolBtn').click();
   await builtPage.waitForSelector('#restoreMask.show');
   await builtPage.getByRole('button', { name: '恢复 Z1' }).click();
-  await builtPage.waitForTimeout(80);
-  assert.match(await builtPage.locator('#restoreError').innerText(), /请先删除该班/);
+  await waitText(builtPage.locator('#restoreError'), /请先删除该班/);
   await builtPage.locator('#restoreDone').click();
 
   // 删除同名本机班后，隐藏的内置班才能恢复。
   await builtPage.locator('#deleteClassBtn').click();
   await builtPage.waitForSelector('#confirmMask.show');
   await builtPage.locator('#confirmOk').click();
-  await builtPage.waitForTimeout(80);
+  await settle(builtPage);
   await builtPage.locator('#restoreToolBtn').click();
   await builtPage.waitForSelector('#restoreMask.show');
   await builtPage.getByRole('button', { name: '恢复 Z1' }).click();
-  await builtPage.waitForTimeout(100);
-  assert.equal(await builtPage.locator('#classSelect').inputValue(), 'Z1');
+  await waitValue(builtPage.locator('#classSelect'), 'Z1');
   assert.equal(await builtPage.locator('#classSelect option[value="Z1"]').count(), 1);
 
   await builtPage.locator('#restoreToolBtn').click();
@@ -515,15 +512,14 @@ try {
   await builtPage.locator('#restoreDefaultBtn').click();
   await builtPage.waitForSelector('#confirmMask.show');
   await builtPage.locator('#confirmOk').click();
-  await builtPage.waitForTimeout(100);
-  assert.match(await builtPage.locator('#importStatus').innerText(), /恢复为默认数据/);
+  await waitText(builtPage.locator('#importStatus'), /恢复为默认数据/);
 
   // 隐藏/空状态刷新后仍保持，并可从恢复弹窗找回。
   while (await builtPage.locator('#classSelect').inputValue()) {
     await builtPage.locator('#deleteClassBtn').click();
     await builtPage.waitForSelector('#confirmMask.show');
     await builtPage.locator('#confirmOk').click();
-    await builtPage.waitForTimeout(80);
+    await settle(builtPage);
   }
   await builtPage.reload();
   await builtPage.waitForSelector('#tbody tr');
@@ -534,9 +530,26 @@ try {
   await builtPage.waitForSelector('#restoreMask.show');
   assert.match(await builtPage.locator('#restoreHiddenList').innerText(), /Z1/);
   await builtPage.getByRole('button', { name: '恢复 Z1' }).click();
-  await builtPage.waitForTimeout(100);
-  assert.equal(await builtPage.locator('#classSelect').inputValue(), 'Z1');
+  await waitValue(builtPage.locator('#classSelect'), 'Z1');
   await builtPage.close();
+
+  // 9. 只读链接 ?mode=ro：不写本机数据，隐藏所有编辑入口，并显示"只读"徽标。
+  const roPage = await context.newPage();
+  await roPage.goto(`${appUrl}?mode=ro`);
+  await roPage.waitForSelector('#tbody tr');
+  assert.equal(await roPage.evaluate(() => document.body.classList.contains('readonly')), true);
+  assert.equal(await roPage.locator('#modeBadge').innerText(), '只读');
+  assert.equal(await roPage.locator('#newClassBtn').isVisible(), false);
+  assert.equal(await roPage.locator('#addBtn').isVisible(), false);
+  assert.equal(await roPage.locator('#importBtn').isVisible(), false);
+  assert.equal(await roPage.locator('#week1Input').isVisible(), false);
+  // 操作面板默认收起：展开后确认"实验"整组被隐藏、"导出"仍在
+  await roPage.locator('#actionsToggle').click();
+  await roPage.waitForSelector('#actionPanel:not([hidden])');
+  assert.equal(await roPage.locator('#exportBtn').isVisible(), true);
+  assert.equal(await roPage.locator('#icsBtn').isVisible(), true);
+  assert.equal(await roPage.locator('.action-group-edit').isVisible(), false);
+  await roPage.close();
 
   console.log('UI smoke OK');
 } finally {

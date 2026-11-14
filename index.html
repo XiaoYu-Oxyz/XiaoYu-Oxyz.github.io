@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-xKept5q6v45BRL5K3PpVP4r7KF0tHZQOj0TFkVRcH84='; script-src-elem 'sha256-xKept5q6v45BRL5K3PpVP4r7KF0tHZQOj0TFkVRcH84='; script-src-attr 'none'; style-src 'sha256-GL0YCfzmdu3UGef+yeCIb4wwIMIVCsjjvCLXlUTWTm0='; style-src-elem 'sha256-GL0YCfzmdu3UGef+yeCIb4wwIMIVCsjjvCLXlUTWTm0='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-n5rekrttPcCqtqjnkMDsg1055h5sTZuXyHzpLNkTAvM='; script-src-elem 'sha256-n5rekrttPcCqtqjnkMDsg1055h5sTZuXyHzpLNkTAvM='; script-src-attr 'none'; style-src 'sha256-A0Sl9nsl916adzft590Y++K/aApMjIz/owqSklCVx/w='; style-src-elem 'sha256-A0Sl9nsl916adzft590Y++K/aApMjIz/owqSklCVx/w='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>实验课提醒</title>
 <style>
@@ -140,6 +140,20 @@
   .recent-filter.is-disabled { color: #6e7781; cursor: not-allowed; opacity: .6; }
   .recent-filter.is-disabled input { cursor: not-allowed; }
   .recent-count { font-size: 12px; color: #6e7781; white-space: nowrap; }
+  /* 「本机数据 / 只读」徽标：把"改动只在这台设备上"显式说出来 */
+  .mode-badge {
+    display: inline-flex; align-items: center;
+    padding: 1px 9px; border-radius: 999px;
+    font-size: 11.5px; font-weight: 700; line-height: 1.7; white-space: nowrap;
+    border: 1px solid #d0d7de; background: #f6f8fa; color: #57606a;
+  }
+  .mode-badge.is-local { border-color: #f0d38a; background: #fff8e6; color: #7a4b00; }
+  .mode-badge.is-readonly { border-color: #b6d4fb; background: #eaf3ff; color: #0757b8; }
+  /* 只读链接（?mode=ro）：隐藏所有会写本机数据或改班级的入口 */
+  body.readonly .class-tools,
+  body.readonly .action-group-edit,
+  body.readonly #importBtn,
+  body.readonly .settings-row { display: none !important; }
   .data-updated { font-size: 11.5px; color: #6e7781; white-space: nowrap; }
   .data-updated[hidden] { display: none !important; }
   .import-btn {
@@ -1019,6 +1033,7 @@
         <span>只看冲突</span>
       </label>
       <span class="recent-count" id="recentCount"></span>
+      <span class="mode-badge" id="modeBadge" hidden></span>
     </div>
     <span class="data-updated" id="dataUpdated" hidden></span>
     <div class="head-actions">
@@ -1032,7 +1047,7 @@
       <input class="search-input" id="searchInput" type="search" maxlength="80" autocomplete="off" aria-label="搜索实验名称、地点或备注" placeholder="搜索实验名称 / 地点 / 备注">
     </div>
     <div class="action-groups">
-      <div class="action-group">
+      <div class="action-group action-group-edit">
         <span class="group-label">实验</span>
         <button class="add-btn"    id="addBtn"        type="button">添加实验</button>
         <button class="edit-btn"   id="editModeBtn"   type="button" title="进入编辑模式：点行首铅笔修改实验">编辑实验</button>
@@ -1377,6 +1392,16 @@ const CLASS_SELECTED_KEY = STORAGE_PREFIX + 'selected-class:v1';
 const CLASS_EXTRA_KEY = STORAGE_PREFIX + 'extra-classes:v1';
 const CLASS_HIDDEN_KEY = STORAGE_PREFIX + 'hidden-built-classes:v1';
 const CLASS_QUERY_PARAM = 'class';
+// ?mode=ro：只读分享链接。班级里大多数同学只需要看，不需要（也不应该）改本机数据。
+const MODE_QUERY_PARAM = 'mode';
+const READ_ONLY = (() => {
+  try {
+    return new URLSearchParams(location.search).get(MODE_QUERY_PARAM) === 'ro';
+  } catch (e) {
+    return false;
+  }
+})();
+if (READ_ONLY) document.body.classList.add('readonly');
 const MIGRATION_CLASS = 'Z2';
 const DATE_CACHE_LIMIT = 4096;
 // 日期字符串在 render/search/import 中反复解析；缓存 timestamp，返回克隆避免调用方改缓存。
@@ -2533,6 +2558,7 @@ function updateRecentCount(visible, total) {
 }
 
 function render() {
+  syncModeBadge();
   const today = startOfDay(new Date());
   const tbody = tbodyEl;
   const frag = document.createDocumentFragment();
@@ -3890,6 +3916,27 @@ function syncTableA11y() {
 }
 const printHead = document.getElementById('printHead');
 const recentCountEl = document.getElementById('recentCount');
+const modeBadgeEl = document.getElementById('modeBadge');
+
+// 「本机数据 / 只读」徽标：不是装饰，是把"我改了但同学看不到"变成显式信息
+function syncModeBadge() {
+  if (!modeBadgeEl) return;
+  if (READ_ONLY) {
+    modeBadgeEl.hidden = false;
+    modeBadgeEl.className = 'mode-badge is-readonly';
+    modeBadgeEl.textContent = '只读';
+    modeBadgeEl.title = '只读链接：不会写入本机数据';
+    return;
+  }
+  if (usingSaved) {
+    modeBadgeEl.hidden = false;
+    modeBadgeEl.className = 'mode-badge is-local';
+    modeBadgeEl.textContent = '本机数据';
+    modeBadgeEl.title = '这些改动只存在这台设备，不会同步给同学；发布需要导出后重新 build';
+    return;
+  }
+  modeBadgeEl.hidden = true;
+}
 const dataUpdatedEl = document.getElementById('dataUpdated');
 const searchInput = document.getElementById('searchInput');
 const copyWeekBtn = document.getElementById('copyWeekBtn');
