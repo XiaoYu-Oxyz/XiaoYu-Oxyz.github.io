@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-FH/XoctgTsKvbPxotQRYuguADo04dEZfNw+BP9pLXdQ='; script-src-elem 'sha256-FH/XoctgTsKvbPxotQRYuguADo04dEZfNw+BP9pLXdQ='; script-src-attr 'none'; style-src 'sha256-fsGSYMW1o2tl7gMFq5zamPHY1nqGta/SHxspiaGw5PM='; style-src-elem 'sha256-fsGSYMW1o2tl7gMFq5zamPHY1nqGta/SHxspiaGw5PM='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-3kC8fztuAxb1YoG3nzLYZYDO+jzxMCB7QK9H6pMIDz4='; script-src-elem 'sha256-3kC8fztuAxb1YoG3nzLYZYDO+jzxMCB7QK9H6pMIDz4='; script-src-attr 'none'; style-src 'sha256-fsGSYMW1o2tl7gMFq5zamPHY1nqGta/SHxspiaGw5PM='; style-src-elem 'sha256-fsGSYMW1o2tl7gMFq5zamPHY1nqGta/SHxspiaGw5PM='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>实验课提醒</title>
 <style>
@@ -2782,7 +2782,13 @@ function renderWeekView() {
     days.push(new Date(start.getFullYear(), start.getMonth(), start.getDate() + i));
   }
   const end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 7);
-  const entries = getFilteredExperimentEntries().filter(e => e._date >= start && e._date < end);
+  const conflictSet = computeConflictInfo(experiments).byIndex;
+  // 课表已经限定在同一周，"已结束仅显示本周" 在这里没有意义（否则翻到过去几周永远是空的）；
+  // "只看冲突" 与搜索仍然生效。
+  const entries = getExperimentEntries()
+    .filter(entry => entry._date >= start && entry._date < end)
+    .filter(entry => !conflictOnly || conflictSet.has(entry._idx))
+    .filter(matchesSearch);
   const today = startOfDay(new Date());
   const layout = layoutWeek(entries);
 
@@ -2815,7 +2821,6 @@ function renderWeekView() {
   grid.style.gridTemplateColumns = '44px repeat(7, minmax(0, 1fr))';
 
   const todayStart = startOfDay(new Date());
-  const conflictSet = computeConflictInfo(experiments).byIndex;
   const nextDate = (() => {
     let best = null;
     experiments.forEach(entry => {
