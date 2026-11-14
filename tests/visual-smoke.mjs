@@ -94,8 +94,9 @@ for (const item of cases) {
     assert.ok(metrics.rows > 0, '没有渲染任何行');
     assert.ok(metrics.headerVisible, '标题不可见');
     assert.ok(metrics.firstRowTop !== null && metrics.firstRowTop < item.height, '首行跑到视口外');
-    // 头部高度守卫：超过这个数说明又堆了一层东西（历史上 320px 曾因搜索图标 +16px）
-    if (!item.week) assert.ok(metrics.firstRowTop <= 340, `首屏首行过高：${metrics.firstRowTop}px > 340px`);
+    // 头部高度守卫：超过这个数说明又堆了一层东西
+    // （44px 触控目标让 320px 从 314 涨到 342，所以上限放到 360）
+    if (!item.week) assert.ok(metrics.firstRowTop <= 360, `首屏首行过高：${metrics.firstRowTop}px > 360px`);
     if (afterCueClose !== null) {
       const delta = metrics.firstRowTop - afterCueClose;
       assert.ok(

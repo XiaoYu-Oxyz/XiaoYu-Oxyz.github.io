@@ -75,10 +75,20 @@ def fail(message):
 PERIOD_TIME_SLOTS = [
     ((1, 2), (8, 0), (9, 40)),
     ((3, 4), (10, 0), (11, 40)),
-    ((5, 6), (14, 0), (15, 40)),
+    ((5, 6), (13, 30), (15, 10)),
     ((7, 8), (16, 0), (17, 40)),
     ((9, 10), (19, 0), (20, 40)),
 ]
+# 默认节次时间（HH:MM）。下午第一节按班级实际情况前移 30 分钟。
+DEFAULT_PERIOD_TIMES = {
+    "1-2": ["08:00", "09:40"],
+    "3-4": ["10:00", "11:40"],
+    "5-6": ["13:30", "15:10"],
+    "7-8": ["16:00", "17:40"],
+    "9-10": ["19:00", "20:40"],
+}
+# 日历提醒提前量（分钟）：DESCRIPTION 与 VALARM TRIGGER 共用
+REMINDER_MINUTES = 30
 ICS_TZ_BLOCK = [
     "BEGIN:VTIMEZONE",
     "TZID:Asia/Shanghai",
@@ -143,17 +153,74 @@ def ics_fold(line):
     return "\r\n ".join(out)
 
 
-def resolve_period_times(period):
+def parse_period_times(raw, label):
+    """把 {"5-6": ["13:30","15:10"]} 解析并校验成同名结构；空值返回 {}。"""
+    if raw in (None, "", {}):
+        return {}
+    if isinstance(raw, str):
+        try:
+            raw = json.loads(raw)
+        except Exception as exc:
+            fail("%s 的 periodTimes 不是有效 JSON：%s" % (label, exc))
+    if not isinstance(raw, dict):
+        fail("%s 的 periodTimes 必须是对象，形如 {\"5-6\": [\"13:30\",\"15:10\"]}" % label)
+    parsed = {}
+    for key, value in raw.items():
+        name = str(key).strip()
+        match = re.fullmatch(r"(\d+)\s*-\s*(\d+)", name)
+        if not match:
+            fail("%s 的 periodTimes 键「%s」必须形如 5-6" % (label, name))
+        first, last = int(match.group(1)), int(match.group(2))
+        if first > last:
+            first, last = last, first
+        if not isinstance(value, (list, tuple)) or len(value) != 2:
+            fail("%s 的 periodTimes「%s」必须是 [开始, 结束]" % (label, name))
+        times = []
+        for moment in value:
+            text = str(moment).strip()
+            if not re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", text):
+                fail("%s 的 periodTimes「%s」时间 %s 必须是 HH:MM" % (label, name, text))
+            times.append(text)
+        if times[0] >= times[1]:
+            fail("%s 的 periodTimes「%s」开始时间必须早于结束时间" % (label, name))
+        parsed["%d-%d" % (first, last)] = times
+    return parsed
+
+
+def merge_period_times(*layers):
+    """后者覆盖前者：默认 < 设置.json < 班级文件。"""
+    merged = {}
+    for layer in layers:
+        if layer:
+            merged.update(layer)
+    return {key: list(value) for key, value in sorted(merged.items(), key=lambda kv: int(kv[0].split("-")[0]))}
+
+
+def period_time_table(times):
+    """把 {key: [start, end]} 变成 "HH:MM" 的字符串表，注入页面后前端直接查表。"""
+    return {key: [str(value[0]), str(value[1])] for key, value in times.items()}
+
+
+def resolve_period_times(period, times=None):
+    """按班级实际节次时间求 [开始, 结束]；没有对应时段返回 None。"""
+    table = times or DEFAULT_PERIOD_TIMES
     ranges = parse_period_ranges(period)
     if not ranges:
         return None
     first = min(r[0] for r in ranges)
     last = max(r[1] for r in ranges)
-    start = next((slot for slot in PERIOD_TIME_SLOTS if slot[0][0] == first), None)
-    end = next((slot for slot in PERIOD_TIME_SLOTS if slot[0][1] == last), None)
+    slots = []
+    for key, value in table.items():
+        start_text, end_text = value
+        start_min = int(start_text[:2]) * 60 + int(start_text[3:])
+        end_min = int(end_text[:2]) * 60 + int(end_text[3:])
+        first_period, last_period = (int(part) for part in key.split("-"))
+        slots.append((first_period, last_period, start_min, end_min, start_text, end_text))
+    start = next((slot for slot in slots if slot[0] == first), None)
+    end = next((slot for slot in slots if slot[1] == last), None)
     if not start or not end:
         return None
-    return start[1], end[2]
+    return start[4], end[5]
 
 
 def parse_period_ranges(value):
@@ -178,7 +245,7 @@ def parse_period_ranges(value):
     return ranges
 
 
-def build_ics_text(class_id, experiments, stamp):
+def build_ics_text(class_id, experiments, stamp, times=None):
     lines = [
         "BEGIN:VCALENDAR",
         "VERSION:2.0",
@@ -191,14 +258,14 @@ def build_ics_text(class_id, experiments, stamp):
 
     for item in sorted(experiments, key=lambda e: e["date"]):
         ymd = item["date"].replace("-", "")
-        slot = resolve_period_times(item["period"])
+        slot = resolve_period_times(item["period"], times)
         lines.append("BEGIN:VEVENT")
         lines.append("UID:" + event_uid(class_id, item["date"], item["period"], item["name"]))
         lines.append("DTSTAMP:" + stamp)
         if slot:
             start, end = slot
-            lines.append("DTSTART;TZID=Asia/Shanghai:%sT%02d%02d00" % (ymd, start[0], start[1]))
-            lines.append("DTEND;TZID=Asia/Shanghai:%sT%02d%02d00" % (ymd, end[0], end[1]))
+            lines.append("DTSTART;TZID=Asia/Shanghai:%sT%s%s00" % (ymd, start[:2], start[3:]))
+            lines.append("DTEND;TZID=Asia/Shanghai:%sT%s%s00" % (ymd, end[:2], end[3:]))
         else:
             day = date.fromisoformat(item["date"]) + timedelta(days=1)
             lines.append("DTSTART;VALUE=DATE:" + ymd)
@@ -211,7 +278,7 @@ def build_ics_text(class_id, experiments, stamp):
             lines.append("DESCRIPTION:" + ics_escape("\n".join(desc)))
         lines += [
             "BEGIN:VALARM",
-            "TRIGGER:-PT2H",
+            "TRIGGER:-PT%dM" % REMINDER_MINUTES,
             "ACTION:DISPLAY",
             "DESCRIPTION:" + ics_escape("实验课提醒：" + (item["name"] or "实验课")),
             "END:VALARM",
@@ -228,7 +295,7 @@ def write_ics_files(classes, updated_at):
     written = []
     for item in classes:
         class_id = item["id"]
-        text = build_ics_text(class_id, item["experiments"], stamp)
+        text = build_ics_text(class_id, item["experiments"], stamp, item.get("periodTimes"))
         path = BASE / (class_id + ICS_SUFFIX)
         write_atomic(path, text.encode("utf-8"))
         written.append(path)
@@ -377,7 +444,8 @@ def read_settings():
             fail("%s 的 updatedAt 不是有效日期" % SETTINGS.name)
         if stamped.isoformat() != updated_at:
             fail("%s 的 updatedAt 必须零填充且是有效日期" % SETTINGS.name)
-    return {"version": 1, "week1": week1, "updatedAt": updated_at}
+    period_times = parse_period_times(data.get("periodTimes"), SETTINGS.name)
+    return {"version": 1, "week1": week1, "updatedAt": updated_at, "periodTimes": period_times}
 
 
 def stamp_settings(settings):
@@ -387,6 +455,9 @@ def stamp_settings(settings):
         "week1": settings["week1"],
         "updatedAt": date.today().isoformat(),
     }
+    # --stamp 不能顺手把节次时间抹掉
+    if settings.get("periodTimes"):
+        payload["periodTimes"] = settings["periodTimes"]
     write_atomic(SETTINGS, (json.dumps(payload, ensure_ascii=False, indent=2) + "\n").encode("utf-8"))
     print("stamped %s: updatedAt=%s" % (SETTINGS.name, payload["updatedAt"]))
 
@@ -591,13 +662,22 @@ def main(argv=None):
         meta = read_class_meta(path, class_id)
         class_week1 = meta.get("week1") or settings["week1"]
         experiments = read_class_file(path, class_id, date.fromisoformat(class_week1))
-        classes.append({"id": class_id, "week1": class_week1, "experiments": experiments})
+        # 节次时间：默认 < 设置.json < 班级文件（班级里留空就用设置）
+        class_times = parse_period_times(meta.get("periodTimes"), "%s 的班级信息" % path.name)
+        times = merge_period_times(DEFAULT_PERIOD_TIMES, settings.get("periodTimes"), class_times)
+        classes.append({
+            "id": class_id,
+            "week1": class_week1,
+            "experiments": experiments,
+            "periodTimes": period_time_table(times),
+        })
 
     updated_at = resolve_updated_at(settings)
     payload = {
         "version": 2,
         "week1": settings["week1"],
         "updatedAt": updated_at,
+        "reminderMinutes": REMINDER_MINUTES,
         "classes": classes,
     }
 

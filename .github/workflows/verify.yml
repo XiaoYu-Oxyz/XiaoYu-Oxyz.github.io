@@ -34,6 +34,9 @@ jobs:
       - name: Install build dependency
         run: python -m pip install --disable-pip-version-check -r requirements.txt
 
+      - name: Validate source data
+        run: python validate-data.py
+
       - name: Build deployable HTML
         run: python build-html.py
 

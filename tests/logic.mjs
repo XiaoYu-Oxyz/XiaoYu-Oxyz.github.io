@@ -73,7 +73,11 @@ const r = await page.evaluate(() => {
   ], 'Z1');
   out.icsStartsEnds = ics.startsWith('BEGIN:VCALENDAR\r\n') && ics.trimEnd().endsWith('END:VCALENDAR');
   out.icsEvents = (ics.match(/BEGIN:VEVENT/g) || []).length;
-  out.icsAlarm = /TRIGGER:-PT2H/.test(ics);
+  out.icsAlarm = /TRIGGER:-PT30M/.test(ics);
+  // 5-6 节按班级/设置前移到 13:30
+  out.icsPeriod5 = /DTSTART;TZID=Asia\/Shanghai:\d{8}T133000/.test(
+    buildIcsText([{ date: '2026-11-06', period: '第5-6节', name: '下午课', place: 'A101', note: '' }], 'Z1')
+  );
   out.icsEscapedSummary = /SUMMARY:实验\\;A\\,B/.test(ics);
   out.icsEscapedNote = /DESCRIPTION:.*\\n/.test(ics);
   out.icsTime = /DTSTART;TZID=Asia\/Shanghai:20261106T100000/.test(ics);
@@ -87,6 +91,14 @@ const r = await page.evaluate(() => {
   out.cleanText = cleanText('a\u0001b', 10);
   out.cleanNote = cleanNote('  x\r\ny  ');
   out.escapeRegex = normKeyText('  A  B ');
+
+  // 导入时的疑似重复：与合并去重同一口径（日期 + 节次 + 名称）
+  out.dupeRows = findDuplicateRows([
+    { date: '2026-11-02', period: '第3-4节', name: '重复实验', place: 'A101', note: '' },
+    { date: '2026-11-02', period: '第 3-4 节', name: '重复实验', place: 'B202', note: '不同地点' },
+    { date: '2026-11-02', period: '第5-6节', name: '重复实验', place: 'A101', note: '' }
+  ]).length;
+  out.periodTimesShape = JSON.stringify(sanitizePeriodTimes({ '5-6': ['13:30', '15:10'], '7': ['x', 'y'] }));
   return out;
 });
 
@@ -116,7 +128,8 @@ const cases = [
   ['冲突行索引数量', r.conflictIndexed, 2],
   ['ICS 首尾', r.icsStartsEnds, true],
   ['ICS 事件数', r.icsEvents, 1],
-  ['ICS 含提前 2 小时提醒', r.icsAlarm, true],
+  ['ICS 含提前 30 分钟提醒', r.icsAlarm, true],
+  ['ICS 5-6 节从 13:30 开始', r.icsPeriod5, true],
   ['ICS 转义分号与逗号', r.icsEscapedSummary, true],
   ['ICS 换行转义为 \\n', r.icsEscapedNote, true],
   ['ICS 节次映射到时间', r.icsTime, true],
@@ -124,7 +137,9 @@ const cases = [
   ['ICS 只有 CRLF', r.icsCrlfOnly, true],
   ['xmlEscape', r.xmlEscape, '&lt;a href=&quot;x&quot;&gt;&amp;'],
   ['cleanText 去控制字符', r.cleanText, 'ab'],
-  ['cleanNote 统一换行并 trim', r.cleanNote, 'x\ny']
+  ['cleanNote 统一换行并 trim', r.cleanNote, 'x\ny'],
+  ['导入疑似重复按 日期+节次+名称 判定', r.dupeRows, 1],
+  ['periodTimes 只保留合法项', r.periodTimesShape, '{"5-6":["13:30","15:10"]}']
 ];
 
 let failed = 0;

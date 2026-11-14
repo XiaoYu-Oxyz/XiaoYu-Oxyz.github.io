@@ -14,6 +14,10 @@ SPEC = importlib.util.spec_from_file_location("verify_csp", BASE / "verify-csp.p
 VERIFY = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(VERIFY)
 
+BUILD_SPEC = importlib.util.spec_from_file_location("build_html", BASE / "build-html.py")
+BUILD = importlib.util.module_from_spec(BUILD_SPEC)
+BUILD_SPEC.loader.exec_module(BUILD)
+
 HTML = (BASE / "index.html").read_text(encoding="utf-8")
 PAGE_404 = (BASE / "404.html").read_text(encoding="utf-8")
 
@@ -111,6 +115,50 @@ class IcsFileTests(unittest.TestCase):
         for path in sorted((BASE / "data").glob("*.xlsx")):
             ics = BASE / (path.stem + ".ics")
             self.assertTrue(ics.exists(), "%s 缺少订阅文件，先运行 build-html.py" % path.stem)
+
+    def test_ics_uses_shifted_period5_and_30min_alarm(self):
+        """5-6 节按班级/设置前移到 13:30，提醒提前 30 分钟。"""
+        text = (BASE / "Z1.ics").read_text(encoding="utf-8")
+        self.assertIn("T133000", text)
+        self.assertIn("T151000", text)
+        self.assertIn("TRIGGER:-PT30M", text)
+        self.assertNotIn("TRIGGER:-PT2H", text)
+
+
+class PeriodTimeTests(unittest.TestCase):
+    """节次时间：默认 < 设置.json < 班级文件。"""
+
+    def test_parse_period_times_validates_shape(self):
+        build = BUILD
+        self.assertEqual(build.parse_period_times({"5-6": ["13:30", "15:10"]}, "t"),
+                         {"5-6": ["13:30", "15:10"]})
+        self.assertEqual(build.parse_period_times("", "t"), {})
+        with self.assertRaises(SystemExit):
+            build.parse_period_times({"5-6": ["15:10", "13:30"]}, "t")
+        with self.assertRaises(SystemExit):
+            build.parse_period_times({"5": ["13:30", "15:10"]}, "t")
+        with self.assertRaises(SystemExit):
+            build.parse_period_times({"5-6": ["25:00", "26:00"]}, "t")
+
+    def test_merge_prefers_later_layer(self):
+        build = BUILD
+        merged = build.merge_period_times(
+            build.DEFAULT_PERIOD_TIMES,
+            {"5-6": ["14:00", "15:40"]},
+            {"5-6": ["13:00", "14:40"], "7-8": ["15:50", "17:30"]},
+        )
+        self.assertEqual(merged["5-6"], ["13:00", "14:40"])
+        self.assertEqual(merged["7-8"], ["15:50", "17:30"])
+        self.assertEqual(merged["1-2"], build.DEFAULT_PERIOD_TIMES["1-2"])
+
+    def test_resolve_period_times_uses_table(self):
+        build = BUILD
+        self.assertEqual(build.resolve_period_times("第5-6节"), ("13:30", "15:10"))
+        self.assertEqual(
+            build.resolve_period_times("第5-6节", {"5-6": ["12:00", "13:40"]}),
+            ("12:00", "13:40"),
+        )
+        self.assertIsNone(build.resolve_period_times("晚上"))
 
 
 if __name__ == "__main__":

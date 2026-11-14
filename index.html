@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-KW9MThk43NMbCMB0qmvTQbcazY08LsDK2T0srI9xweM='; script-src-elem 'sha256-KW9MThk43NMbCMB0qmvTQbcazY08LsDK2T0srI9xweM='; script-src-attr 'none'; style-src 'sha256-uwyXYZ8ckqSXQeE8298RMibieFsxz5ClyvhfOUWTilo='; style-src-elem 'sha256-uwyXYZ8ckqSXQeE8298RMibieFsxz5ClyvhfOUWTilo='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-LeCepyhbZSRVCiJcD0sR8mbvlV8EY2PZF8afCIh5qRU='; script-src-elem 'sha256-LeCepyhbZSRVCiJcD0sR8mbvlV8EY2PZF8afCIh5qRU='; script-src-attr 'none'; style-src 'sha256-c43B891oWDpjBnCQ7zqZ42/sVcdyZc+9euVHEmOot/A='; style-src-elem 'sha256-c43B891oWDpjBnCQ7zqZ42/sVcdyZc+9euVHEmOot/A='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
-<title>实验课提醒</title>
+<title>CrseCue</title>
 <style>
   * { box-sizing: border-box; }
   [hidden] { display: none !important; }
@@ -381,6 +381,29 @@
   .dot-conflict { background: #ffe6a6; border: 1px solid #b7791f; }
   .dot-next     { background: #eaf3ff; border: 1px solid #0969da; }
 
+  /* 同一周的实验连成一组：换周处画一条横线 */
+  tbody tr.week-start > td { border-top: 2px solid #d0d7de; }
+  tbody tr.week-start.row-today > td { border-top-color: #ffc9c7; }
+  tbody tr.week-start.row-tomorrow > td { border-top-color: #c3f0cd; }
+
+  /* Windows 高对比度：背景色会被系统抹平，改用边框/符号区分状态 */
+  @media (forced-colors: active) {
+    .legend i { border: 2px solid CanvasText; }
+    tbody tr.row-today td,
+    tbody tr.row-tomorrow td,
+    tbody tr.row-next td { border-top: 2px solid CanvasText; }
+    .row-today .tag::after { content: ' ●'; }
+    .row-tomorrow .tag::after { content: ' ▲'; }
+    .next-badge { border: 2px solid CanvasText; }
+    .mode-badge { border: 2px solid CanvasText; }
+    .cue-bar { border: 2px solid CanvasText; }
+    .wg-item.st-today,
+    .wg-item.st-tomorrow,
+    .wg-item.st-next,
+    .wg-item.st-past { border: 2px solid CanvasText; }
+    .wg-item.is-conflict { border: 3px solid CanvasText; box-shadow: none; }
+  }
+
   .table-wrap { overflow: visible; }
   table { width: 100%; min-width: 860px; border-collapse: collapse; font-size: 14px; }
   #scheduleTable:focus-visible { outline: 2px solid #0969da; outline-offset: 3px; }
@@ -725,6 +748,7 @@
     padding: 10px 12px; margin-bottom: 16px; word-break: break-word;
   }
   .import-summary b { color: #0969da; }
+  .import-dupe { color: #9a6700; font-weight: 600; }
   .import-warning {
     margin: -6px 0 14px; padding: 9px 11px;
     border: 1px solid #f0d38a; border-radius: 8px;
@@ -966,8 +990,14 @@
     .legend { display: none; }
     .table-wrap { order: 8; min-width: 0; }
     .diag-row { order: 9; }
-    .actions-toggle { padding: 7px 11px; font-size: 12.5px; min-height: 36px; }
-    .copy-week-outside { padding: 7px 6px; font-size: 11.5px; min-height: 36px; }
+    .actions-toggle { padding: 7px 11px; font-size: 12.5px; min-height: 44px; }
+    .copy-week-outside { padding: 7px 6px; font-size: 11.5px; min-height: 44px; }
+    /* 触控目标 ≥44px（WCAG 2.5.5）：面板按钮默认收起，不占首屏 */
+    .action-panel .add-btn,
+    .action-panel .import-btn,
+    .action-panel .ghost-btn,
+    .action-panel .edit-btn,
+    .action-panel .delete-btn { min-height: 44px; }
     .export-choice { flex: 1 1 100%; }
     .action-panel { padding: 7px; margin-bottom: 10px; }
     .action-groups { flex-wrap: nowrap; gap: 6px; }
@@ -997,6 +1027,9 @@
       overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
     }
     tbody { display: block; }
+    /* 手机卡片同样是"一周一组"：换周时留白 + 横线 */
+    tbody tr.week-start { margin-top: 10px; }
+    tbody tr.week-start > td { border-top: 2px solid #d0d7de; }
     tbody tr {
       position: relative;
       display: flex; align-items: stretch;
@@ -1237,7 +1270,7 @@
         <span class="group-label">数据</span>
         <button class="import-btn" id="importBtn" type="button"><span class="label-long">导入（.xlsx/.json）</span><span class="label-short">导入</span></button>
         <button class="ghost-btn"  id="exportBtn" type="button"><span class="label-long">导出（.xlsx/.json）</span><span class="label-short">导出</span></button>
-        <button class="ghost-btn"  id="icsBtn" type="button" title="导出 .ics：导入手机日历后由系统提前 2 小时提醒"><span class="label-long">日历（.ics）</span><span class="label-short">日历</span></button>
+        <button class="ghost-btn"  id="icsBtn" type="button" title="导出 .ics：导入手机日历后由系统提前 30 分钟提醒"><span class="label-long">日历（.ics）</span><span class="label-short">日历</span></button>
         <button class="ghost-btn"  id="icsCopyBtn" type="button" title="复制订阅地址：在手机日历里「订阅日历」填一次，以后数据更新会自动同步"><span class="label-long">复制订阅地址</span><span class="label-short">订阅</span></button>
       </div>
     </div>
@@ -1559,7 +1592,7 @@
 
 <input type="file" id="fileInput" accept=".xlsx,.json" hidden>
 
-<template id="defaultData">{"version":2,"week1":"2026-08-31","updatedAt":"2026-11-06","classes":[{"id":"Z1","week1":"2026-08-31","experiments":[{"date":"2026-10-12","period":"第5-6节","name":"电工电子实验","place":"218","note":""},{"date":"2026-10-19","period":"第5-6节","name":"电工电子实验","place":"209A","note":""},{"date":"2026-10-21","period":"第3-4节","name":"机电实验","place":"机械楼A502","note":""},{"date":"2026-10-21","period":"第3-4节","name":"机制实验","place":"机械楼A106","note":""},{"date":"2026-10-21","period":"第5-6节","name":"机制实验","place":"机械楼A106","note":""},{"date":"2026-10-22","period":"第1-2节","name":"机电实验","place":"待定","note":""},{"date":"2026-10-23","period":"第7-8节","name":"机电实验","place":"A108","note":""},{"date":"2026-10-23","period":"第7-8节","name":"机制实验","place":"机械楼A106","note":""},{"date":"2026-10-28","period":"第7-8节","name":"电工电子实验","place":"218","note":""},{"date":"2026-11-02","period":"第7-8节","name":"电工电子实验","place":"209A","note":""},{"date":"2026-11-04","period":"第3-4节","name":"机电实验","place":"机械楼A502","note":""},{"date":"2026-11-04","period":"第3-4节","name":"机制实验","place":"机械楼A113","note":""},{"date":"2026-11-04","period":"第5-6节","name":"机制实验","place":"机械楼A113","note":""},{"date":"2026-11-04","period":"第7-8节","name":"机制实验","place":"机械楼A113","note":""},{"date":"2026-11-09","period":"第7-8节","name":"电工电子实验","place":"209A","note":""},{"date":"2026-11-16","period":"第3-4节","name":"电工电子实验","place":"218","note":""},{"date":"2026-11-18","period":"第3-4节","name":"机电实验","place":"A206","note":""},{"date":"2026-11-23","period":"第3-4节","name":"电工电子实验","place":"218","note":""},{"date":"2026-11-23","period":"第7-8节","name":"智能传感实验","place":"机械楼A302","note":""},{"date":"2026-11-25","period":"第3-4节","name":"机电实验","place":"机械楼A502","note":""},{"date":"2026-11-27","period":"第7-8节","name":"智能传感实验","place":"待定","note":""},{"date":"2026-11-30","period":"第3-4节","name":"电工电子实验","place":"218","note":""},{"date":"2026-11-30","period":"第7-8节","name":"形势与政策","place":"三山楼106","note":""},{"date":"2026-12-07","period":"第7-8节","name":"形势与政策","place":"三山楼102","note":""},{"date":"2026-12-14","period":"第7-8节","name":"形势与政策","place":"三山楼102","note":""}]},{"id":"Z2","week1":"2026-08-31","experiments":[{"date":"2026-09-18","period":"第3-4节","name":"机械设计","place":"A114","note":""},{"date":"2026-10-12","period":"第5-6节","name":"机械设计","place":"A112","note":""},{"date":"2026-10-13","period":"第1-2节","name":"电工电子","place":"218","note":""},{"date":"2026-10-16","period":"第5-6节","name":"控制工程","place":"A502","note":""},{"date":"2026-10-19","period":"第3-4节","name":"电工电子","place":"209A","note":""},{"date":"2026-10-19","period":"第7-8节","name":"智能制造工艺与装备","place":"A106","note":""},{"date":"2026-10-20","period":"第1-2节","name":"智能制造工艺与装备","place":"A106","note":""},{"date":"2026-10-22","period":"第5-6节","name":"智能装备控制技术","place":"108","note":""},{"date":"2026-10-23","period":"第3-4节","name":"智能装备控制技术","place":"108","note":""},{"date":"2026-10-23","period":"第3-4节","name":"智能制造工艺与装备","place":"A106","note":""},{"date":"2026-10-26","period":"第3-4节","name":"电工电子","place":"218","note":""},{"date":"2026-10-28","period":"第7-8节","name":"控制工程","place":"A502","note":""},{"date":"2026-11-02","period":"第3-8节","name":"智能制造工艺与装备","place":"A113","note":""},{"date":"2026-11-03","period":"第1-2节","name":"电工电子","place":"209","note":""},{"date":"2026-11-09","period":"第3-4节","name":"电工电子","place":"209A","note":""},{"date":"2026-11-12","period":"第5-6节","name":"智能检测实验","place":"机械楼A302","note":""},{"date":"2026-11-17","period":"第1-2节","name":"电工电子","place":"218","note":""},{"date":"2026-11-30","period":"第3-4节","name":"智能装备控制技术","place":"206","note":""},{"date":"2026-11-24","period":"第1-2节","name":"电工电子","place":"待定","note":""},{"date":"2026-11-25","period":"第7-8节","name":"机械设计","place":"A116","note":""},{"date":"2026-11-26","period":"第5-6节","name":"控制工程","place":"A502","note":""},{"date":"2026-12-01","period":"第1-2节","name":"电工电子","place":"待定","note":""},{"date":"2026-12-02","period":"第7-8节","name":"机械设计","place":"待定","note":""},{"date":"2026-11-30","period":"第7-8节","name":"形势与政策","place":"三山楼106","note":""},{"date":"2026-12-07","period":"第7-8节","name":"形势与政策","place":"三山楼102","note":""},{"date":"2026-12-14","period":"第7-8节","name":"形势与政策","place":"三山楼102","note":""},{"date":"2026-11-30","period":"第7-8节","name":"智能检测实验","place":"机械楼A302","note":""}]},{"id":"Z5","week1":"2026-08-31","experiments":[{"date":"2026-11-03","period":"第5-6节","name":"智能传感实验","place":"待定","note":""},{"date":"2026-11-03","period":"第7-8节","name":"电工电子","place":"209A","note":""},{"date":"2026-11-10","period":"第5-8节","name":"智能装备与工艺","place":"A113","note":""},{"date":"2026-11-11","period":"第3-4节","name":"智能传感实验","place":"A302","note":""},{"date":"2026-11-11","period":"第5-6节","name":"电工电子","place":"209A","note":""},{"date":"2026-11-18","period":"第3-4节","name":"电工电子","place":"218","note":""},{"date":"2026-11-20","period":"第1-2节","name":"机械设计-滑动轴承","place":"A116","note":""},{"date":"2026-11-27","period":"第7-8节","name":"控制工程","place":"待定","note":""},{"date":"2026-11-30","period":"第9-10节","name":"电工电子","place":"218","note":""},{"date":"2026-12-21","period":"第3-4节","name":"机械设计-减速器拆装","place":"B314","note":""},{"date":"2026-12-04","period":"第7-8节","name":"形势与政策","place":"三山楼102","note":""},{"date":"2026-12-11","period":"第7-8节","name":"形势与政策","place":"三山楼308","note":""},{"date":"2026-12-18","period":"第7-8节","name":"形势与政策","place":"三山楼102","note":""}]}]}</template>
+<template id="defaultData">{"version":2,"week1":"2026-08-31","updatedAt":"2026-11-06","reminderMinutes":30,"classes":[{"id":"Z1","week1":"2026-08-31","experiments":[{"date":"2026-10-12","period":"第5-6节","name":"电工电子实验","place":"218","note":""},{"date":"2026-10-19","period":"第5-6节","name":"电工电子实验","place":"209A","note":""},{"date":"2026-10-21","period":"第3-4节","name":"机电实验","place":"机械楼A502","note":""},{"date":"2026-10-21","period":"第3-4节","name":"机制实验","place":"机械楼A106","note":""},{"date":"2026-10-21","period":"第5-6节","name":"机制实验","place":"机械楼A106","note":""},{"date":"2026-10-22","period":"第1-2节","name":"机电实验","place":"待定","note":""},{"date":"2026-10-23","period":"第7-8节","name":"机电实验","place":"A108","note":""},{"date":"2026-10-23","period":"第7-8节","name":"机制实验","place":"机械楼A106","note":""},{"date":"2026-10-28","period":"第7-8节","name":"电工电子实验","place":"218","note":""},{"date":"2026-11-02","period":"第7-8节","name":"电工电子实验","place":"209A","note":""},{"date":"2026-11-04","period":"第3-4节","name":"机电实验","place":"机械楼A502","note":""},{"date":"2026-11-04","period":"第3-4节","name":"机制实验","place":"机械楼A113","note":""},{"date":"2026-11-04","period":"第5-6节","name":"机制实验","place":"机械楼A113","note":""},{"date":"2026-11-04","period":"第7-8节","name":"机制实验","place":"机械楼A113","note":""},{"date":"2026-11-09","period":"第7-8节","name":"电工电子实验","place":"209A","note":""},{"date":"2026-11-16","period":"第3-4节","name":"电工电子实验","place":"218","note":""},{"date":"2026-11-18","period":"第3-4节","name":"机电实验","place":"A206","note":""},{"date":"2026-11-23","period":"第3-4节","name":"电工电子实验","place":"218","note":""},{"date":"2026-11-23","period":"第7-8节","name":"智能传感实验","place":"机械楼A302","note":""},{"date":"2026-11-25","period":"第3-4节","name":"机电实验","place":"机械楼A502","note":""},{"date":"2026-11-27","period":"第7-8节","name":"智能传感实验","place":"待定","note":""},{"date":"2026-11-30","period":"第3-4节","name":"电工电子实验","place":"218","note":""},{"date":"2026-11-30","period":"第7-8节","name":"形势与政策","place":"三山楼106","note":""},{"date":"2026-12-07","period":"第7-8节","name":"形势与政策","place":"三山楼102","note":""},{"date":"2026-12-14","period":"第7-8节","name":"形势与政策","place":"三山楼102","note":""}],"periodTimes":{"1-2":["08:00","09:40"],"3-4":["10:00","11:40"],"5-6":["13:30","15:10"],"7-8":["16:00","17:40"],"9-10":["19:00","20:40"]}},{"id":"Z2","week1":"2026-08-31","experiments":[{"date":"2026-09-18","period":"第3-4节","name":"机械设计","place":"A114","note":""},{"date":"2026-10-12","period":"第5-6节","name":"机械设计","place":"A112","note":""},{"date":"2026-10-13","period":"第1-2节","name":"电工电子","place":"218","note":""},{"date":"2026-10-16","period":"第5-6节","name":"控制工程","place":"A502","note":""},{"date":"2026-10-19","period":"第3-4节","name":"电工电子","place":"209A","note":""},{"date":"2026-10-19","period":"第7-8节","name":"智能制造工艺与装备","place":"A106","note":""},{"date":"2026-10-20","period":"第1-2节","name":"智能制造工艺与装备","place":"A106","note":""},{"date":"2026-10-22","period":"第5-6节","name":"智能装备控制技术","place":"108","note":""},{"date":"2026-10-23","period":"第3-4节","name":"智能装备控制技术","place":"108","note":""},{"date":"2026-10-23","period":"第3-4节","name":"智能制造工艺与装备","place":"A106","note":""},{"date":"2026-10-26","period":"第3-4节","name":"电工电子","place":"218","note":""},{"date":"2026-10-28","period":"第7-8节","name":"控制工程","place":"A502","note":""},{"date":"2026-11-02","period":"第3-8节","name":"智能制造工艺与装备","place":"A113","note":""},{"date":"2026-11-03","period":"第1-2节","name":"电工电子","place":"209","note":""},{"date":"2026-11-09","period":"第3-4节","name":"电工电子","place":"209A","note":""},{"date":"2026-11-12","period":"第5-6节","name":"智能检测实验","place":"机械楼A302","note":""},{"date":"2026-11-17","period":"第1-2节","name":"电工电子","place":"218","note":""},{"date":"2026-11-30","period":"第3-4节","name":"智能装备控制技术","place":"206","note":""},{"date":"2026-11-24","period":"第1-2节","name":"电工电子","place":"待定","note":""},{"date":"2026-11-25","period":"第7-8节","name":"机械设计","place":"A116","note":""},{"date":"2026-11-26","period":"第5-6节","name":"控制工程","place":"A502","note":""},{"date":"2026-12-01","period":"第1-2节","name":"电工电子","place":"待定","note":""},{"date":"2026-12-02","period":"第7-8节","name":"机械设计","place":"待定","note":""},{"date":"2026-11-30","period":"第7-8节","name":"形势与政策","place":"三山楼106","note":""},{"date":"2026-12-07","period":"第7-8节","name":"形势与政策","place":"三山楼102","note":""},{"date":"2026-12-14","period":"第7-8节","name":"形势与政策","place":"三山楼102","note":""},{"date":"2026-11-30","period":"第7-8节","name":"智能检测实验","place":"机械楼A302","note":""}],"periodTimes":{"1-2":["08:00","09:40"],"3-4":["10:00","11:40"],"5-6":["13:30","15:10"],"7-8":["16:00","17:40"],"9-10":["19:00","20:40"]}},{"id":"Z5","week1":"2026-08-31","experiments":[{"date":"2026-11-03","period":"第5-6节","name":"智能传感实验","place":"待定","note":""},{"date":"2026-11-03","period":"第7-8节","name":"电工电子","place":"209A","note":""},{"date":"2026-11-10","period":"第5-8节","name":"智能装备与工艺","place":"A113","note":""},{"date":"2026-11-11","period":"第3-4节","name":"智能传感实验","place":"A302","note":""},{"date":"2026-11-11","period":"第5-6节","name":"电工电子","place":"209A","note":""},{"date":"2026-11-18","period":"第3-4节","name":"电工电子","place":"218","note":""},{"date":"2026-11-20","period":"第1-2节","name":"机械设计-滑动轴承","place":"A116","note":""},{"date":"2026-11-27","period":"第7-8节","name":"控制工程","place":"待定","note":""},{"date":"2026-11-30","period":"第9-10节","name":"电工电子","place":"218","note":""},{"date":"2026-12-21","period":"第3-4节","name":"机械设计-减速器拆装","place":"B314","note":""},{"date":"2026-12-04","period":"第7-8节","name":"形势与政策","place":"三山楼102","note":""},{"date":"2026-12-11","period":"第7-8节","name":"形势与政策","place":"三山楼308","note":""},{"date":"2026-12-18","period":"第7-8节","name":"形势与政策","place":"三山楼102","note":""}],"periodTimes":{"1-2":["08:00","09:40"],"3-4":["10:00","11:40"],"5-6":["13:30","15:10"],"7-8":["16:00","17:40"],"9-10":["19:00","20:40"]}}]}</template>
 
 <script>
 /* 说明：本页所有功能（包括 xlsx 导入/导出）均在本文件内实现，不加载任何网络资源，可完全离线运行。 */
@@ -1667,6 +1700,47 @@ const DEFAULT_CLASSES = (() => {
     order.push('Z1', 'Z2');
   }
   return { map, week1: week1Map, order };
+})();
+
+// 只接受 {"5-6": ["13:30","15:10"]} 这种形状，其余丢弃（也接受 JSON 字符串）
+function sanitizePeriodTimes(raw) {
+  if (typeof raw === 'string') {
+    const text = raw.trim();
+    if (!text) return null;
+    try {
+      raw = JSON.parse(text);
+    } catch (e) {
+      return null;
+    }
+  }
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const out = {};
+  for (const key of Object.keys(raw)) {
+    const match = /^(\d+)\s*-\s*(\d+)$/.exec(String(key).trim());
+    if (!match) continue;
+    const value = raw[key];
+    if (!Array.isArray(value) || value.length !== 2) continue;
+    const start = String(value[0]).trim();
+    const end = String(value[1]).trim();
+    const hhmm = /^([01]\d|2[0-3]):[0-5]\d$/;
+    if (!hhmm.test(start) || !hhmm.test(end) || start >= end) continue;
+    out[`${Number(match[1])}-${Number(match[2])}`] = [start, end];
+  }
+  return Object.keys(out).length ? out : null;
+}
+
+// 构建期注入的班级节次时间（默认 < 设置.json < 班级已合并好）
+const DEFAULT_CLASS_TIMES = (() => {
+  const map = new Map();
+  const src = DEFAULT_DATA && Array.isArray(DEFAULT_DATA.classes) ? DEFAULT_DATA.classes : [];
+  for (const item of src) {
+    if (!item || typeof item !== 'object') continue;
+    const id = typeof item.id === 'string' ? item.id : '';
+    if (!id) continue;
+    const clean = sanitizePeriodTimes(item.periodTimes);
+    if (clean) map.set(id, clean);
+  }
+  return map;
 })();
 
 function getDefaultClassExperiments(id) {
@@ -3232,9 +3306,15 @@ function render() {
     return;
   }
 
+  let lastWeekKey = null;
   rows.forEach((e, rowPos) => {
     const diff = dayDiff(e._date, today);
     const tr = document.createElement('tr');
+
+    // 同一周的实验连成一组，换周时打一条横线分隔（手机卡片同样生效）
+    const weekKey = weekNoOf(e._date);
+    if (lastWeekKey !== null && weekKey !== lastWeekKey) tr.classList.add('week-start');
+    lastWeekKey = weekKey;
 
     let tagText = '', tagClass = '';
     if (diff === 0) {
@@ -4305,7 +4385,8 @@ async function importXlsx(file) {
     fileClass,
     metaClass: meta ? cleanText(meta['班级'], 160).trim() : '',
     exportScope,
-    week1: meta ? cleanText(meta['week1'], 20).trim() : ''
+    week1: meta ? cleanText(meta['week1'], 20).trim() : '',
+    periodTimes: sanitizePeriodTimes(meta ? meta['periodTimes'] : null)
   };
 }
 
@@ -4412,7 +4493,8 @@ async function importJsonFile(file) {
     metaClass,
     fileClass,
     exportScope,
-    week1
+    week1,
+    periodTimes: sanitizePeriodTimes(obj.periodTimes)
   };
 }
 
@@ -4551,12 +4633,16 @@ function syncCueBar() {
     return;
   }
 
+  const times = currentPeriodTimes();
+  const withTime = entry => {
+    const slot = resolvePeriodTimes(entry.period, times);
+    return `${entry.period}${slot ? `（${slot.start}–${slot.end}）` : ''} ${entry.name}`
+      + (entry.place ? ' · ' + entry.place : '');
+  };
+
   const todays = list.filter(entry => entry._date.getTime() === today.getTime());
   if (todays.length) {
-    const first = todays[0];
-    const detail = todays.length === 1
-      ? `${first.period} ${first.name}${first.place ? ' · ' + first.place : ''}`
-      : todays.map(entry => `${entry.period} ${entry.name}`).join('；');
+    const detail = todays.length === 1 ? withTime(todays[0]) : todays.map(entry => withTime(entry)).join('；');
     cueTextEl.textContent = `今天 ${todays.length} 节：${detail}`;
     cueBarEl.classList.add('is-today');
     cueBarEl.hidden = false;
@@ -4573,7 +4659,7 @@ function syncCueBar() {
   const days = dayDiff(next._date, today);
   const dayName = WEEK_NAMES[next._date.getDay()].replace('星期', '周');
   cueTextEl.textContent = `下一节：${pad2(next._date.getMonth() + 1)}-${pad2(next._date.getDate())} ${dayName}`
-    + ` ${next.period} ${next.name}${next.place ? ' · ' + next.place : ''}（${days} 天后）`;
+    + ` ${withTime(next)}（${days} 天后）`;
   cueBarEl.hidden = false;
 }
 
@@ -4862,6 +4948,7 @@ function buildJsonBackup(list, scope) {
     exportedAt: formatExportTime(new Date()),
     scope: scope || 'all',
     count: list.length,
+    periodTimes: currentPeriodTimes(),
     experiments: list.map(e => ({
       date: e.date,
       period: e.period,
@@ -6125,6 +6212,30 @@ function renderImportSummary() {
     note.textContent = '新建班只在本机保留；导出该班 xlsx 放进 data/ 并 build 后才会成为部署默认。';
     importSummary.appendChild(note);
   }
+
+  // 文件内部自身就重复（判重口径与合并去重一致：日期 + 节次 + 名称）
+  const dupes = findDuplicateRows(pendingImport.list);
+  if (dupes.length) {
+    const dupeLine = document.createElement('div');
+    dupeLine.className = 'import-dupe';
+    dupeLine.textContent = `文件里有 ${dupes.length} 条疑似重复（同日期、同节次、同名称），合并模式下只保留第一条`;
+    importSummary.appendChild(dupeLine);
+  }
+}
+
+// 与 mergeExperiments 同一判重口径：日期 + 节次 + 名称（规整后）
+function findDuplicateRows(list) {
+  const seen = new Map();
+  const dupes = [];
+  (list || []).forEach(item => {
+    const key = expIdentity(item);
+    if (seen.has(key)) {
+      dupes.push({ key, first: seen.get(key), item });
+      return;
+    }
+    seen.set(key, item);
+  });
+  return dupes;
 }
 
 function renderImportConflictHint(list) {
@@ -6351,7 +6462,7 @@ importConfirmBtn.addEventListener('click', async () => {
   }
 
   const updatePlace = conflictSelect.value === 'update';
-  const { list, skipped, timeMode, fileClass, week1: importedWeek1 } = pendingImport;
+  const { list, skipped, timeMode, fileClass, week1: importedWeek1, periodTimes: importedTimes } = pendingImport;
   const targetId = importTargetId();
   const targetNew = !classIds.includes(targetId);
   const targetWasCurrent = targetId === selectedClass;
@@ -6384,6 +6495,13 @@ importConfirmBtn.addEventListener('click', async () => {
       }
       week1Applied = true;
     }
+  }
+
+  // 班级自带的节次时间：优先于设置.json（留空则保持原有继承关系）
+  let timesApplied = false;
+  if (importedTimes) {
+    saveStoredClassTimes(targetId, importedTimes);
+    timesApplied = true;
   }
 
   let mergeInfo = null;
@@ -6505,13 +6623,45 @@ function formatExportTime(d) {
 /* ---------- 日历订阅（.ics）：纯静态页面唯一能做到"真正提醒"的方式 ----------
    生成标准 VCALENDAR，同学导入 iOS/Android 日历后由系统负责提醒。
    不依赖后端、不发网络请求、不影响 CSP。 */
-const PERIOD_TIME_SLOTS = [
-  { from: 1, to: 2, start: [8, 0], end: [9, 40] },
-  { from: 3, to: 4, start: [10, 0], end: [11, 40] },
-  { from: 5, to: 6, start: [14, 0], end: [15, 40] },
-  { from: 7, to: 8, start: [16, 0], end: [17, 40] },
-  { from: 9, to: 10, start: [19, 0], end: [20, 40] }
-];
+// 节次时间：默认 < 设置.json < 班级文件（build 时已合并好注入模板）
+const DEFAULT_PERIOD_TIMES = {
+  '1-2': ['08:00', '09:40'],
+  '3-4': ['10:00', '11:40'],
+  '5-6': ['13:30', '15:10'],
+  '7-8': ['16:00', '17:40'],
+  '9-10': ['19:00', '20:40']
+};
+const REMINDER_MINUTES = (() => {
+  const value = DEFAULT_DATA ? Number(DEFAULT_DATA.reminderMinutes) : NaN;
+  return Number.isFinite(value) && value > 0 && value <= 24 * 60 ? value : 30;
+})();
+const CLASS_TIMES_KEY = STORAGE_PREFIX + 'classtimes:v1:';
+
+function readStoredClassTimes(id) {
+  if (!id) return null;
+  try {
+    return sanitizePeriodTimes(JSON.parse(localStorage.getItem(CLASS_TIMES_KEY + id) || 'null'));
+  } catch (e) {
+    return null;
+  }
+}
+
+function saveStoredClassTimes(id, times) {
+  if (!id) return;
+  try {
+    if (times) localStorage.setItem(CLASS_TIMES_KEY + id, JSON.stringify(times));
+    else localStorage.removeItem(CLASS_TIMES_KEY + id);
+  } catch (e) {}
+}
+
+// 本机班级时间 > 构建注入（已合并设置与班级）> 前端默认
+function currentPeriodTimes() {
+  const stored = readStoredClassTimes(selectedClass);
+  if (stored) return Object.assign({}, DEFAULT_PERIOD_TIMES, stored);
+  const injected = DEFAULT_CLASS_TIMES.get(selectedClass);
+  if (injected) return injected;
+  return Object.assign({}, DEFAULT_PERIOD_TIMES);
+}
 
 function icsEscape(text) {
   return String(text == null ? '' : text)
@@ -6547,13 +6697,18 @@ function icsStampUtc(date) {
 }
 
 // 把「第3-4节」映射到具体时间；无法识别时退化为全天事件
-function resolvePeriodTimes(period) {
+function resolvePeriodTimes(period, table) {
   const ranges = parsePeriodRanges(period);
   if (!ranges || !ranges.length) return null;
+  const times = table || currentPeriodTimes();
   const first = Math.min.apply(null, ranges.map(r => r[0]));
   const last = Math.max.apply(null, ranges.map(r => r[1]));
-  const startSlot = PERIOD_TIME_SLOTS.find(slot => slot.from === first);
-  const endSlot = PERIOD_TIME_SLOTS.find(slot => slot.to === last);
+  const slots = Object.keys(times).map(key => {
+    const parts = key.split('-');
+    return { from: Number(parts[0]), to: Number(parts[1]), start: times[key][0], end: times[key][1] };
+  });
+  const startSlot = slots.find(slot => slot.from === first);
+  const endSlot = slots.find(slot => slot.to === last);
   if (!startSlot || !endSlot) return null;
   return { start: startSlot.start, end: endSlot.end };
 }
@@ -6592,8 +6747,8 @@ function buildIcsText(list, className) {
     lines.push(`UID:${uid.toString(36)}-${ymd}@crsecue`);
     lines.push(`DTSTAMP:${icsStampUtc(now)}`);
     if (slot) {
-      lines.push(`DTSTART;TZID=Asia/Shanghai:${ymd}T${pad2(slot.start[0])}${pad2(slot.start[1])}00`);
-      lines.push(`DTEND;TZID=Asia/Shanghai:${ymd}T${pad2(slot.end[0])}${pad2(slot.end[1])}00`);
+      lines.push(`DTSTART;TZID=Asia/Shanghai:${ymd}T${slot.start.replace(':', '')}00`);
+      lines.push(`DTEND;TZID=Asia/Shanghai:${ymd}T${slot.end.replace(':', '')}00`);
     } else {
       const next = new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
       lines.push(`DTSTART;VALUE=DATE:${ymd}`);
@@ -6609,7 +6764,7 @@ function buildIcsText(list, className) {
     ].filter(Boolean).join('\n');
     if (desc) lines.push('DESCRIPTION:' + icsEscape(desc));
     lines.push('BEGIN:VALARM');
-    lines.push('TRIGGER:-PT2H');
+    lines.push(`TRIGGER:-PT${REMINDER_MINUTES}M`);
     lines.push('ACTION:DISPLAY');
     lines.push('DESCRIPTION:' + icsEscape('实验课提醒：' + (e.name || '实验课')));
     lines.push('END:VALARM');
@@ -6676,6 +6831,7 @@ function exportXlsx() {
       ['导出范围', scope === 'filtered' ? '当前筛选' : '全部实验'],
       ['记录数', String(rows.length)],
       ['week1', toDateStr(week1Start)],
+      ['periodTimes', JSON.stringify(currentPeriodTimes())],
       ['数据更新时间', DATA_UPDATED_AT || ''],
       ['导出时间', formatExportTime(new Date())]
     ]);

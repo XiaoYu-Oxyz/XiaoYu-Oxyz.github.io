@@ -288,8 +288,8 @@ def verify_ics_files() -> list:
             errors.append("%s: 不是以 END:VCALENDAR 结尾" % name)
         if "BEGIN:VTIMEZONE" not in text or "TZID:Asia/Shanghai" not in text:
             errors.append("%s: 缺少 Asia/Shanghai 时区定义" % name)
-        if "TRIGGER:-PT2H" not in text:
-            errors.append("%s: 缺少提前 2 小时的提醒" % name)
+        if "TRIGGER:-PT2H" not in text and "TRIGGER:-PT30M" not in text:
+            errors.append("%s: 缺少提前提醒（-PT30M 或 -PT2H）" % name)
         events = text.count("BEGIN:VEVENT")
         alarms = text.count("BEGIN:VALARM")
         if events == 0:
