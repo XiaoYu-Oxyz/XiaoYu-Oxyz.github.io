@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-bH01SmiDKhju70U+wLqpNhl0GI9mXlsi+PVzHh2uUGs='; script-src-elem 'sha256-bH01SmiDKhju70U+wLqpNhl0GI9mXlsi+PVzHh2uUGs='; script-src-attr 'none'; style-src 'sha256-xm0S6N3JYLnPmg3z7ZGQmwNvrR1R+nnfaFhoFHGZ9qY='; style-src-elem 'sha256-xm0S6N3JYLnPmg3z7ZGQmwNvrR1R+nnfaFhoFHGZ9qY='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-5qz8xWm+ZpIutHB5m5kdnmu/bu8OveKecXTlrqUQbB0='; script-src-elem 'sha256-5qz8xWm+ZpIutHB5m5kdnmu/bu8OveKecXTlrqUQbB0='; script-src-attr 'none'; style-src 'sha256-gWvAszpSVJb2OscNFTWP1HvYVb/LMvVepVe++yTtxhA='; style-src-elem 'sha256-gWvAszpSVJb2OscNFTWP1HvYVb/LMvVepVe++yTtxhA='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>CrseCue</title>
 <style>
@@ -1119,6 +1119,9 @@
       position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
       width: 36px; height: 36px; padding: 0; line-height: 0; z-index: 2;
       touch-action: manipulation;
+      /* 桌面表格给 td 的 1px 底边会跟着这个"绝对定位的小格子"画成一截横线，
+         看起来像图标下面多了条黑杠，这里清掉 */
+      border: 0; background: transparent;
     }
     /* 24px 是 WCAG 2.5.8 的最小可点尺寸；容器 36px 只负责居中，不是点击热区 */
     body.deleting tbody tr .mark-btn,
@@ -1294,20 +1297,32 @@
       background: #161b22; color: #adbac7; border-color: #30363d;
     }
     .actions-toggle:hover, .ghost-btn:hover, .export-choice:hover { background: #21262d; border-color: #484f58; }
-    /* 操作面板按钮：主操作（添加）用蓝色实心，其余统一中性描边，危险动作只靠文字颜色 */
-    .add-btn { background: #1f6feb; border-color: #1f6feb; color: #fff; }
-    .add-btn:hover { background: #388bfd; border-color: #388bfd; }
-    .import-btn, .edit-btn, .delete-btn {
-      background: #21262d; border-color: #30363d; color: #c9d1d9;
+    /* 操作面板按钮：一律"黑底 + 有色描边与文字"，不再用大面积彩色填充。
+       主操作（添加）用蓝色边字，危险动作（删除）用红色边字，其余中性灰。 */
+    .add-btn, .add-btn:hover, .add-btn:active,
+    .add-btn:disabled, .add-btn:disabled:hover {
+      background: #000; color: #58a6ff; border-color: #1f6feb;
     }
-    .import-btn:hover, .edit-btn:hover, .delete-btn:hover {
-      background: #30363d; border-color: #484f58;
+    .add-btn:hover { border-color: #388bfd; color: #79c0ff; }
+    .import-btn, .edit-btn, .ghost-btn, .delete-btn,
+    .import-btn:hover, .edit-btn:hover, .ghost-btn:hover, .delete-btn:hover,
+    .import-btn:disabled, .import-btn:disabled:hover,
+    .edit-btn:disabled, .edit-btn:disabled:hover,
+    .ghost-btn:disabled, .ghost-btn:disabled:hover,
+    .delete-btn:disabled, .delete-btn:disabled:hover {
+      background: #000; border-color: #30363d; color: #c9d1d9;
     }
-    .delete-btn { color: #ff7b72; }
-    .edit-btn.active { background: #1f6feb; border-color: #1f6feb; color: #fff; }
-    .edit-btn.active:hover { background: #388bfd; border-color: #388bfd; }
-    .delete-btn.active { background: #da3633; border-color: #da3633; color: #fff; }
-    .delete-btn.active:hover { background: #f85149; border-color: #f85149; }
+    .import-btn:hover, .edit-btn:hover, .ghost-btn:hover, .delete-btn:hover { border-color: #484f58; }
+    .delete-btn, .delete-btn:disabled, .delete-btn:disabled:hover { color: #ff7b72; }
+    .edit-btn.active { background: #000; border-color: #1f6feb; color: #79c0ff; }
+    .edit-btn.active:hover { background: #000; border-color: #388bfd; }
+    .delete-btn.active { background: #000; border-color: #f85149; color: #ff7b72; }
+    .delete-btn.active:hover { background: #000; border-color: #ff7b72; }
+    /* 行内笔 / 圈杠按钮：同样黑底 + 有色描边（原来背景是 #fff，深色下是白方块） */
+    .mark-btn { background: #000; border-color: #da3633; color: #ff7b72; }
+    .mark-btn:hover { background: #14080a; border-color: #f85149; }
+    .edit-row-btn { background: #000; border-color: #1f6feb; color: #58a6ff; }
+    .edit-row-btn:hover { background: #060d18; border-color: #388bfd; }
     /* 班级操作图标：::before 是那层白色圆角底，深色下必须换掉 */
     .class-tool { color: #adbac7; }
     .class-tool::before { background: #21262d; border-color: #30363d; }
@@ -1358,27 +1373,20 @@
     tbody tr.row-past .cell-mobile .m-name { color: #8b949e; }
     .cell-mobile .m-place { color: #8b949e; }
     .cell-mobile .m-note { border-top-color: #21262d; color: #8b949e; }
-    /* 冲突卡：深底 + 琥珀左边，两条并排时各自完整 */
-    /* 置灰 / 禁用态：浅色规则里写死了浅底，深色下必须逐个覆盖，否则编辑/删除模式下会冒出白块 */
+    /* 置灰 / 禁用态：浅色规则里写死了浅底，深色下必须逐个覆盖，否则编辑/删除模式下会冒出白块。
+       注意别在这里再写 background 彩色——按钮统一是"黑底 + 有色边框/文字"。
+       这里只兜底颜色，背景交给上面那组黑底规则（同样特异性 + 靠后，会赢）。
+       例外：禁用态的输入框/下拉框要压到更暗的 #161b22，表示"现在不能改"。 */
     .class-picker select:disabled,
-    .form-row input:disabled, .form-row select:disabled, .form-row textarea:disabled,
-    .import-btn:disabled, .import-btn:disabled:hover,
-    .delete-btn:disabled, .delete-btn:disabled:hover,
-    .ghost-btn:disabled, .ghost-btn:disabled:hover {
+    .form-row input:disabled, .form-row select:disabled, .form-row textarea:disabled {
       background: #161b22; border-color: #30363d; color: #6e7681;
-    }
-    .add-btn:disabled, .add-btn:disabled:hover {
-      background: #1f6feb; border-color: #1f6feb; color: #fff;
-    }
-    .edit-btn:disabled, .edit-btn:disabled:hover {
-      background: #21262d; border-color: #30363d; color: #6e7681;
     }
     /* 单选/复选：浅色用 #0969da，深色下偏暗，换亮一档 */
     input[type="radio"], input[type="checkbox"] { accent-color: #1f6feb; }
     tbody tr.row-conflict { background: #1f1a10; border-color: #8a6100; }
     tbody tr.row-conflict.conflict-peer { background: #26200f; border-color: #a97400; }
     tbody tr.row-past.row-conflict { background: #1a1710; border-color: #6b5200; }
-    .conflict-link-line { stroke: #a97400; }
+    .conflict-link-line { stroke: #8a6100; }
     /* 周分隔线 */
     tbody tr.week-start td.cell-mobile::before { background: #30363d; }
     tbody tr.week-start.row-today td.cell-mobile::before { background: #6b1f24; }
@@ -3864,6 +3872,7 @@ let conflictLinkRaf = 0;
 let lastConflictInfo = null;
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
+const CONFLICT_LINE_WIDTH = 2; // 与 .conflict-link-line 的 stroke-width 保持一致
 
 function scheduleConflictLinks(info) {
   lastConflictInfo = info || null;
@@ -3887,8 +3896,10 @@ function cardCorners(rect, origin) {
 }
 
 function nearestCornerPair(trA, trB, origin) {
-  const a = cardCorners(trA.getBoundingClientRect(), origin);
-  const b = cardCorners(trB.getBoundingClientRect(), origin);
+  const rectA = trA.getBoundingClientRect();
+  const rectB = trB.getBoundingClientRect();
+  const a = cardCorners(rectA, origin);
+  const b = cardCorners(rectB, origin);
   let best = null;
   a.forEach(pa => b.forEach(pb => {
     const dx = pa.x - pb.x;
@@ -3896,6 +3907,20 @@ function nearestCornerPair(trA, trB, origin) {
     const dist = dx * dx + dy * dy;
     if (!best || dist < best.dist) best = { dist, pa, pb };
   }));
+  if (!best) return best;
+  // 端点往卡片中心收半个线宽：这样线段外侧正好压住卡片 2px 描边的中线，
+  // 视觉上和左/上边框严丝合缝（否则线会有半像素错位）。
+  const inset = CONFLICT_LINE_WIDTH / 2;
+  const pullIn = (point, rect) => {
+    const cx = rect.left + rect.width / 2 - origin.left;
+    const cy = rect.top + rect.height / 2 - origin.top;
+    return {
+      x: point.x + (cx > point.x ? inset : -inset),
+      y: point.y + (cy > point.y ? inset : -inset)
+    };
+  };
+  best.pa = pullIn(best.pa, rectA);
+  best.pb = pullIn(best.pb, rectB);
   return best;
 }
 
@@ -5667,9 +5692,8 @@ week1Input.value = toDateStr(week1Start);
 recentFilter.addEventListener('change', () => {
   recentOnly = recentFilter.checked;
   render();
-  // 关掉「已结束仅显示本周」后列表会从学期初排起：这时滚到今天才有意义
-  autoLocated = false;
-  if (!recentOnly) autoLocateToday();
+  // 只看筛选结果，不做自动定位：用户刚手动改了筛选，
+  // 页面再自己跳走会让人失去位置感（勾选/取消都保持当前滚动位置）。
 });
 
 week1Input.addEventListener('change', () => {
