@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-PPIhOmGlbFgo/PDrl8fFU5K6ntER55yGjZz4xaFYxb0='; script-src-elem 'sha256-PPIhOmGlbFgo/PDrl8fFU5K6ntER55yGjZz4xaFYxb0='; script-src-attr 'none'; style-src 'sha256-olJkq4q6pYvnjI88VuS8vHEHmqjFT0xfwVYGYWbuwC8='; style-src-elem 'sha256-olJkq4q6pYvnjI88VuS8vHEHmqjFT0xfwVYGYWbuwC8='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-YKsav32phLkq5HcbTcjmRhULQBtbX/7Ap2vbhGu54JU='; script-src-elem 'sha256-YKsav32phLkq5HcbTcjmRhULQBtbX/7Ap2vbhGu54JU='; script-src-attr 'none'; style-src 'sha256-B6n1HEp97uBHF3S1qVspdlFrqdkU/kIWJLeP2ZNX+eA='; style-src-elem 'sha256-B6n1HEp97uBHF3S1qVspdlFrqdkU/kIWJLeP2ZNX+eA='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>实验课提醒</title>
 <style>
@@ -210,9 +210,10 @@
   .wg-item.st-next:not(.st-today):not(.st-tomorrow) { background: #eaf3ff; }
   /* 冲突：整个格子都是琥珀色（覆盖状态底色） */
   .wg-item.is-conflict { background: #ffe6a6; color: #7a4b00; box-shadow: inset 0 0 0 2px #b7791f; }
-  /* 同一天同一时段有多条时：在同一个格子里左右划分 */
-  .wg-stack { display: flex; flex-direction: row; gap: 2px; margin: 2px; }
-  .wg-stack > .wg-item { margin: 0; flex: 1 1 0; min-width: 0; }
+  /* 同一天同一时段有多条时：横向分栏，每条仍按自己的节次高度定位 */
+  .wg-stack { position: relative; display: block; margin: 2px; padding: 2px; }
+  .wg-stack > .wg-item { margin: 0; }
+  .wg-in-stack { position: absolute; }
   @media print {
     body.view-week .table-wrap { display: block !important; }
     .week-view { display: none !important; }
@@ -2881,22 +2882,31 @@ function renderWeekView() {
     }
   }
 
-  // 同一天里时间段重叠的记录上下堆叠，其余按节次跨行
+  // 同一天里时间段重叠的记录：横向分栏，但每一栏仍按自己的节次高度定位
   layout.stacks.forEach(stack => {
     const span = `${stack.start + 1} / ${stack.end + 2}`;
     const column = String(stack.day + 2);
-    const wrapper = stack.items.length > 1 ? document.createElement('div') : null;
+    const count = stack.items.length;
+    const wrapper = count > 1 ? document.createElement('div') : null;
     if (wrapper) {
       wrapper.className = 'wg-stack';
       wrapper.style.gridRow = span;
       wrapper.style.gridColumn = column;
       grid.appendChild(wrapper);
     }
-    stack.items.forEach(item => {
+    const rows = stack.end - stack.start + 1;
+    stack.items.forEach((item, index) => {
       const entry = item.entry;
       const block = document.createElement('div');
       block.className = stateClasses(entry);
-      if (!wrapper) {
+      if (wrapper) {
+        // 横向等分，纵向按自己的起止节次（不会被拉成整格高）
+        block.classList.add('wg-in-stack');
+        block.style.left = `${(index / count) * 100}%`;
+        block.style.width = `${100 / count}%`;
+        block.style.top = `${((item.start - stack.start) / rows) * 100}%`;
+        block.style.height = `${((item.end - item.start + 1) / rows) * 100}%`;
+      } else {
         block.style.gridRow = span;
         block.style.gridColumn = column;
       }
