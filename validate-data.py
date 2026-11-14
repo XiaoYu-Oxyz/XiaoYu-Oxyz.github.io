@@ -38,6 +38,14 @@ def load_build_module():
 BUILD = load_build_module()
 
 
+def latest_data_commit():
+    """data/ 最后一次提交日期；包一层是为了测试能替换掉（不依赖真实 git 历史）。"""
+    try:
+        return BUILD.latest_data_commit_date()
+    except Exception:
+        return ""
+
+
 def text_of(value):
     if value is None:
         return ""
@@ -72,10 +80,7 @@ def check_settings(errors, warnings):
         errors.append("data/设置.json 的 updatedAt 必须是 YYYY-MM-DD")
     elif updated:
         # 页面顶部写着"数据更新至 X"：改了数据却忘记 --stamp，这句话就是假的
-        try:
-            latest = BUILD.latest_data_commit_date()
-        except Exception:
-            latest = ""
+        latest = latest_data_commit()
         if latest and str(updated) < latest:
             warnings.append(
                 "data/设置.json 的 updatedAt（%s）早于 data/ 最后一次提交（%s）；"

@@ -322,6 +322,7 @@ CrseCue/
 ├─ ACCESSIBILITY.md           # 读屏人工回归清单
 ├─ tests/
 │  ├─ test_build.py           # build reader 回归测试（metadata/week1/旧格式）
+│  ├─ test_validate_data.py   # 体检脚本回归（坏日期/越界节次/重名/重复行）
 │  ├─ test_verifier.py        # 校验器回归（哈希过期/CRLF/裸 CR/NUL/BOM/外部脚本/内联事件）
 │  ├─ fixtures/
 │  │  └─ Z1-import.json       # UI 导入固定样本
@@ -585,7 +586,7 @@ GitHub Pages 仍从 `main` 分支根目录部署；CI 只做校验，不替代 P
 本地运行 Python 与 UI 测试：
 
 ```powershell
-python -m unittest discover -s tests -p "test_*.py" -v
+python -m unittest discover -s tests -p "test_*.py" -v   # 41 个：build 6 + verifier 22 + validate-data 13
 
 npm ci --ignore-scripts
 npx playwright install chromium webkit   # 首次运行需要
@@ -737,7 +738,7 @@ git push
 |---|---|
 | `python build-html.py` | 3 个班 65 条；同时生成 `Z1.ics` / `Z2.ics` / `Z5.ics` |
 | `python verify-csp.py` | `index.html`、`404.html`、3 个 `.ics` 全部 PASS |
-| Python 单元测试 | **28/28**（build 6 + 校验器 22，含节次时间解析/合并/优先级与 ICS 13:30 + 30 分钟提醒） |
+| Python 单元测试 | **41/41**（build 6 + 校验器 22 + 体检脚本 13，含节次时间解析/合并/优先级、ICS 13:30 + 30 分钟提醒、坏数据逐条识别） |
 | `npm run test:logic`（Chromium / WebKit） | 35 个用例 + 订阅文件与页面导出的一致性 |
 | `npm run test:ui`（Chromium / WebKit） | 全绿（含只读链接、首次提示、`.ics`、诊断信息） |
 | `npm run test:week`（Chromium / WebKit） | **50 项**：行数上限 14、截断标记、逐节次跨行、堆垛平分、今天/明天/冲突配色、课表内置灰筛选、回到本周、点空格添加、点块编辑+删除、课表内进入编辑/删除模式、Tab/回车可达、撤销 |
@@ -932,6 +933,7 @@ git push
 ## License
 
 本仓库未声明开源许可证。除非另有书面说明，默认保留所有权利；如需开源分发，请补充 `LICENSE` 文件。
+
 
 
 
