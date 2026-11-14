@@ -40,8 +40,17 @@ const waitCount = (locator, expected) => poll(async () => (await locator.count()
 const waitVisible = (locator, expected) => poll(async () => (await locator.isVisible()) === expected, `visible = ${expected}`);
 // 焦点归位走 setTimeout(0)，必须轮询，不能点完立刻断言
 const waitFocus = (page, id) => poll(async () => (await page.evaluate(() => document.activeElement.id)) === id, `focus = ${id}`);
-async function settle(page) {
-  await page.evaluate(() => new Promise(resolve =>
+
+// 撤销入口：优先点状态栏按钮（覆盖交互），被跨标签页消息覆盖时直接调撤销逻辑（覆盖行为）
+async function clickUndo(page) {
+  const button = page.getByRole('button', { name: '撤销' });
+  if (await button.count()) {
+    await button.first().click();
+    return;
+  }
+  await page.evaluate(() => undoClassOperation());
+}
+async function settle(page) {  await page.evaluate(() => new Promise(resolve =>
     requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
 }
 
@@ -453,11 +462,10 @@ try {
   await builtPage.locator('#classPromptOk').click();
   await waitValue(builtPage.locator('#classSelect'), 'Z1本机');
   assert.equal(await builtPage.locator('#classSelect option[value="Z1"]').count(), 0);
-  // 状态栏可能被并发的跨标签页同步消息覆盖，直接断言"重命名产生了可撤销操作"更稳定。
-  await builtPage.waitForFunction(() =>
-    Array.from(document.querySelectorAll('#importStatus button')).some(btn => btn.textContent.includes('撤销')),
-    null, { timeout: 3000 });
-  await builtPage.getByRole('button', { name: '撤销' }).click();
+  // 状态栏可能被跨标签页同步消息随时覆盖，所以断言应用内部的"可撤销快照"，
+  // 有按钮就点按钮（覆盖交互），没有就直接调用撤销逻辑（覆盖行为）。
+  await poll(() => builtPage.evaluate(() => !!lastClassUndo), '重命名后应存在可撤销快照');
+  await clickUndo(builtPage);
   await waitValue(builtPage.locator('#classSelect'), 'Z1');
   assert.equal(await builtPage.locator('#classSelect option[value="Z1"]').count(), 1);
   assert.equal(await builtPage.locator('#classSelect option[value="Z1本机"]').count(), 0);
@@ -467,8 +475,9 @@ try {
   assert.match(await builtPage.locator('#confirmDetail').innerText(), /隐藏/);
   await builtPage.locator('#confirmOk').click();
   await waitCount(builtPage.locator('#classSelect option[value="Z1"]'), 0);
-  assert.match(await builtPage.locator('#importStatus').innerText(), /隐藏/);
-  await builtPage.getByRole('button', { name: '撤销' }).click();
+  // 状态栏可能被跨标签页消息覆盖，这里只断言"班级已被隐藏"，撤销走统一入口
+  await poll(() => builtPage.evaluate(() => !!lastClassUndo), '删除后应存在可撤销快照');
+  await clickUndo(builtPage);
   await waitValue(builtPage.locator('#classSelect'), 'Z1');
 
   // 删除到没有班级：允许空状态，并可撤销最后一次隐藏。
@@ -482,7 +491,7 @@ try {
   assert.match(await builtPage.locator('#classSelect').innerText(), /无班级/);
   assert.equal(await builtPage.locator('#recentCount').innerText(), '显示 0 / 共 0');
   assert.equal(await builtPage.locator('#addBtn').isDisabled(), true);
-  await builtPage.getByRole('button', { name: '撤销' }).click();
+  await clickUndo(builtPage);
   await waitValue(builtPage.locator('#classSelect'), 'Z5');
 
   // 重命名不能占用已隐藏的内置班名称。

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-2lBcOcbSBbkMIlfUkvw1w6VdbKsLSrmKCZB+3Ktw3MQ='; script-src-elem 'sha256-2lBcOcbSBbkMIlfUkvw1w6VdbKsLSrmKCZB+3Ktw3MQ='; script-src-attr 'none'; style-src 'sha256-wTw3N7T3X+YH+qUEFscHTwaTkDhCIjB/jqOIIgqBTfY='; style-src-elem 'sha256-wTw3N7T3X+YH+qUEFscHTwaTkDhCIjB/jqOIIgqBTfY='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-V4DGj9jY5FFeZCe6WvDt7TrjA3pi4m+xq8SZ8ucLprM='; script-src-elem 'sha256-V4DGj9jY5FFeZCe6WvDt7TrjA3pi4m+xq8SZ8ucLprM='; script-src-attr 'none'; style-src 'sha256-bcqLWcy8A6lp1sSXVvzmddu74NTNXU9H3tMut42ngI4='; style-src-elem 'sha256-bcqLWcy8A6lp1sSXVvzmddu74NTNXU9H3tMut42ngI4='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>实验课提醒</title>
 <style>
@@ -172,7 +172,10 @@
   body.view-week .table-wrap { display: none; }
   .week-toolbar { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
   .week-label { font-size: 13px; font-weight: 700; color: #24292f; }
-  .week-grid { display: grid; grid-template-columns: 58px repeat(7, minmax(0, 1fr)); gap: 4px; }
+  .week-grid {
+    display: grid; grid-template-columns: 58px repeat(7, minmax(0, 1fr));
+    grid-auto-rows: minmax(46px, auto); gap: 4px;
+  }
   .wg-cell {
     border: 1px solid #e1e6eb; border-radius: 8px; padding: 6px 7px;
     min-height: 46px; background: #fff; font-size: 12px; line-height: 1.45;
@@ -187,10 +190,13 @@
   .wg-slot {
     background: #f8fafc; font-weight: 700; color: #57606a; text-align: center;
     display: flex; align-items: center; justify-content: center;
+    white-space: nowrap; font-size: 11.5px;
   }
-  .wg-item {
-    display: block; padding: 3px 6px; margin-bottom: 3px; border-radius: 6px;
-    background: #eaf3ff; color: #0757b8;
+  .week-grid > .wg-item {
+    position: relative; z-index: 1;
+    margin: 4px; padding: 4px 6px;
+    border-radius: 6px; background: #eaf3ff; color: #0757b8;
+    overflow: hidden; align-self: stretch;
   }
   .wg-item b { display: block; font-size: 12px; }
   .wg-item span { display: block; color: #57606a; font-size: 11.5px; }
@@ -2694,13 +2700,10 @@ function updateRecentCount(visible, total) {
    周视图（桌面 demo，≥1120px 才显示切换按钮）
    只读呈现"这一周哪天哪几节有课"，与列表共用同一套筛选（本周/只看冲突/搜索）。
    ============================================================ */
-const WEEK_SLOTS = [
-  { label: '1-2节', start: 1, end: 2 },
-  { label: '3-4节', start: 3, end: 4 },
-  { label: '5-6节', start: 5, end: 6 },
-  { label: '7-8节', start: 7, end: 8 },
-  { label: '9-10节', start: 9, end: 10 }
-];
+const WEEK_SLOT_SIZE = 2;      // 每行覆盖 2 个节次
+const WEEK_MIN_ROWS = 5;       // 至少 1-2 … 9-10 五行
+const WEEK_MAX_ROWS = 12;      // 异常数据（如第1-1000节）不至于把页面撑爆
+const WEEK_MAX_LANES = 3;      // 同一天同一时段最多并排 3 条
 const WEEK_VIEW_MIN_WIDTH = 1120;
 const weekViewEl = document.getElementById('weekView');
 const viewListBtn = document.getElementById('viewListBtn');
@@ -2708,11 +2711,69 @@ const viewWeekBtn = document.getElementById('viewWeekBtn');
 const VIEW_STATE_KEY = STORAGE_PREFIX + 'view:v1';
 let weekViewStart = startOfWeekMonday(startOfDay(new Date()));
 
-function slotIndexOf(entry) {
+// 节次是连续时间轴：第3-8节跨 3 行、第2-3节跨 2 行、第11-12节自动多出一行。
+function periodBlock(entry) {
   const ranges = parsePeriodRanges(entry.period);
-  if (!ranges) return -1;
-  const first = Math.min.apply(null, ranges.map(range => range[0]));
-  return WEEK_SLOTS.findIndex(slot => first >= slot.start && first <= slot.end);
+  if (!ranges) return null;
+  const start = Math.min.apply(null, ranges.map(range => range[0]));
+  const end = Math.max.apply(null, ranges.map(range => range[1]));
+  if (!Number.isFinite(start) || !Number.isFinite(end) || start < 1 || end < start) return null;
+  return {
+    rowStart: Math.floor((start - 1) / WEEK_SLOT_SIZE),
+    rowEnd: Math.floor((end - 1) / WEEK_SLOT_SIZE)
+  };
+}
+
+// 计算行数、每天的车道（并排位置），返回可直接用于 grid 布局的数据
+function layoutWeek(entries) {
+  const items = [];
+  let maxRow = WEEK_MIN_ROWS - 1;
+  entries.forEach(entry => {
+    const block = periodBlock(entry);
+    if (!block) return;
+    items.push({
+      entry,
+      day: (entry._date.getDay() + 6) % 7,
+      rowStart: block.rowStart,
+      rowEnd: block.rowEnd
+    });
+    if (block.rowEnd > maxRow) maxRow = block.rowEnd;
+  });
+  const rowCount = Math.min(WEEK_MAX_ROWS, Math.max(WEEK_MIN_ROWS, maxRow + 1));
+
+  // busy[day][lane] = 已占用区间；找第一条不冲突的车道
+  const busy = [[], [], [], [], [], [], []];
+  const placed = items.map(item => {
+    const clampedEnd = Math.min(item.rowEnd, rowCount - 1);
+    let lane = 0;
+    while (lane < WEEK_MAX_LANES) {
+      const spans = busy[item.day][lane] || [];
+      const hit = spans.some(span => !(clampedEnd < span.rowStart || item.rowStart > span.rowEnd));
+      if (!hit) break;
+      lane += 1;
+    }
+    if (lane >= WEEK_MAX_LANES) lane = WEEK_MAX_LANES - 1;
+    if (!busy[item.day][lane]) busy[item.day][lane] = [];
+    busy[item.day][lane].push({ rowStart: item.rowStart, rowEnd: clampedEnd });
+    return {
+      entry: item.entry,
+      day: item.day,
+      rowStart: item.rowStart,
+      rowEnd: clampedEnd,
+      lane,
+      clipped: item.rowEnd > rowCount - 1
+    };
+  });
+
+  const widest = busy.reduce((max, lanes) => Math.max(max, lanes.length), 1);
+  return {
+    placed,
+    rowCount,
+    // 每天用几条车道：只有真正有重叠的那天才会被拆窄
+    laneCounts: busy.map(lanes => Math.min(WEEK_MAX_LANES, Math.max(1, lanes.length))),
+    maxLanes: Math.min(WEEK_MAX_LANES, Math.max(1, widest)),
+    skipped: entries.length - items.length
+  };
 }
 
 function renderWeekView() {
@@ -2726,7 +2787,7 @@ function renderWeekView() {
   const end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 7);
   const entries = getFilteredExperimentEntries().filter(e => e._date >= start && e._date < end);
   const today = startOfDay(new Date());
-  const labels = WEEK_SLOTS.map(slot => slot.label);
+  const layout = layoutWeek(entries);
 
   const fragment = document.createDocumentFragment();
 
@@ -2753,49 +2814,70 @@ function renderWeekView() {
 
   const grid = document.createElement('div');
   grid.className = 'week-grid';
-  // 左上角只占位、不写字（保持 7 个日期列对齐）；"节次"由每行左侧的标签本身说明
+  // 第 1 列是节次标签；之后按「每天的车道数」切分，没有重叠的日期不会被压窄
+  const colStart = [];
+  let cursor = 2;
+  layout.laneCounts.forEach(count => {
+    colStart.push(cursor);
+    cursor += count;
+  });
+  grid.style.gridTemplateColumns = `62px repeat(${cursor - 2}, minmax(0, 1fr))`;
+
+  // 左上角只占位、不写字（保持日期列对齐）；"节次"由每行左侧的标签本身说明
   const corner = document.createElement('div');
   corner.className = 'wg-cell wg-head wg-corner';
   corner.setAttribute('aria-hidden', 'true');
+  corner.style.gridRow = '1';
+  corner.style.gridColumn = '1';
   grid.appendChild(corner);
-  days.forEach(day => {
+
+  days.forEach((day, index) => {
     const cell = document.createElement('div');
     cell.className = 'wg-cell wg-head' + (dayDiff(day, today) === 0 ? ' is-today' : '');
     cell.textContent = `${WEEK_NAMES[day.getDay()].replace('星期', '周')} ${pad2(day.getMonth() + 1)}-${pad2(day.getDate())}`;
+    cell.style.gridRow = '1';
+    cell.style.gridColumn = `${colStart[index]} / span ${layout.laneCounts[index]}`;
     grid.appendChild(cell);
   });
 
-  const rows = labels.map(text => {
+  // 背景网格：每行 2 个节次，按数据自动扩展到 12 行以内
+  for (let row = 0; row < layout.rowCount; row += 1) {
     const rowLabel = document.createElement('div');
     rowLabel.className = 'wg-cell wg-slot';
-    rowLabel.textContent = text;
+    rowLabel.textContent = `${row * WEEK_SLOT_SIZE + 1}-${row * WEEK_SLOT_SIZE + WEEK_SLOT_SIZE}节`;
+    rowLabel.style.gridRow = String(row + 2);
+    rowLabel.style.gridColumn = '1';
     grid.appendChild(rowLabel);
-    return days.map(() => {
-      const cell = document.createElement('div');
-      cell.className = 'wg-cell';
-      grid.appendChild(cell);
-      return cell;
-    });
-  });
+    for (let day = 0; day < 7; day += 1) {
+      // 背景也按车道拆：有重叠的那天画成 N 小格，其余仍是 1 整格
+      for (let lane = 0; lane < layout.laneCounts[day]; lane += 1) {
+        const cell = document.createElement('div');
+        cell.className = 'wg-cell';
+        cell.style.gridRow = String(row + 2);
+        cell.style.gridColumn = String(colStart[day] + lane);
+        grid.appendChild(cell);
+      }
+    }
+  }
 
-  let skipped = 0;
-  entries.forEach(entry => {
-    const rowIndex = slotIndexOf(entry);
-    if (rowIndex < 0) { skipped += 1; return; }
-    const dayIndex = (entry._date.getDay() + 6) % 7;
-    const cell = rows[rowIndex][dayIndex];
-    const item = document.createElement('span');
-    item.className = 'wg-item';
+  // 实验块：按节次跨行、按重叠分车道（同一天同时段最多并排 3 条）
+  layout.placed.forEach(item => {
+    const entry = item.entry;
+    const block = document.createElement('div');
+    block.className = 'wg-item';
+    block.style.gridRow = `${2 + item.rowStart} / ${3 + item.rowEnd}`;
+    block.style.gridColumn = String(colStart[item.day] + item.lane);
+    block.title = [entry.name, entry.period, entry.place].filter(Boolean).join(' · ');
     const name = document.createElement('b');
     name.textContent = entry.name;
-    item.appendChild(name);
-    // 节次已经由左侧行标签表示，框里只留名称 + 地点
+    block.appendChild(name);
+    // 节次已经由左侧行标签与跨行高度表示，框里只留名称 + 地点
     if (entry.place) {
       const place = document.createElement('span');
       place.textContent = entry.place;
-      item.appendChild(place);
+      block.appendChild(place);
     }
-    cell.appendChild(item);
+    grid.appendChild(block);
   });
 
   if (!entries.length) {
@@ -2808,10 +2890,10 @@ function renderWeekView() {
 
   // 「其他」行已删除。当前数据里节次都是「第N-M节」，走不到这里；
   // 保留这行是为了将来导入非数字节次（如「上午」）时不至于静默消失。
-  if (skipped > 0) {
+  if (layout.skipped > 0) {
     const note = document.createElement('p');
     note.className = 'wg-empty';
-    note.textContent = `另有 ${skipped} 条节次无法排进课表，请切回列表视图查看。`;
+    note.textContent = `另有 ${layout.skipped} 条节次无法排进课表，请切回列表视图查看。`;
     fragment.appendChild(note);
   }
   weekViewEl.replaceChildren(fragment);
