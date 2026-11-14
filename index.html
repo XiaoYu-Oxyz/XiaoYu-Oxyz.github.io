@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-hsUdPbWgsRT803vw1o+BMNrViJj64LcRde98YdYCNn0='; script-src-elem 'sha256-hsUdPbWgsRT803vw1o+BMNrViJj64LcRde98YdYCNn0='; script-src-attr 'none'; style-src 'sha256-Xp5inF/h9lACVVbtnkmcYdGz4/vTDzipdWWa6Edeh/Q='; style-src-elem 'sha256-Xp5inF/h9lACVVbtnkmcYdGz4/vTDzipdWWa6Edeh/Q='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-QKsmKZjGMf6Z3PhFkKH30iEESWNQjfkw2UWGp8UpLFM='; script-src-elem 'sha256-QKsmKZjGMf6Z3PhFkKH30iEESWNQjfkw2UWGp8UpLFM='; script-src-attr 'none'; style-src 'sha256-wTw3N7T3X+YH+qUEFscHTwaTkDhCIjB/jqOIIgqBTfY='; style-src-elem 'sha256-wTw3N7T3X+YH+qUEFscHTwaTkDhCIjB/jqOIIgqBTfY='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>实验课提醒</title>
 <style>
@@ -182,6 +182,8 @@
     text-align: center; padding: 5px 4px;
   }
   .wg-head.is-today { background: #eaf3ff; color: #0757b8; }
+  /* 左上角留白：不要"节次"两个字，也不要一个空的灰块 */
+  .wg-corner { background: transparent; border-color: transparent; }
   .wg-slot {
     background: #f8fafc; font-weight: 700; color: #57606a; text-align: center;
     display: flex; align-items: center; justify-content: center;
@@ -191,7 +193,7 @@
     background: #eaf3ff; color: #0757b8;
   }
   .wg-item b { display: block; font-size: 12px; }
-  .wg-item span { color: #57606a; font-size: 11.5px; }
+  .wg-item span { display: block; color: #57606a; font-size: 11.5px; }
   @media print {
     body.view-week .table-wrap { display: block !important; }
     .week-view { display: none !important; }
@@ -2752,9 +2754,10 @@ function renderWeekView() {
 
   const grid = document.createElement('div');
   grid.className = 'week-grid';
+  // 左上角只占位、不写字（保持 7 个日期列对齐）；"节次"由每行左侧的标签本身说明
   const corner = document.createElement('div');
-  corner.className = 'wg-cell wg-head';
-  corner.textContent = '节次';
+  corner.className = 'wg-cell wg-head wg-corner';
+  corner.setAttribute('aria-hidden', 'true');
   grid.appendChild(corner);
   days.forEach(day => {
     const cell = document.createElement('div');
@@ -2784,9 +2787,13 @@ function renderWeekView() {
     item.className = 'wg-item';
     const name = document.createElement('b');
     name.textContent = entry.name;
-    const meta = document.createElement('span');
-    meta.textContent = entry.period + (entry.place ? ' · ' + entry.place : '');
-    item.append(name, meta);
+    item.appendChild(name);
+    // 节次已经由左侧行标签表示，框里只留名称 + 地点
+    if (entry.place) {
+      const place = document.createElement('span');
+      place.textContent = entry.place;
+      item.appendChild(place);
+    }
     cell.appendChild(item);
   });
 
