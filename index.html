@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-4974uhz2wc8ZiLm4d2jaLpzEARFSw8arpJFfCY12J6k='; script-src-elem 'sha256-4974uhz2wc8ZiLm4d2jaLpzEARFSw8arpJFfCY12J6k='; script-src-attr 'none'; style-src 'sha256-fsGSYMW1o2tl7gMFq5zamPHY1nqGta/SHxspiaGw5PM='; style-src-elem 'sha256-fsGSYMW1o2tl7gMFq5zamPHY1nqGta/SHxspiaGw5PM='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-PPIhOmGlbFgo/PDrl8fFU5K6ntER55yGjZz4xaFYxb0='; script-src-elem 'sha256-PPIhOmGlbFgo/PDrl8fFU5K6ntER55yGjZz4xaFYxb0='; script-src-attr 'none'; style-src 'sha256-olJkq4q6pYvnjI88VuS8vHEHmqjFT0xfwVYGYWbuwC8='; style-src-elem 'sha256-olJkq4q6pYvnjI88VuS8vHEHmqjFT0xfwVYGYWbuwC8='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>实验课提醒</title>
 <style>
@@ -177,7 +177,7 @@
     grid-auto-rows: minmax(34px, auto); gap: 3px;
   }
   .wg-cell {
-    border: 1px solid #e1e6eb; border-radius: 6px; padding: 2px 6px;
+    border: 2px solid #d8dee4; border-radius: 6px; padding: 2px 6px;
     min-height: 34px; background: #fff; font-size: 12px; line-height: 1.45;
   }
   .wg-head {
@@ -197,20 +197,22 @@
   .wg-item {
     margin: 2px; padding: 2px 6px;
     border-radius: 6px; overflow: hidden; align-self: stretch;
-    border-left: 3px solid transparent;
   }
   .wg-item b { display: block; font-size: 11.5px; line-height: 1.25; }
   .wg-item span { display: block; font-size: 10.5px; line-height: 1.25; color: #57606a; }
-  /* 状态色与列表视图一致：今天红 / 明天绿 / 已结束灰 / 下一次蓝 / 冲突琥珀左条 */
-  .wg-item.st-past { background: #f6f8fa; color: #57606a; }
-  .wg-item.st-today { background: #ffe9e8; color: #a40e26; }
-  .wg-item.st-tomorrow { background: #e6f9ea; color: #1a7f37; }
+  /* 填充色取图例色：今天 / 明天 / 已结束 / 冲突 / 下一次 */
+  .wg-item.st-past { background: #eaeef2; color: #57606a; }
+  .wg-item.st-today { background: #ffd7d5; color: #a40e26; }
+  .wg-item.st-tomorrow { background: #d3f5d9; color: #1a7f37; }
   .wg-item.st-future { background: #fff; color: #24292f; border: 1px solid #e1e6eb; }
-  .wg-item.st-next { background: #f4f9ff; border-left: 3px solid #0969da; }
-  .wg-item.is-conflict { border-left: 3px solid #b7791f; }
-  /* 同一天同一时段有多条时：一个格子里上下堆叠 */
-  .wg-stack { display: flex; flex-direction: column; gap: 2px; margin: 2px; }
-  .wg-stack > .wg-item { margin: 0; flex: 1 1 0; min-height: 0; }
+  /* "下一次"只加左侧蓝条；今天/明天保留自己的底色，不被蓝色覆盖 */
+  .wg-item.st-next { box-shadow: inset 3px 0 0 #0969da; }
+  .wg-item.st-next:not(.st-today):not(.st-tomorrow) { background: #eaf3ff; }
+  /* 冲突：整个格子都是琥珀色（覆盖状态底色） */
+  .wg-item.is-conflict { background: #ffe6a6; color: #7a4b00; box-shadow: inset 0 0 0 2px #b7791f; }
+  /* 同一天同一时段有多条时：在同一个格子里左右划分 */
+  .wg-stack { display: flex; flex-direction: row; gap: 2px; margin: 2px; }
+  .wg-stack > .wg-item { margin: 0; flex: 1 1 0; min-width: 0; }
   @media print {
     body.view-week .table-wrap { display: block !important; }
     .week-view { display: none !important; }
@@ -354,7 +356,8 @@
   }
   tbody tr.note-row:hover td { filter: none; }
 
-  tbody tr.row-next td { background: #f4f9ff; }
+  /* "下一次"只加左侧蓝条，不覆盖今天/明天自己的底色 */
+  tbody tr.row-next:not(.row-today):not(.row-tomorrow) td { background: #f4f9ff; }
   tbody tr.row-next td:nth-child(2) { box-shadow: inset 3px 0 0 #0969da; }
   tbody tr.note-row.row-next td { background: #f4f9ff; }
   .next-badge {
@@ -2913,7 +2916,7 @@ function renderWeekView() {
   if (!entries.length) {
     const hint = document.createElement('p');
     hint.className = 'wg-empty';
-    hint.textContent = '这一周没有实验（受当前筛选影响）。';
+    hint.textContent = '这一周没有实验。';
     fragment.appendChild(hint);
   } else {
     // 空周不画一整张空网格，只留提示
@@ -3106,9 +3109,11 @@ function render() {
     markTd.className = 'cell-mark';
     markTd.headers = 'col-mark';
     markTd.setAttribute('aria-label', '操作');
+    // 今天/明天的标签已经说了状态时，不再重复一遍"下一次实验 今天"
+    const showNextBadge = isNext && nextLabel !== tagText;
     const a11yStatus = [
       tagText,
-      isNext ? `下一次实验 ${nextLabel}` : '',
+      showNextBadge ? `下一次实验 ${nextLabel}` : '',
       conflict ? '时间冲突' : ''
     ].filter(Boolean).join('；');
     const a11ySummary = experimentA11ySummary(e, a11yStatus);
@@ -3153,7 +3158,7 @@ function render() {
       tag.textContent = tagText;
       dateTd.appendChild(tag);
     }
-    if (isNext) {
+    if (showNextBadge) {
       const nextBadge = document.createElement('span');
       nextBadge.className = 'next-badge';
       nextBadge.textContent = nextLabel;
@@ -3217,7 +3222,7 @@ function render() {
       mobileTag.textContent = tagText;
       mLine1.appendChild(mobileTag);
     }
-    if (isNext) {
+    if (showNextBadge) {
       const mobileNext = document.createElement('span');
       mobileNext.className = 'next-badge';
       mobileNext.textContent = nextLabel;
