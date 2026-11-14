@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-3kC8fztuAxb1YoG3nzLYZYDO+jzxMCB7QK9H6pMIDz4='; script-src-elem 'sha256-3kC8fztuAxb1YoG3nzLYZYDO+jzxMCB7QK9H6pMIDz4='; script-src-attr 'none'; style-src 'sha256-fsGSYMW1o2tl7gMFq5zamPHY1nqGta/SHxspiaGw5PM='; style-src-elem 'sha256-fsGSYMW1o2tl7gMFq5zamPHY1nqGta/SHxspiaGw5PM='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-4974uhz2wc8ZiLm4d2jaLpzEARFSw8arpJFfCY12J6k='; script-src-elem 'sha256-4974uhz2wc8ZiLm4d2jaLpzEARFSw8arpJFfCY12J6k='; script-src-attr 'none'; style-src 'sha256-fsGSYMW1o2tl7gMFq5zamPHY1nqGta/SHxspiaGw5PM='; style-src-elem 'sha256-fsGSYMW1o2tl7gMFq5zamPHY1nqGta/SHxspiaGw5PM='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>实验课提醒</title>
 <style>
@@ -2915,8 +2915,10 @@ function renderWeekView() {
     hint.className = 'wg-empty';
     hint.textContent = '这一周没有实验（受当前筛选影响）。';
     fragment.appendChild(hint);
+  } else {
+    // 空周不画一整张空网格，只留提示
+    fragment.appendChild(grid);
   }
-  fragment.appendChild(grid);
 
   // 「其他」行已删除。当前数据里节次都是「第N-M节」，走不到这里；
   // 保留这行是为了将来导入非数字节次（如「上午」）时不至于静默消失。
