@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-V/4pKKw8bqipd3oWPXfPUNG2Yq892bFSJ7VALeOxrQQ='; script-src-elem 'sha256-V/4pKKw8bqipd3oWPXfPUNG2Yq892bFSJ7VALeOxrQQ='; script-src-attr 'none'; style-src 'sha256-v8lIEGZbqZSryPHhMP9MBekneVVEEfWFzkppmjLMadc='; style-src-elem 'sha256-v8lIEGZbqZSryPHhMP9MBekneVVEEfWFzkppmjLMadc='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-0QSzD4j4GsDTJBu31ps8En0uMxJujmEWdKwcV4A1ZN8='; script-src-elem 'sha256-0QSzD4j4GsDTJBu31ps8En0uMxJujmEWdKwcV4A1ZN8='; script-src-attr 'none'; style-src 'sha256-7NM7It3hr2u1epk42Ysle/ZM0x81amu6r3hjaML8u78='; style-src-elem 'sha256-7NM7It3hr2u1epk42Ysle/ZM0x81amu6r3hjaML8u78='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>实验课提醒</title>
 <style>
@@ -253,8 +253,9 @@
   /* 冲突：整个格子都是琥珀色（覆盖状态底色） */
   .wg-item.is-conflict { background: #ffe6a6; color: #7a4b00; box-shadow: inset 0 0 0 2px #b7791f; }
   /* 同一天同一时段有多条时：横向分栏，每条仍按自己的节次高度定位 */
-  .wg-stack { position: relative; display: block; margin: 2px; padding: 2px; }
-  .wg-stack > .wg-item { margin: 0; }
+  /* 容器本身不吃点击，否则堆垛覆盖到的空格就没法点出来添加了 */
+  .wg-stack { position: relative; display: block; margin: 2px; padding: 2px; pointer-events: none; }
+  .wg-stack > .wg-item { margin: 0; pointer-events: auto; }
   .wg-in-stack { position: absolute; }
   @media print {
     body.view-week .table-wrap { display: block !important; }
@@ -2955,7 +2956,7 @@ function renderWeekView() {
       cell.title = READ_ONLY ? '' : `点击添加：${dateStr} 第 ${period} 节`;
       if (!READ_ONLY) {
         cell.addEventListener('click', () => {
-          openModal({ date: dateStr, period: String(period) });
+          openModal({ date: dateStr, period: `第${period}节` });
         });
       }
       grid.appendChild(cell);

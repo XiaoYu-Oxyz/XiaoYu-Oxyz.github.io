@@ -1,0 +1,27 @@
+#!/bin/sh
+# 提交前把 CSP 哈希与静态约束跑一遍：改了 index.html / 404.html / *.ics 却忘了
+# `python verify-csp.py --apply`，页面会因为哈希不匹配直接白屏。
+# 安装：git config core.hooksPath .githooks
+set -e
+
+root=$(git rev-parse --show-toplevel)
+cd "$root"
+
+staged=$(git diff --cached --name-only --diff-filter=ACM | grep -E '^(index\.html|404\.html|Z[0-9]+\.ics)$' || true)
+if [ -z "$staged" ]; then
+  exit 0
+fi
+
+python_bin=$(command -v python || command -v python3 || true)
+if [ -z "$python_bin" ]; then
+  echo "pre-commit: 找不到 python，跳过 CSP 校验（建议装 Python 3 后重试）"
+  exit 0
+fi
+
+echo "pre-commit: 校验 $(echo "$staged" | tr '\n' ' ')"
+if ! "$python_bin" verify-csp.py; then
+  echo ""
+  echo "pre-commit: CSP 校验失败，提交已中止。"
+  echo "  改过内联样式/脚本的话，先跑：python verify-csp.py --apply"
+  exit 1
+fi

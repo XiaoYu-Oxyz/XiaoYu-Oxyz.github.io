@@ -5,9 +5,13 @@
   "scripts": {
     "test:ui": "node tests/ui-smoke.mjs",
     "test:ui:webkit": "node tests/ui-smoke.mjs --webkit",
+    "test:week": "node tests/week-view.mjs",
+    "test:week:webkit": "node tests/week-view.mjs --webkit",
     "test:logic": "node tests/logic.mjs",
     "test:logic:webkit": "node tests/logic.mjs --webkit",
-    "test": "npm run test:logic && npm run test:ui"
+    "test:visual": "node tests/visual-smoke.mjs",
+    "test:visual:webkit": "node tests/visual-smoke.mjs --webkit",
+    "test": "npm run test:logic && npm run test:ui && npm run test:week && npm run test:visual"
   },
   "devDependencies": {
     "playwright": "1.65.0"
