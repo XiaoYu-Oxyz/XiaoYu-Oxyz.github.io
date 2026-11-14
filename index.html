@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-0QSzD4j4GsDTJBu31ps8En0uMxJujmEWdKwcV4A1ZN8='; script-src-elem 'sha256-0QSzD4j4GsDTJBu31ps8En0uMxJujmEWdKwcV4A1ZN8='; script-src-attr 'none'; style-src 'sha256-7NM7It3hr2u1epk42Ysle/ZM0x81amu6r3hjaML8u78='; style-src-elem 'sha256-7NM7It3hr2u1epk42Ysle/ZM0x81amu6r3hjaML8u78='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-0QSzD4j4GsDTJBu31ps8En0uMxJujmEWdKwcV4A1ZN8='; script-src-elem 'sha256-0QSzD4j4GsDTJBu31ps8En0uMxJujmEWdKwcV4A1ZN8='; script-src-attr 'none'; style-src 'sha256-8weRxEIulpJIf3HEMMPGfrcVLszw3GQK/wDgo1MmmWU='; style-src-elem 'sha256-8weRxEIulpJIf3HEMMPGfrcVLszw3GQK/wDgo1MmmWU='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>实验课提醒</title>
 <style>
@@ -170,6 +170,10 @@
     }
     .search-jump:active { background: #f6f8fa; }
     .search-jump svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  }
+  /* 320px 时操作区放不下这个图标（会挤成两行、首屏 +16px），窄屏退回从「操作」进入 */
+  @media (max-width: 359px) {
+    .search-jump { display: none; }
   }
   /* 顶部「今天 / 下一节」提示条 */
   .cue-bar {

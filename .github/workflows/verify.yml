@@ -91,3 +91,28 @@ jobs:
       - name: Logic tests (WebKit)
         if: matrix.browser == 'webkit'
         run: npm run test:logic:webkit
+
+      - name: Week view tests (Chromium)
+        if: matrix.browser == 'chromium'
+        run: npm run test:week
+
+      - name: Week view tests (WebKit)
+        if: matrix.browser == 'webkit'
+        run: npm run test:week:webkit
+
+      - name: Visual smoke (Chromium)
+        if: matrix.browser == 'chromium'
+        run: npm run test:visual
+
+      - name: Visual smoke (WebKit)
+        if: matrix.browser == 'webkit'
+        run: npm run test:visual:webkit
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4
+        with:
+          name: visual-${{ matrix.browser }}
+          path: test-results/visual
+          if-no-files-found: ignore
+          retention-days: 7

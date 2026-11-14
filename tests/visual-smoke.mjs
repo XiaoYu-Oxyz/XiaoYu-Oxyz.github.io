@@ -27,6 +27,7 @@ const PALETTE = {
 };
 
 const cases = [
+  { name: 'mobile-320', width: 320, height: 640 },
   { name: 'mobile-list', width: 390, height: 844 },
   { name: 'mobile-dark', width: 390, height: 844, dark: true },
   { name: 'tablet-list', width: 768, height: 1024 },
