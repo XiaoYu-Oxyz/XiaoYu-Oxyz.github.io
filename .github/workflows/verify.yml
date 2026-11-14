@@ -9,9 +9,16 @@ on:
 permissions:
   contents: read
 
+# 同一分支的新提交直接取消上一次运行，省额度也避免"旧提交红、新提交绿"的错觉。
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  build-and-verify:
+  build:
+    name: build + csp + unit
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -23,12 +30,6 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-
-      - name: Set up Node
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with:
-          node-version: "20"
-          cache: npm
 
       - name: Install build dependency
         run: python -m pip install --disable-pip-version-check -r requirements.txt
@@ -42,16 +43,43 @@ jobs:
       - name: Unit tests
         run: python -m unittest discover -s tests -p "test_*.py" -v
 
+      - name: Ensure generated files are committed
+        run: |
+          if ! git diff --quiet; then
+            echo "::error::构建产物与提交不一致：请本地运行 build-html.py 和 verify-csp.py --apply 后一起提交"
+            git --no-pager diff --stat
+            git --no-pager diff --numstat -- index.html 实验提醒.html | head -5
+            exit 1
+          fi
+
+  ui:
+    name: ui smoke (${{ matrix.browser }})
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, webkit]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "20"
+          cache: npm
+
       - name: Install UI test dependency
         run: |
           npm ci --ignore-scripts
-          npx playwright install --with-deps chromium webkit
+          npx playwright install --with-deps ${{ matrix.browser }}
 
-      - name: UI smoke test (Chromium)
+      - name: UI smoke (Chromium)
+        if: matrix.browser == 'chromium'
         run: npm run test:ui
 
-      - name: UI smoke test (WebKit)
+      - name: UI smoke (WebKit)
+        if: matrix.browser == 'webkit'
         run: npm run test:ui:webkit
-
-      - name: Ensure generated files are committed
-        run: git diff --exit-code

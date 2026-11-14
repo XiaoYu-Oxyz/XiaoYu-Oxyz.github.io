@@ -2,12 +2,13 @@
 """Build the deployable HTML from data/*.xlsx + data/设置.json.
 
 Usage:
-    python build-html.py
+    python build-html.py            # build with data/设置.json's updatedAt
+    python build-html.py --stamp    # also set data/设置.json updatedAt = today
 
 Rules:
   - class name = xlsx filename stem (data/Z1.xlsx -> Z1)
-  - only the first worksheet of each class file is read
-  - worksheet name is ignored
+  - the worksheet named 实验安排 is used when present, otherwise the first worksheet
+  - that worksheet's name is otherwise ignored
   - base headers: 节次 / 实验名称 / 实验地点
   - time: 日期, or 周次+星期; either group is enough, both allowed
   - per row: valid 周次+星期 wins, otherwise fall back to 日期
@@ -18,7 +19,9 @@ The default data is written into the inert <template id="defaultData"> JSON,
 so changing data does NOT change the CSP hashes. Code changes still require
 verify-csp.py --apply.
 """
+import importlib.util
 import json
+import os
 import re
 import subprocess
 import sys
@@ -57,6 +60,23 @@ MAX_NOTE_LEN = 500
 
 def fail(message):
     raise SystemExit("BUILD FAILED: " + message)
+
+
+def write_atomic(path: Path, data: bytes) -> None:
+    """Write through a temp file + replace so an interrupted build leaves no half page."""
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_bytes(data)
+    os.replace(tmp, path)
+
+
+def load_verifier():
+    """Import verify-csp.py (hyphenated name) so the build can validate before writing."""
+    spec = importlib.util.spec_from_file_location("verify_csp", BASE / "verify-csp.py")
+    if spec is None or spec.loader is None:
+        fail("无法加载 verify-csp.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def natural_key(name):
@@ -166,7 +186,31 @@ def read_settings():
         fail("%s 的 week1 必须零填充且是有效日期" % SETTINGS.name)
     if parsed.weekday() != 0:
         fail("%s 的 week1 必须是星期一" % SETTINGS.name)
-    return {"version": 1, "week1": week1}
+
+    # updatedAt 显式存进设置文件：否则本地构建（提交前）与 CI 构建（提交后）取到的
+    # git 日期必然不同，verify.yml 的 `git diff --exit-code` 会稳定误报。
+    updated_at = data.get("updatedAt")
+    if updated_at is not None:
+        if not isinstance(updated_at, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", updated_at):
+            fail("%s 的 updatedAt 必须是 YYYY-MM-DD" % SETTINGS.name)
+        try:
+            stamped = date.fromisoformat(updated_at)
+        except ValueError:
+            fail("%s 的 updatedAt 不是有效日期" % SETTINGS.name)
+        if stamped.isoformat() != updated_at:
+            fail("%s 的 updatedAt 必须零填充且是有效日期" % SETTINGS.name)
+    return {"version": 1, "week1": week1, "updatedAt": updated_at}
+
+
+def stamp_settings(settings):
+    """Pin updatedAt to today so local and CI builds agree byte for byte."""
+    payload = {
+        "version": 1,
+        "week1": settings["week1"],
+        "updatedAt": date.today().isoformat(),
+    }
+    write_atomic(SETTINGS, (json.dumps(payload, ensure_ascii=False, indent=2) + "\n").encode("utf-8"))
+    print("stamped %s: updatedAt=%s" % (SETTINGS.name, payload["updatedAt"]))
 
 
 def latest_data_commit_date():
@@ -339,8 +383,30 @@ def safe_json(data):
     return text
 
 
-def main():
+def resolve_updated_at(settings):
+    if settings.get("updatedAt"):
+        return settings["updatedAt"]
+    fallback = latest_data_commit_date()
+    if fallback:
+        print(
+            "WARN: %s 没有 updatedAt，回退到 git 提交日期 %s；"
+            "建议固定它（python build-html.py --stamp）" % (SETTINGS.name, fallback),
+            file=sys.stderr,
+        )
+    else:
+        print(
+            "WARN: 无法确定数据更新时间（git 不可用且 %s 没有 updatedAt）" % SETTINGS.name,
+            file=sys.stderr,
+        )
+    return fallback
+
+
+def main(argv=None):
+    argv = list(sys.argv[1:] if argv is None else argv)
     settings = read_settings()
+    if "--stamp" in argv:
+        stamp_settings(settings)
+        settings = read_settings()
 
     classes = []
     for class_id, path in scan_class_files():
@@ -352,7 +418,7 @@ def main():
     payload = {
         "version": 2,
         "week1": settings["week1"],
-        "updatedAt": latest_data_commit_date(),
+        "updatedAt": resolve_updated_at(settings),
         "classes": classes,
     }
 
@@ -366,8 +432,16 @@ def main():
     match = matches[0]
     html = html[: match.start(2)] + safe_json(payload) + html[match.end(2):]
     encoded = html.encode("utf-8")
-    SOURCE.write_bytes(encoded)
-    DEPLOY.write_bytes(encoded)
+
+    # 先校验内存里的产物，通过后才允许写盘：这样"哈希过期/模板坏掉/危险 sink"
+    # 永远不会以半成品形式落到 实验提醒.html 和 index.html 上。
+    verifier = load_verifier()
+    errors = verifier.verify_html(html, DEPLOY.name)
+    if errors:
+        fail("产物未通过校验，未写入任何文件：\n  " + "\n  ".join(errors))
+
+    write_atomic(SOURCE, encoded)
+    write_atomic(DEPLOY, encoded)
 
     print("built %s: %d classes, %d experiments total" % (
         DEPLOY.name,
@@ -377,9 +451,10 @@ def main():
     for c in classes:
         print("  %s: %d 条" % (c["id"], len(c["experiments"])))
 
-    result = subprocess.run([sys.executable, str(BASE / "verify-csp.py")], cwd=str(BASE))
-    if result.returncode != 0:
-        fail("verify-csp.py 未通过；请检查源文件/CSP 哈希")
+    errors = verifier.verify_bytes(encoded, DEPLOY.name)
+    if errors:
+        fail("写盘后自检失败：\n  " + "\n  ".join(errors))
+    print("OK: 产物已写入并通过 CSP/模板校验")
     return 0
 
 

@@ -267,7 +267,7 @@ https://xiaoyu-oxyz.github.io/?class=Z2
 ### 4.1 文件与工作表
 
 - 每班一个 `.xlsx` 文件；文件名去掉 `.xlsx` 就是班级名。
-- 只读**第一个工作表**；sheet 名随意，不参与班级命名。
+- 优先读名为 `实验安排` 的工作表；没有该名字时读**第一个**工作表。其他 sheet 名不参与班级命名。
 - 表头必须在第一个非空行内，列顺序不限。
 - 必需列：
 
@@ -354,9 +354,14 @@ https://xiaoyu-oxyz.github.io/?class=Z2
 ```json
 {
   "version": 1,
-  "week1": "2026-08-31"
+  "week1": "2026-08-31",
+  "updatedAt": "2026-11-06"
 }
 ```
+
+- `updatedAt` 必填（`YYYY-MM-DD`），决定页面顶部"数据更新至"。
+  它**不再**从 git 提交历史推导：否则本地构建（提交前）与 CI 构建（提交后）拿到的日期必然不同，CI 的"产物是否已提交"检查会稳定误报。
+- 改完数据后运行 `python build-html.py --stamp`，它会把 `updatedAt` 写成本机今天，然后正常构建。
 
 - `week1` 必须是非空、有效的 `YYYY-MM-DD` 日期，且必须是星期一；页面修改、xlsx/JSON 导入和 build 都会校验。
 - 顶部“数据更新至”自动取 git 中最近一次修改 `data/` 的提交日期，不再需要手动写 `updatedAt`。
@@ -458,7 +463,7 @@ python verify-csp.py
 - 同时写 `实验提醒.html` 和 `index.html`；
 - 自动调用 `verify-csp.py`。
 
-构建失败时不会覆盖现有 HTML，先修数据再重试。
+`build-html.py` 先在内存里拼出完整页面并跑一遍 CSP/模板校验，**校验通过才写盘**（临时文件 + 原子替换）。所以哈希过期、模板损坏、危险 DOM sink 这几种情况都会让构建以非 0 退出码失败，并且两个 HTML 一个字节都不会被改动。
 
 ### 5.5 CI 自动校验
 
@@ -501,7 +506,7 @@ Windows 本机若已安装 Edge，Chromium 测试默认使用 `msedge`；CI Linu
 ### 6.1 提交
 
 ```bash
-cd "D:\MyProgram\HTML\实验提醒"
+cd "D:\MyProgram\HTML\CrseCue\XiaoYu-Oxyz.github.io"
 
 python build-html.py
 python verify-csp.py
