@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-LeCepyhbZSRVCiJcD0sR8mbvlV8EY2PZF8afCIh5qRU='; script-src-elem 'sha256-LeCepyhbZSRVCiJcD0sR8mbvlV8EY2PZF8afCIh5qRU='; script-src-attr 'none'; style-src 'sha256-c43B891oWDpjBnCQ7zqZ42/sVcdyZc+9euVHEmOot/A='; style-src-elem 'sha256-c43B891oWDpjBnCQ7zqZ42/sVcdyZc+9euVHEmOot/A='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-LeCepyhbZSRVCiJcD0sR8mbvlV8EY2PZF8afCIh5qRU='; script-src-elem 'sha256-LeCepyhbZSRVCiJcD0sR8mbvlV8EY2PZF8afCIh5qRU='; script-src-attr 'none'; style-src 'sha256-5Phwmy+xjEgLSOcETj0emM95Vut/be57WcJuJX24KKs='; style-src-elem 'sha256-5Phwmy+xjEgLSOcETj0emM95Vut/be57WcJuJX24KKs='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>CrseCue</title>
 <style>
@@ -1027,14 +1027,23 @@
       overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
     }
     tbody { display: block; }
-    /* 手机卡片同样是"一周一组"：换周时留白 + 横线 */
-    tbody tr.week-start { margin-top: 10px; }
-    tbody tr.week-start > td { border-top: 2px solid #d0d7de; }
+    /* 手机卡片改成"一周一组"：周与周之间用一条居中的细横线分隔。
+       横线画在卡片的 .cell-mobile 上（tr 是表格行，伪元素在 Chrome 里不渲染）。 */
+    tbody tr.week-start { margin-top: 24px; }
+    tbody tr.week-start > td { border-top: 0; }
+    tbody tr.week-start td.cell-mobile::before {
+      content: ''; position: absolute; top: -13px; left: 50%;
+      width: 45%; max-width: 180px; height: 2px;
+      transform: translateX(-50%);
+      background: #d0d7de; border-radius: 1px;
+    }
+    tbody tr.week-start.row-today td.cell-mobile::before { background: #ffc9c7; }
+    tbody tr.week-start.row-tomorrow td.cell-mobile::before { background: #c3f0cd; }
     tbody tr {
       position: relative;
       display: flex; align-items: stretch;
       margin-bottom: 10px; border: 1px solid #e1e6eb;
-      border-radius: 10px; overflow: hidden; background: #fff;
+      border-radius: 10px; overflow: visible; background: #fff;
     }
     tbody tr td { display: none; }
     tbody tr.note-row { display: none; }
@@ -1205,7 +1214,7 @@
 <main class="wrap" id="main">
   <header class="head">
     <div class="head-main">
-      <h1>实验课提醒</h1>
+      <h1>CrseCue</h1>
       <div class="class-picker">
         <label for="classSelect">班级：</label>
         <select id="classSelect" aria-label="选择班级"></select>
