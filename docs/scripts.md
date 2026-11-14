@@ -18,7 +18,7 @@ powershell -ExecutionPolicy Bypass -File scripts/crsecue.ps1 -Task release -Mess
 
 不习惯命令行就直接双击 `scripts\` 下的：
 
-| 文件（在 scripts\ 下） | 等价于 |
+| 文件（都在 `scripts\` 下） | 等价于 |
 |---|---|
 | `部署文件.cmd` | `-Task build` |
 | `上传文件.cmd` | `-Task release` |

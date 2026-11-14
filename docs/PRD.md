@@ -427,7 +427,7 @@
 | [docs/重构记录.md](重构记录.md) | 19 轮改动的动机、做法、踩坑与验证数字 |
 | [docs/ACCESSIBILITY.md](docs/ACCESSIBILITY.md) | 读屏回归清单（NVDA/VoiceOver/JAWS） |
 | [SECURITY.md](../SECURITY.md) | CSP、Trusted Types、哈希维护、残余风险 |
-| [scripts/README.md](../scripts/README.md) | 一键构建 / 检查 / 发布（替代原先两个 `.bat`） |
+| [docs/scripts.md](scripts.md) | 一键构建 / 检查 / 发布（替代原先两个 `.bat`） |
 | `tools/build.py` | 数据 → `index.html` 的构建器（写盘前先校验） |
 | `tools/verify.py` | CSP 哈希与模板校验 |
 | `tools/validate_data.py` | 数据体检（带单测 `tests/test_validate_data.py`） |

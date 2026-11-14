@@ -17,7 +17,7 @@
 | [docs/重构记录.md](docs/重构记录.md) | 想知道某个改动**为什么这么做**、踩过什么坑 |
 | [docs/ACCESSIBILITY.md](docs/ACCESSIBILITY.md) | 改了表格/焦点/模式后，按清单做读屏回归 |
 | [SECURITY.md](SECURITY.md) | 改了 `index.html` 的 `<style>`/`<script>` 后，怎么做哈希维护 |
-| [scripts/README.md](scripts/README.md) | 想一键构建/检查/发布（替代原先两个 .bat） |
+| [docs/scripts.md](docs/scripts.md) | 想一键构建/检查/发布（替代原先两个 .bat） |
 
 三句话版本：**README 教你怎么用，PRD 说清做什么与不做什么，重构记录解释为什么这么做。**
 
@@ -341,7 +341,7 @@ CrseCue/
 │  ├─ 部署文件.cmd             # 双击 = -Task build（构建 + 校验）
 │  ├─ 全部检查.cmd             # 双击 = -Task check（含全部自动化测试）
 │  ├─ 上传文件.cmd             # 双击 = -Task release（检查 + 提交 + 推送）
-│  └─ README.md               # 脚本用法与参数说明
+│  └─ （脚本用法见 docs/scripts.md）
 
 ├─ package.json               # UI 冒烟测试脚本（Chromium/WebKit）与 Playwright 版本
 ├─ package-lock.json
@@ -544,7 +544,7 @@ powershell -ExecutionPolicy Bypass -File scripts/crsecue.ps1 -Task check     # �
 powershell -ExecutionPolicy Bypass -File scripts/crsecue.ps1 -Task release   # 再加提交与推送
 ```
 
-或双击 `scripts\部署文件.cmd` / `scripts\全部检查.cmd` / `scripts\上传文件.cmd`。参数与细节见 [scripts/README.md](scripts/README.md)。
+或双击 `scripts\部署文件.cmd` / `scripts\全部检查.cmd` / `scripts\上传文件.cmd`。参数与细节见 [docs/scripts.md](docs/scripts.md)。
 脚本会自己找 Python（`CRSECUE_PYTHON` → `python` → `py -3`），找不到或没装 openpyxl 就直说，不会静默继续。
 
 ### 5.2 只改数据
