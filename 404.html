@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-ZGxAbb6tq4cpGkFv9MXSYGlny3BxwvtPbLTkewe61vA='; script-src-attr 'none'; style-src 'sha256-6RvCk6RZCDDfdpXdvKOfLC+VSqIzEl3gCz8A1MRU9ww='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-rV78uMoS1ZTRNiMB1DZCy0H27SVuje8rxfZoeEdeiAo='; script-src-attr 'none'; style-src 'sha256-6RvCk6RZCDDfdpXdvKOfLC+VSqIzEl3gCz8A1MRU9ww='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'" />
 <title>404 · 页面走丢了</title>
 <style>
   /* ---------- 基础 ---------- */
@@ -327,14 +327,14 @@
     </p>
 
     <div class="actions reveal d5">
-      <a class="btn btn-primary" href="/">
+      <a class="btn btn-primary" href="/" id="homeBtn">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
              stroke="currentColor" stroke-width="2.2"
              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M3 10.5 12 3l9 7.5" />
           <path d="M5.5 9.5V20h13V9.5" />
         </svg>
-        返回首页
+        <span id="homeBtnText">打开实验课提醒</span>
       </a>
       <button class="btn btn-ghost" type="button" id="backBtn">
         返回上一页
@@ -442,6 +442,24 @@
   var backBtn = document.getElementById("backBtn");
   if (backBtn) {
     backBtn.addEventListener("click", function () { history.back(); });
+  }
+
+  /* ---------- 认识"你上次看的是哪个班" ----------
+     404 与主应用同源，可以直接读主应用写的 localStorage。
+     班级名只用于拼查询参数，并且先按白名单过滤：
+     即使同源别的页面把这个键写坏，也只能变成一段被 encodeURIComponent 的普通参数。 */
+  var homeBtn = document.getElementById("homeBtn");
+  var homeBtnText = document.getElementById("homeBtnText");
+  var lastClass = "";
+  try {
+    lastClass = localStorage.getItem("ghpages:zhizao2402:selected-class:v1") || "";
+  } catch (e) {
+    lastClass = "";
+  }
+  lastClass = lastClass.replace(/[\u0000-\u001f\u007f]/g, "").trim();
+  if (homeBtn && /^[\w\u4e00-\u9fa5 .\-]{1,40}$/.test(lastClass)) {
+    homeBtn.href = "/?class=" + encodeURIComponent(lastClass);
+    if (homeBtnText) homeBtnText.textContent = "继续查看 " + lastClass + " 的实验课";
   }
 })();
 </script>
