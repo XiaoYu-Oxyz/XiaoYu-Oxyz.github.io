@@ -65,7 +65,9 @@ for (const item of cases) {
       headerVisible: !!document.querySelector('h1') && document.querySelector('h1').getBoundingClientRect().height > 0,
       cueBar: (() => {
         const el = document.getElementById('cueBar');
-        return el && !el.hidden ? el.getBoundingClientRect().height : 0;
+        if (!el || el.hidden) return 0;
+        // 含下边距：隐藏它以后首行回落的量 = 高度 + margin
+        return el.getBoundingClientRect().height + parseFloat(getComputedStyle(el).marginBottom || '0');
       })(),
       weekGrid: !!document.querySelector('.week-grid'),
       dots: Object.fromEntries(['dot-today', 'dot-tomorrow', 'dot-past', 'dot-conflict', 'dot-next']
@@ -79,11 +81,28 @@ for (const item of cases) {
   const shot = path.join(outDir, `${item.name}.png`);
   await page.screenshot({ path: shot, fullPage: false });
 
+  // 首屏几何：关掉提示条后首行应回落「提示条高度」那么多（防止头部悄悄变高）
+  let afterCueClose = null;
+  if (!item.week && !item.dark && metrics.cueBar > 0) {
+    await page.click('#cueClose');
+    await page.waitForTimeout(120);
+    afterCueClose = await page.evaluate(() => Math.round(document.querySelector('#tbody tr').getBoundingClientRect().top));
+  }
+
   try {
     assert.ok(metrics.overflowX <= 1, `横向溢出 ${metrics.overflowX}px`);
     assert.ok(metrics.rows > 0, '没有渲染任何行');
     assert.ok(metrics.headerVisible, '标题不可见');
     assert.ok(metrics.firstRowTop !== null && metrics.firstRowTop < item.height, '首行跑到视口外');
+    // 头部高度守卫：超过这个数说明又堆了一层东西（历史上 320px 曾因搜索图标 +16px）
+    if (!item.week) assert.ok(metrics.firstRowTop <= 340, `首屏首行过高：${metrics.firstRowTop}px > 340px`);
+    if (afterCueClose !== null) {
+      const delta = metrics.firstRowTop - afterCueClose;
+      assert.ok(
+        Math.abs(delta - metrics.cueBar) <= 4,
+        `关闭提示条只应回落到提示条高度：回落 ${delta}px，提示条 ${Math.round(metrics.cueBar)}px`
+      );
+    }
     if (item.week) assert.ok(metrics.weekGrid, '课表没有渲染');
     for (const [name, expected] of Object.entries(PALETTE)) {
       // 深色模式下配色会整套替换，只校验浅色
@@ -93,7 +112,7 @@ for (const item of cases) {
       assert.equal(actual, expected, `图例色 ${name} 变了`);
     }
     assert.equal(pageErrors.length, 0, `脚本错误：${pageErrors.join(' | ')}`);
-    report.push(`  ✓ ${item.name.padEnd(14)} ${item.width}×${item.height}  首行 ${metrics.firstRowTop}px  溢出 ${metrics.overflowX}px`);
+    report.push(`  ✓ ${item.name.padEnd(14)} ${item.width}×${item.height}  首行 ${metrics.firstRowTop}px${afterCueClose === null ? '' : `（关提示条 ${afterCueClose}px）`}  溢出 ${metrics.overflowX}px`);
   } catch (error) {
     failures.push(`${item.name}: ${error.message}`);
     report.push(`  ✗ ${item.name.padEnd(14)} ${error.message}`);

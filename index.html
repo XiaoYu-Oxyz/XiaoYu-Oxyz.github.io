@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-0QSzD4j4GsDTJBu31ps8En0uMxJujmEWdKwcV4A1ZN8='; script-src-elem 'sha256-0QSzD4j4GsDTJBu31ps8En0uMxJujmEWdKwcV4A1ZN8='; script-src-attr 'none'; style-src 'sha256-8weRxEIulpJIf3HEMMPGfrcVLszw3GQK/wDgo1MmmWU='; style-src-elem 'sha256-8weRxEIulpJIf3HEMMPGfrcVLszw3GQK/wDgo1MmmWU='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-ClpqMCMJ8B8JX/pjfzgXbnxmMX4i3eGIlvAUIOszVW4='; script-src-elem 'sha256-ClpqMCMJ8B8JX/pjfzgXbnxmMX4i3eGIlvAUIOszVW4='; script-src-attr 'none'; style-src 'sha256-7hGjwV43ZHdMQHQZLKxIx81tHtLQRJ/m9lJdFnQqcl0='; style-src-elem 'sha256-7hGjwV43ZHdMQHQZLKxIx81tHtLQRJ/m9lJdFnQqcl0='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>实验课提醒</title>
 <style>
@@ -1049,12 +1049,7 @@
       margin-top: 3px; line-height: 1.5; overflow-wrap: anywhere;
     }
     .cell-mobile .m-name { font-size: 15px; font-weight: 700; color: #24292f; }
-    .cell-mobile .m-place { font-size: 13px; color: #57606a; display: inline-flex; align-items: center; gap: 2px; }
-    .cell-mobile .m-pin {
-      width: 12px; height: 12px; flex: none;
-      fill: none; stroke: currentColor; stroke-width: 2;
-      stroke-linejoin: round; stroke-linecap: round;
-    }
+    .cell-mobile .m-place { font-size: 13px; color: #57606a; }
     .cell-mobile .m-note {
       margin-top: 4px; padding-top: 4px; border-top: 1px dashed #eaeef2;
       color: #57606a; font-size: 12px; line-height: 1.55;
@@ -2896,6 +2891,8 @@ function renderWeekView() {
 
   const grid = document.createElement('div');
   grid.className = 'week-grid';
+  grid.setAttribute('role', 'group');
+  grid.setAttribute('aria-label', `本周课表：${toDateStr(start)} 至 ${toDateStr(days[6])}，共 ${entries.length} 条`);
   // 固定 8 列：1 列节次数字 + 7 天，一列一天
   grid.style.gridTemplateColumns = '44px repeat(7, minmax(0, 1fr))';
 
@@ -2951,6 +2948,7 @@ function renderWeekView() {
     for (let day = 0; day < 7; day += 1) {
       const cell = document.createElement('div');
       cell.className = 'wg-cell wg-cell-add';
+      cell.setAttribute('aria-hidden', 'true');
       cell.style.gridRow = String(period + 1);
       cell.style.gridColumn = String(day + 2);
       // 点空格直接添加：预填这天的日期与这个节次
@@ -2980,16 +2978,14 @@ function renderWeekView() {
       grid.appendChild(wrapper);
     }
     const rows = stack.end - stack.start + 1;
-    // 名称越长分到越宽，避免长名字在窄栏里折两行
-    const weights = stack.items.map(item => Math.max(4, String(item.entry.name || '').length));
-    const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+    // 冲突时平分宽度（回到最简单可预期的规则；长名字靠折行解决）
+    const share = 100 / count;
     let offset = 0;
     stack.items.forEach((item, index) => {
       const entry = item.entry;
       const block = document.createElement('div');
       block.className = stateClasses(entry);
       if (wrapper) {
-        const share = (weights[index] / totalWeight) * 100;
         block.classList.add('wg-in-stack');
         block.style.left = `${offset}%`;
         block.style.width = `${share}%`;
@@ -3018,11 +3014,19 @@ function renderWeekView() {
         block.appendChild(clipped);
         block.title += '（节次超出 ' + WEEK_MAX_ROWS + ' 节，显示已截断）';
       }
-      // 点课表里的实验块 = 编辑这条实验（只读模式和删除模式下不响应）
+      // 点/回车课表里的实验块 = 编辑这条实验（只读模式和删除模式下不响应）
       if (!READ_ONLY && !deleteMode) {
-        block.tabIndex = -1;
+        block.tabIndex = 0;
+        block.setAttribute('role', 'button');
+        block.setAttribute('aria-label', `编辑：${entry.date} ${entry.period} ${entry.name}`
+          + (entry.place ? `，地点 ${entry.place}` : ''));
         block.classList.add('wg-clickable');
         block.addEventListener('click', () => openEditModal(entry._idx, block));
+        block.addEventListener('keydown', event => {
+          if (event.key !== 'Enter' && event.key !== ' ') return;
+          event.preventDefault();
+          openEditModal(entry._idx, block);
+        });
       }
       (wrapper || grid).appendChild(block);
     });
@@ -3075,6 +3079,12 @@ function setView(view, persist) {
     recentLabel.title = isWeek
       ? '课表按周浏览，本选项在课表里不生效'
       : '隐藏本周一之前已结束的实验；今天及未来始终显示';
+  }
+  if (isWeek) {
+    // 编辑/删除模式的入口都在列表行首，课表里没有可点的对象：
+    // 切到课表时直接退出，避免"模式开了却看不到任何可操作目标"
+    if (editMode) exitEditMode();
+    if (deleteMode) setDeleteModeUI(false);
   }
   if (persist) {
     try { sessionStorage.setItem(VIEW_STATE_KEY, isWeek ? 'week' : 'list'); } catch (e) {}
@@ -3365,16 +3375,7 @@ function render() {
     appendHighlighted(mName, e.name);
     const mPlace = document.createElement('span');
     mPlace.className = 'm-place';
-    // 用定位图标代替"地点："三个字，窄屏更省地方；读屏仍读整段摘要
-    const mPin = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    mPin.setAttribute('viewBox', '0 0 24 24');
-    mPin.setAttribute('class', 'm-pin');
-    mPin.setAttribute('aria-hidden', 'true');
-    mPin.setAttribute('focusable', 'false');
-    const mPinPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    mPinPath.setAttribute('d', 'M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z');
-    mPin.appendChild(mPinPath);
-    mPlace.appendChild(mPin);
+    // 手机端不再放定位图标：窄屏上图标+文字反而更挤，读屏也照读整段摘要
     appendHighlighted(mPlace, e.place);
     mLine2.appendChild(mName);
     mLine2.appendChild(mPlace);
@@ -5850,14 +5851,18 @@ function showUndoForCurrentClass() {
 
 deleteModeBtn.addEventListener('click', () => {
   if (editMode) return;
-  if (deleteMode) finishDeleteMode();
-  else enterDeleteMode();
+  if (deleteMode) { finishDeleteMode(); return; }
+  // 课表里没有行首圆圈，先切回列表再进入删除模式
+  if (document.body.classList.contains('view-week')) setView('list', true);
+  enterDeleteMode();
 });
 
 editModeBtn.addEventListener('click', () => {
   if (deleteMode) return;
-  if (editMode) exitEditMode();
-  else enterEditMode();
+  if (editMode) { exitEditMode(); return; }
+  // 课表里没有行首铅笔，先切回列表再进入编辑模式
+  if (document.body.classList.contains('view-week')) setView('list', true);
+  enterEditMode();
 });
 
 // 删除模式点左侧圆圈；编辑模式点左侧铅笔
