@@ -108,8 +108,7 @@ class IcsFileTests(unittest.TestCase):
         self.assertEqual(errors, [])
 
     def test_ics_files_exist_for_every_class(self):
-        classes = sorted(path.parent for path in (BASE / "data").glob("*.xlsx"))
-        for path in classes:
+        for path in sorted((BASE / "data").glob("*.xlsx")):
             ics = BASE / (path.stem + ".ics")
             self.assertTrue(ics.exists(), "%s 缺少订阅文件，先运行 build-html.py" % path.stem)
 
