@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-bH01SmiDKhju70U+wLqpNhl0GI9mXlsi+PVzHh2uUGs='; script-src-elem 'sha256-bH01SmiDKhju70U+wLqpNhl0GI9mXlsi+PVzHh2uUGs='; script-src-attr 'none'; style-src 'sha256-zfjQgPqe1aP284plexuGkuFZChU2C+wn4mpl7nzjkO8='; style-src-elem 'sha256-zfjQgPqe1aP284plexuGkuFZChU2C+wn4mpl7nzjkO8='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-bH01SmiDKhju70U+wLqpNhl0GI9mXlsi+PVzHh2uUGs='; script-src-elem 'sha256-bH01SmiDKhju70U+wLqpNhl0GI9mXlsi+PVzHh2uUGs='; script-src-attr 'none'; style-src 'sha256-dmTyWonD7vJ3461pORB8b1rRHe4ialb8fjn2b28AfCE='; style-src-elem 'sha256-dmTyWonD7vJ3461pORB8b1rRHe4ialb8fjn2b28AfCE='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>CrseCue</title>
 <style>
@@ -309,12 +309,12 @@
   .data-updated[hidden] { display: none !important; }
   .import-btn {
     padding: 8px 16px; font-size: 14px; font-weight: 600; line-height: 1.4;
-    color: #fff; background: #0969da; border: none; border-radius: 8px;
+    color: #24292f; background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 8px;
     cursor: pointer; font-family: inherit; white-space: nowrap;
-    transition: background .15s;
+    transition: background .15s, border-color .15s;
   }
-  .import-btn:hover { background: #0757b8; }
-  .import-btn:disabled { background: #8bb8ea; cursor: not-allowed; }
+  .import-btn:hover { background: #eaeef2; border-color: #afb8c1; }
+  .import-btn:disabled { background: #f6f8fa; color: #b8c0c8; cursor: not-allowed; }
   .ghost-btn {
     padding: 8px 14px; font-size: 13px; font-weight: 600; line-height: 1.4;
     color: #57606a; background: #fff; border: 1px solid #d0d7de; border-radius: 8px;
@@ -324,11 +324,12 @@
   .ghost-btn:hover { background: #f6f8fa; }
   .add-btn {
     padding: 8px 16px; font-size: 14px; font-weight: 600; line-height: 1.4;
-    color: #fff; background: #2da44e; border: none; border-radius: 8px;
+    color: #fff; background: #0969da; border: 1px solid #0969da; border-radius: 8px;
     cursor: pointer; font-family: inherit; white-space: nowrap;
-    transition: background .15s;
+    transition: background .15s, border-color .15s;
   }
-  .add-btn:hover { background: #238c42; }
+  .add-btn:hover { background: #0757b8; border-color: #0757b8; }
+  .add-btn:active { background: #0550ae; border-color: #0550ae; }
 
   /* 第 1 周设置行 */
   .settings-row {
@@ -535,7 +536,7 @@
   .delete-btn {
     width: 88px; padding: 8px 0; text-align: center;
     font-size: 13px; font-weight: 600; line-height: 1.4;
-    color: #cf222e; background: #fff; border: 1px solid #ffcecb; border-radius: 8px;
+    color: #cf222e; background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 8px;
     cursor: pointer; font-family: inherit; white-space: nowrap;
     transition: background .15s, color .15s, border-color .15s;
   }
@@ -549,11 +550,11 @@
   .edit-btn {
     width: 88px; padding: 8px 0; text-align: center;
     font-size: 13px; font-weight: 600; line-height: 1.4;
-    color: #0969da; background: #f5f9ff; border: 1px solid #b6d4fb; border-radius: 8px;
+    color: #24292f; background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 8px;
     cursor: pointer; font-family: inherit; white-space: nowrap;
     transition: background .15s, color .15s, border-color .15s;
   }
-  .edit-btn:hover { background: #eaf3ff; border-color: #7ab0f5; }
+  .edit-btn:hover { background: #eaeef2; border-color: #afb8c1; }
   .edit-btn.active {
     color: #fff; background: #0969da; border-color: #0969da;
     box-shadow: 0 1px 4px rgba(9,105,218,.25);
@@ -1281,14 +1282,49 @@
     .class-picker, .settings-row, .recent-filter, .clock, .legend, .data-updated,
     .recent-count, .settings-hint, .group-label, .mode-note, .copy-hint { color: #8b949e; }
     .class-picker select, .settings-row input[type="date"], .search-input,
-    .form-row input, .form-row select, .form-row textarea, .class-prompt-input,
+    .form-row input, .form-row input[type="text"], .form-row input[type="number"],
+    .form-row input[type="date"], .form-row select, .form-row textarea, .class-prompt-input,
     .conflict-box select, .copy-fallback-text {
       background: #0d1117; color: #e6edf3; border-color: #30363d;
     }
+    /* 原生日期控件：强制用作者配色，并把日历图标反色，否则深色下仍是白块 */
+    input[type="date"] { color-scheme: dark; }
+    input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(.75); cursor: pointer; }
     .actions-toggle, .ghost-btn, .export-choice, .target-card, .mode-card {
-      background: #161b22; color: #e6edf3; border-color: #30363d;
+      background: #161b22; color: #adbac7; border-color: #30363d;
     }
     .actions-toggle:hover, .ghost-btn:hover, .export-choice:hover { background: #21262d; border-color: #484f58; }
+    /* 操作面板按钮：主操作（添加）用蓝色实心，其余统一中性描边，危险动作只靠文字颜色 */
+    .add-btn { background: #1f6feb; border-color: #1f6feb; color: #fff; }
+    .add-btn:hover { background: #388bfd; border-color: #388bfd; }
+    .import-btn, .edit-btn, .delete-btn {
+      background: #21262d; border-color: #30363d; color: #c9d1d9;
+    }
+    .import-btn:hover, .edit-btn:hover, .delete-btn:hover {
+      background: #30363d; border-color: #484f58;
+    }
+    .delete-btn { color: #ff7b72; }
+    .edit-btn.active { background: #1f6feb; border-color: #1f6feb; color: #fff; }
+    .edit-btn.active:hover { background: #388bfd; border-color: #388bfd; }
+    .delete-btn.active { background: #da3633; border-color: #da3633; color: #fff; }
+    .delete-btn.active:hover { background: #f85149; border-color: #f85149; }
+    /* 班级操作图标：::before 是那层白色圆角底，深色下必须换掉 */
+    .class-tool { color: #adbac7; }
+    .class-tool::before { background: #21262d; border-color: #30363d; }
+    .class-tool:hover::before { background: #30363d; border-color: #484f58; }
+    .class-tool:disabled { color: #6e7681; }
+    .class-tool:disabled::before { background: #161b22; }
+    .class-tool-danger { color: #ff7b72; }
+    .class-tool-danger::before { border-color: #6b1f24; }
+    .class-tool-danger:hover::before { background: #3d1a1c; border-color: #f85149; }
+    /* 本机数据 / 只读徽标 */
+    .mode-badge { background: #21262d; border-color: #30363d; color: #adbac7; }
+    .mode-badge.is-local { background: #2a2110; border-color: #4a3a10; color: #d4a72c; }
+    .mode-badge.is-readonly { background: #0d2d4d; border-color: #1f6feb; color: #79c0ff; }
+    /* 导出范围卡片 */
+    .export-scope { background: #0d1117; border-color: #30363d; }
+    .export-scope-title { color: #8b949e; }
+    .export-scope-option { color: #e6edf3; }
     .action-panel { background: #12181f; border-color: #30363d; }
     .action-group + .action-group { border-left-color: #30363d; }
     thead th { background: #1c2128; color: #adbac7; border-bottom-color: #30363d; box-shadow: inset 0 -2px 0 #30363d; }
