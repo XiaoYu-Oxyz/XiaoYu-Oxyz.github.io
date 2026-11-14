@@ -269,6 +269,8 @@ CrseCue/
 │  └─ logic.mjs               # 纯函数回归（page.evaluate 直接调用全局函数）
 ├─ .github/workflows/verify.yml # CI：构建 + CSP + 单元/UI 测试 + 产物检查
 ├─ .github/workflows/update-data.yml # 手动触发：构建+校验+自动提交（一键更新数据）
+├─ docs/重构记录.md            # 两轮重构的改动与取舍记录（含"没做什么、为什么"）
+├─ LICENSE                    # MIT
 ├─ SECURITY.md                # 安全设计、残余风险、维护说明
 ├─ README.md                  # 本文件
 ├─ .nojekyll                  # 阻止 GitHub Pages 使用 Jekyll
@@ -641,6 +643,22 @@ git push
 ---
 
 ## 8. 验证记录
+
+### 8.1 当前版本（重构后，2026-11）
+
+| 检查 | 结果 |
+|---|---|
+| `python build-html.py` | 3 个班 65 条；同时生成 `Z1.ics` / `Z2.ics` / `Z5.ics` |
+| `python verify-csp.py` | `index.html`、`404.html`、3 个 `.ics` 全部 PASS |
+| Python 单元测试 | **24/24**（build 6 + 校验器 18） |
+| `npm run test:logic`（Chromium / WebKit） | 34 个用例 + 订阅文件与页面导出的一致性 |
+| `npm run test:ui`（Chromium / WebKit） | 全绿（含只读链接、首次提示、`.ics`、诊断信息） |
+| 手机首屏 | 390px 首行距顶 **200px**（再次访问）/ 250px（首次访问）；320px 247px |
+| 桌面 | 1440px 248px；941px 292px |
+| 无冲突班级 | 标记列 46 → **0px**（进入删除模式恢复 46px） |
+| 对比度 | 已结束行 6.39、今天/明天标签 4.90/4.80、下一次 6.12、正文 14.65 |
+
+### 8.2 历史记录（2026-10-31 / 2026-11-06 版本）
 
 以下为 2026-10-31 版本及 2026-11-06 时间冲突增量的验证，不等同于对所有历史版本的永久保证：
 
