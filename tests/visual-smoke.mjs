@@ -135,9 +135,11 @@ for (const item of cases) {
     assert.ok(metrics.rows > 0, '没有渲染任何行');
     assert.ok(metrics.headerVisible, '标题不可见');
     assert.ok(metrics.firstRowTop !== null && metrics.firstRowTop < item.height, '首行跑到视口外');
-    // 头部高度守卫：超过这个数说明又堆了一层东西
-    // （360px 宽带提示条时约 352；提示条正文含节次时间后会再高一点）
-    if (!item.week) assert.ok(metrics.firstRowTop <= 380, `首屏首行过高：${metrics.firstRowTop}px > 380px`);
+    // 头部高度守卫：超过这个数说明又堆了一层东西。
+    // 注意字体差异：CI 是 Linux + Noto CJK，同一页面比 Windows + 微软雅黑高约 70–90px
+    // （实测 360×640：Win 296、Linux 387；横屏 640×360：Win 191、Linux 262）。
+    // 所以上限按"跨平台仍能接受"来定，而不是按某一台机器的实测值。
+    if (!item.week) assert.ok(metrics.firstRowTop <= 420, `首屏首行过高：${metrics.firstRowTop}px > 420px`);
     if (afterCueClose !== null) {
       const delta = metrics.firstRowTop - afterCueClose;
       assert.ok(
