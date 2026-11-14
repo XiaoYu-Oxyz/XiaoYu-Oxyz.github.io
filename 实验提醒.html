@@ -3,12 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Jz4zx5z3SzE0mS2gAq6SmCtmNlaX9eZg6lmyC/TdlHI='; script-src-elem 'sha256-Jz4zx5z3SzE0mS2gAq6SmCtmNlaX9eZg6lmyC/TdlHI='; script-src-attr 'none'; style-src 'sha256-xgmZ813c2YSFyP6rjwfZqPf50btqhqD9BHH7X/BnaF4='; style-src-elem 'sha256-xgmZ813c2YSFyP6rjwfZqPf50btqhqD9BHH7X/BnaF4='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Jz4zx5z3SzE0mS2gAq6SmCtmNlaX9eZg6lmyC/TdlHI='; script-src-elem 'sha256-Jz4zx5z3SzE0mS2gAq6SmCtmNlaX9eZg6lmyC/TdlHI='; script-src-attr 'none'; style-src 'sha256-G1zJtQsd2K2XVtBUvX6Vm+oEbWn7qrkxZviAi6d0mU4='; style-src-elem 'sha256-G1zJtQsd2K2XVtBUvX6Vm+oEbWn7qrkxZviAi6d0mU4='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>实验课提醒</title>
 <style>
   * { box-sizing: border-box; }
   [hidden] { display: none !important; }
+  /* 表单控件默认使用 UA 的 13.33px，会让字号阶梯里多出一个"野值" */
+  button, input, select, textarea { font-family: inherit; font-size: inherit; }
+  .caret, .group-label { font-size: 11.5px; }
   body.locked, body.locked * { pointer-events: none !important; }
   body {
     margin: 0; padding: 24px 16px;
