@@ -20,8 +20,9 @@ import sys
 from pathlib import Path
 
 BASE = Path(__file__).resolve().parent
-SOURCE = BASE / "实验提醒.html"
+# index.html 是唯一真源（GitHub Pages 直接托管它）；实验提醒.html 只是同步副本。
 DEPLOY = BASE / "index.html"
+SOURCE = BASE / "实验提醒.html"
 
 META_RE = re.compile(r'<meta http-equiv="Content-Security-Policy" content="([^"]*)">')
 STYLE_RE = re.compile(r"<style>([\s\S]*?)</style>")
@@ -216,7 +217,7 @@ def main(argv=None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
 
     if "--apply" in argv:
-        target = SOURCE if SOURCE.exists() else DEPLOY
+        target = DEPLOY if DEPLOY.exists() else SOURCE
         try:
             html = target.read_bytes().decode("utf-8-sig").replace("\r\n", "\n")
             new_html, script_hash, style_hash = apply_hashes_to_html(html)
@@ -226,9 +227,9 @@ def main(argv=None) -> int:
         encoded = new_html.encode("utf-8")
         write_atomic(target, encoded)
         print("updated %s: script=%s style=%s" % (target.name, script_hash, style_hash))
-        if target == SOURCE:
-            write_atomic(DEPLOY, encoded)
-            print("synced index.html from 实验提醒.html")
+        if target == DEPLOY:
+            write_atomic(SOURCE, encoded)
+            print("synced 实验提醒.html from index.html")
 
     paths = [p for p in (SOURCE, DEPLOY) if p.exists()]
     if not paths:

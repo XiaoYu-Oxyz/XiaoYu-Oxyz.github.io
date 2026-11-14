@@ -422,9 +422,10 @@ def main(argv=None):
         "classes": classes,
     }
 
-    if not SOURCE.exists():
-        fail("找不到 %s" % SOURCE.name)
-    html = SOURCE.read_bytes().decode("utf-8-sig").replace("\r\n", "\n")
+    if not DEPLOY.exists():
+        fail("找不到 %s" % DEPLOY.name)
+    # index.html 是唯一真源；改页面只改它，build/apply 负责同步 实验提醒.html。
+    html = DEPLOY.read_bytes().decode("utf-8-sig").replace("\r\n", "\n")
     matches = list(TEMPLATE_RE.finditer(html))
     if len(matches) != 1:
         fail('源文件中必须恰好有一个 <template id="defaultData">...</template>')

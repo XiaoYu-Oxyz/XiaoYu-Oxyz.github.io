@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-aa9hV70vG0zYBCOF1SH8IS4BlabFJGwUppJVcxvUWfc='; script-src-elem 'sha256-aa9hV70vG0zYBCOF1SH8IS4BlabFJGwUppJVcxvUWfc='; script-src-attr 'none'; style-src 'sha256-RkiMyBeD4hV/7y9j2iB5e/4OO71G1LHPo41E/jiN+gA='; style-src-elem 'sha256-RkiMyBeD4hV/7y9j2iB5e/4OO71G1LHPo41E/jiN+gA='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-aa9hV70vG0zYBCOF1SH8IS4BlabFJGwUppJVcxvUWfc='; script-src-elem 'sha256-aa9hV70vG0zYBCOF1SH8IS4BlabFJGwUppJVcxvUWfc='; script-src-attr 'none'; style-src 'sha256-GL0YCfzmdu3UGef+yeCIb4wwIMIVCsjjvCLXlUTWTm0='; style-src-elem 'sha256-GL0YCfzmdu3UGef+yeCIb4wwIMIVCsjjvCLXlUTWTm0='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>实验课提醒</title>
 <style>
@@ -15,7 +15,8 @@
     font-family: "Microsoft YaHei", "PingFang SC", system-ui, -apple-system, sans-serif;
     background: #f5f7fa; color: #24292f;
   }
-  button:focus-visible, a:focus-visible, select:focus-visible, textarea:focus-visible {
+  a:focus-visible, button:focus-visible, select:focus-visible,
+  textarea:focus-visible, input:focus-visible, [tabindex]:focus-visible {
     outline: 2px solid #0969da; outline-offset: 2px;
   }
   .sr-only {
@@ -30,13 +31,15 @@
   }
 
   /* 标题行 + 按钮 */
-  .head-row {
-    display: flex; align-items: center; justify-content: space-between;
-    gap: 12px; flex-wrap: wrap; margin-bottom: 12px;
+  /* 页头：标题/班级 · 筛选 · 操作 三块；桌面一行，手机三行（见底部媒体查询） */
+  .head {
+    display: flex; align-items: center; flex-wrap: wrap;
+    gap: 8px 14px; margin-bottom: 12px;
   }
-  .head-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-  .head-title { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-width: 0; }
-  h1 { margin: 0; font-size: 22px; }
+  .head-main { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-width: 0; }
+  .head-filters { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .head-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-left: auto; }
+  h1 { margin: 0; font-size: 22px; flex: none; }
 
   .actions-toggle {
     display: inline-flex; align-items: center; gap: 6px;
@@ -75,8 +78,9 @@
     font-family: inherit;
   }
   .search-input:focus {
-    outline: none; border-color: #0969da; box-shadow: 0 0 0 3px rgba(9,105,218,.15);
+    border-color: #0969da; box-shadow: 0 0 0 3px rgba(9,105,218,.35);
   }
+  .search-input:focus:not(:focus-visible) { outline: none; }
   .search-hit { background: #fff3b0; color: inherit; border-radius: 2px; padding: 0 1px; }
   .action-groups { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
   .action-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
@@ -97,8 +101,9 @@
     border: 1px solid #d0d7de; border-radius: 8px; cursor: pointer;
   }
   .class-picker select:focus {
-    outline: none; border-color: #0969da; box-shadow: 0 0 0 3px rgba(9,105,218,.15);
+    border-color: #0969da; box-shadow: 0 0 0 3px rgba(9,105,218,.35);
   }
+  .class-picker select:focus:not(:focus-visible) { outline: none; }
   .class-picker select:disabled {
     background: #f6f8fa; color: #6e7781; cursor: not-allowed;
   }
@@ -129,7 +134,7 @@
     font-size: 13px; color: #57606a; white-space: nowrap; cursor: pointer;
   }
   .recent-filter input {
-    width: 16px; height: 16px; margin: 0;
+    width: 18px; height: 18px; margin: 0;
     accent-color: #0969da; cursor: pointer;
   }
   .recent-filter.is-disabled { color: #6e7781; cursor: not-allowed; opacity: .6; }
@@ -172,9 +177,10 @@
     background: #fff;
   }
   .settings-row input[type="date"]:focus {
-    outline: none; border-color: #0969da;
-    box-shadow: 0 0 0 3px rgba(9,105,218,.15);
+    border-color: #0969da;
+    box-shadow: 0 0 0 3px rgba(9,105,218,.35);
   }
+  .settings-row input[type="date"]:focus:not(:focus-visible) { outline: none; }
   .settings-hint { color: #6e7781; font-size: 12px; }
 
   /* 状态提示 */
@@ -226,7 +232,16 @@
     box-shadow: inset 0 -2px 0 #d8dee4, 0 2px 7px rgba(36,41,47,.08);
   }
   tbody td { padding: 11px 12px; border-bottom: 1px solid #eaeef2; }
-  tbody tr:hover td { filter: brightness(0.97); }
+  /* 逐行悬停：用背景色而非 filter。filter 会给每个 td 建合成层，
+     在 border-collapse 下把共享边框画成不对称的 1px 缝，还会压暗"今天"的语义红。 */
+  @media (hover: hover) {
+    tbody tr:hover td { background-color: #f4f6f8; }
+    tbody tr.row-today:hover td { background-color: #ffdedc; }
+    tbody tr.row-tomorrow:hover td { background-color: #d9f5e0; }
+    tbody tr.row-past:hover td { background-color: #eef1f4; }
+    tbody tr.row-next:hover td { background-color: #e8f2ff; }
+    tbody tr.note-row:hover td { background-color: #f7f9fb; }
+  }
   .cell-mobile { display: none; }
 
   tbody tr.note-row td {
@@ -247,7 +262,7 @@
     display: inline-block; margin-left: 6px; padding: 1px 7px;
     border: 1px solid #b6d6f8; border-radius: 10px;
     background: #eaf3ff; color: #0757b8;
-    font-size: 10.5px; font-weight: 700; line-height: 1.6;
+    font-size: 11.5px; font-weight: 700; line-height: 1.6;
     white-space: nowrap; vertical-align: 1px;
   }
 
@@ -259,7 +274,7 @@
     background: #e6f9ea; color: #1a7f37; font-weight: 700;
     border-bottom-color: #c3f0cd;
   }
-  .row-past td { color: #9aa4af; }
+  .row-past td { color: #57606a; }
 
   /* ---------- 时间冲突：左侧整列浅琥珀色（无文字） ---------- */
   tbody tr.row-conflict td.cell-mark {
@@ -420,12 +435,12 @@
 
   .tag {
     display: inline-block; margin-left: 6px; padding: 1px 7px;
-    border-radius: 10px; font-size: 11px; font-weight: 700;
+    border-radius: 10px; font-size: 12px; font-weight: 700;
     vertical-align: 1px; white-space: nowrap;
   }
-  .tag-today    { background: #e5484d; color: #fff; }
-  .tag-tomorrow { background: #2da44e; color: #fff; }
-  .tag-past     { background: #d8dee4; color: #6e7781; }
+  .tag-today    { background: #cf222e; color: #fff; }
+  .tag-tomorrow { background: #1a7f37; color: #fff; }
+  .tag-past     { background: #d8dee4; color: #424a53; }
 
   /* ---------- 表单/导入里的冲突提示 ---------- */
   .form-conflict, .import-conflict {
@@ -439,12 +454,15 @@
   .modal-mask {
     position: fixed; inset: 0; background: rgba(0,0,0,.45);
     display: none; align-items: center; justify-content: center;
-    padding: 16px; z-index: 100;
+    padding: 16px; padding-bottom: calc(16px + env(safe-area-inset-bottom));
+    z-index: 100;
   }
   .modal-mask.show { display: flex; }
   .modal {
     background: #fff; border-radius: 12px; width: 100%; max-width: 460px;
-    box-shadow: 0 12px 40px rgba(0,0,0,.2); max-height: 92vh;
+    box-shadow: 0 12px 40px rgba(0,0,0,.2);
+    /* dvh 跟随手机键盘收缩；不支持的浏览器回退到 92vh */
+    max-height: 92vh; max-height: min(92dvh, 640px);
     display: flex; flex-direction: column; overflow: hidden;
   }
   .modal-head {
@@ -486,9 +504,12 @@
   .form-row input:focus,
   .form-row select:focus,
   .form-row textarea:focus {
-    outline: none; border-color: #0969da;
-    box-shadow: 0 0 0 3px rgba(9,105,218,.15);
+    border-color: #0969da;
+    box-shadow: 0 0 0 3px rgba(9,105,218,.35);
   }
+  .form-row input:focus:not(:focus-visible),
+  .form-row select:focus:not(:focus-visible),
+  .form-row textarea:focus:not(:focus-visible) { outline: none; }
   .form-row input:disabled,
   .form-row select:disabled,
   .form-row textarea:disabled {
@@ -622,11 +643,11 @@
   .print-note { display: none; }
   @media print {
     @page { margin: 12mm; }
-    body { background: #fff; padding: 0; color: #000; }
-    .head-row, .action-panel, .settings-row, .legend, .clock,
+    body { background: #fff; padding: 0 !important; color: #000; }
+    .head, .action-panel, .settings-row, .legend, .clock,
     .import-status, .sr-only, .copy-week-outside, .actions-toggle, .class-picker,
     .recent-filter, .recent-count, .data-updated, .saved-tip { display: none !important; }
-    .wrap { max-width: none; margin: 0; padding: 0; box-shadow: none; border-radius: 0; }
+    .wrap { max-width: none; margin: 0; padding: 0 !important; box-shadow: none; border-radius: 0; }
     .print-head { display: block; margin: 0 0 10px; font-size: 16px; font-weight: 700; }
     .table-wrap { overflow: visible; }
     table {
@@ -642,7 +663,7 @@
     tbody tr {
       display: table-row !important; margin: 0 !important; border: 0 !important;
       border-radius: 0 !important; box-shadow: none !important; background: #fff !important;
-      break-inside: avoid; page-break-inside: avoid;
+      break-inside: auto; page-break-inside: auto;
     }
     tbody tr::before, tbody tr::after { display: none !important; content: none !important; }
     tbody tr td {
@@ -654,7 +675,7 @@
     th.col-mark, td.cell-mark { display: none !important; }
     tbody tr.note-row { display: none !important; }
     .print-note {
-      display: block; margin-top: 2px; font-size: 9.5px; line-height: 1.45;
+      display: block; margin-top: 2px; font-size: 8.5pt; line-height: 1.45;
       color: #000; white-space: pre-wrap;
     }
     th {
@@ -681,8 +702,9 @@
     border: 1px solid #d0d7de; border-radius: 7px; background: #fff; font-family: inherit;
   }
   .class-prompt-input:focus {
-    outline: none; border-color: #0969da; box-shadow: 0 0 0 3px rgba(9,105,218,.15);
+    border-color: #0969da; box-shadow: 0 0 0 3px rgba(9,105,218,.35);
   }
+  .class-prompt-input:focus:not(:focus-visible) { outline: none; }
   .class-prompt-input[aria-invalid="true"] { border-color: #cf222e; }
   .hidden-class-list {
     display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
@@ -705,9 +727,10 @@
     border: 1px solid #e6d391; border-radius: 6px; background: #fff; color: #424a53;
   }
   .conflict-box select:focus {
-    outline: none; border-color: #9a6700;
-    box-shadow: 0 0 0 3px rgba(154,103,0,.12);
+    border-color: #9a6700;
+    box-shadow: 0 0 0 3px rgba(154,103,0,.28);
   }
+  .conflict-box select:focus:not(:focus-visible) { outline: none; }
 
   /* ---------- 通用确认框 ---------- */
   .confirm-modal { max-width: 420px; }
@@ -737,15 +760,32 @@
   /* ---------- 手机端：隐藏表头，每行变成紧凑两行 ---------- */
   @media (max-width: 940px) {
     body { padding: 12px 8px; }
-    .wrap { padding: 14px; border-radius: 10px; }
-    .head-row { gap: 8px; }
-    .head-title { width: 100%; gap: 8px; }
-    .class-picker { gap: 4px; max-width: 100%; }
-    .class-picker select { max-width: 130px; }
-    .class-tool { width: 36px; height: 36px; }
-    .head-actions { width: 100%; gap: 6px; justify-content: flex-end; }
-    .actions-toggle { padding: 7px 11px; font-size: 12.5px; }
-    .copy-week-outside { padding: 7px 6px; font-size: 11.5px; }
+    /* .wrap 改纵向 flex，用 order 把「第 1 周设置」排到表格之后：
+       不动 DOM，JS 里的 #week1Input 引用不受影响。 */
+    .wrap { display: flex; flex-direction: column; padding: 14px; border-radius: 10px; }
+    .head {
+      display: grid; grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-areas: "title actions" "picker picker" "filters filters";
+      gap: 8px; margin-bottom: 10px;
+    }
+    /* display:contents 让 h1 / .class-picker 直接成为 grid 项 */
+    .head-main { display: contents; }
+    h1 { grid-area: title; align-self: center; font-size: 20px; }
+    .class-picker { grid-area: picker; gap: 4px; }
+    .class-picker select { max-width: 160px; }
+    .class-tool { width: 36px; height: 36px; flex: none; }
+    .class-tools { flex: none; gap: 6px; }
+    .head-filters { grid-area: filters; gap: 10px; }
+    .head-actions { grid-area: actions; margin-left: 0; gap: 6px; flex-wrap: nowrap; }
+    .data-updated { display: none; }
+    .action-panel { order: 2; }
+    .import-status { order: 3; }
+    .clock { order: 4; font-size: 12px; margin-bottom: 8px; }
+    .legend { display: none; }
+    .table-wrap { order: 5; min-width: 0; }
+    .settings-row { order: 6; margin: 14px 0 0; }
+    .actions-toggle { padding: 7px 11px; font-size: 12.5px; min-height: 36px; }
+    .copy-week-outside { padding: 7px 6px; font-size: 11.5px; min-height: 36px; }
     .export-choice { flex: 1 1 100%; }
     .action-panel { padding: 7px; margin-bottom: 10px; }
     .action-groups { flex-wrap: nowrap; gap: 6px; }
@@ -765,11 +805,9 @@
     .label-long { display: none; }
     .label-short { display: inline; }
     .recent-filter { font-size: 12.5px; }
-    .recent-count { flex: 1 0 100%; }
-    .legend { font-size: 11px; gap: 7px; margin-bottom: 8px; flex-wrap: nowrap; white-space: nowrap; }
-    .legend i { width: 10px; height: 10px; margin-right: 4px; }
-    .cell-mobile .m-line1 { flex-wrap: nowrap; white-space: nowrap; overflow: hidden; }
-    .clock { margin-bottom: 12px; }
+    .recent-count { flex: none; }
+    /* 首行允许换行：原来的 nowrap + overflow:hidden 会把节次和"今天/下一次"标签直接切掉 */
+    .cell-mobile .m-line1 { white-space: normal; overflow: visible; }
     .table-wrap { overflow: visible; }
     table { min-width: 0; width: 100%; display: block; }
     thead {
@@ -780,7 +818,7 @@
     tbody tr {
       position: relative;
       display: flex; align-items: stretch;
-      margin-bottom: 10px; border: 1px solid #eaeef2;
+      margin-bottom: 10px; border: 1px solid #e1e6eb;
       border-radius: 10px; overflow: hidden; background: #fff;
     }
     tbody tr td { display: none; }
@@ -831,8 +869,10 @@
     }
     .cell-mobile .m-line1 {
       display: flex; align-items: center; flex-wrap: wrap; gap: 2px 6px;
-      font-size: 12.5px; color: #57606a; line-height: 1.6;
+      font-size: 12.5px; color: #57606a; line-height: 1.6; overflow-wrap: anywhere;
     }
+    .cell-mobile .m-line1 > .tag,
+    .cell-mobile .m-line1 > .next-badge { flex: none; }
     .cell-mobile .m-line2 {
       display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 8px;
       margin-top: 3px; line-height: 1.5; overflow-wrap: anywhere;
@@ -865,13 +905,90 @@
       padding: 6px 5px; font-size: 11.5px;
     }
   }
+  /* ---------- 平板 / 窄桌面：两列卡片，避免 700px 宽的"单列巨型卡片" ---------- */
+  @media (min-width: 561px) and (max-width: 940px) {
+    tbody { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: start; }
+    tbody tr { margin-bottom: 0; }
+    tbody tr.empty-row { grid-column: 1 / -1; }
+    tbody tr.note-row { display: none; }
+  }
+
+  /* ---------- 窄屏：让「班级：」标签让位，保证 320px 下班级名不被压没 ---------- */
+  @media (max-width: 400px) {
+    .class-picker > label {
+      position: absolute; width: 1px; height: 1px; margin: -1px;
+      padding: 0; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+    }
+    .class-picker select { max-width: 96px; }
+  }
+
+  /* ---------- 触屏按压反馈 ---------- */
+  .add-btn:active, .import-btn:active, .danger-btn:active, .ghost-btn:active,
+  .class-tool:active, .actions-toggle:active, .delete-btn:active, .edit-btn:active {
+    transform: translateY(1px); filter: brightness(.95);
+  }
+
+  /* ---------- 尊重系统的"减少动态效果" ---------- */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: .001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: .001ms !important;
+      scroll-behavior: auto !important;
+    }
+    .actions-toggle[aria-expanded="true"] .caret { transform: none; }
+    .add-btn:active, .import-btn:active, .danger-btn:active, .ghost-btn:active,
+    .class-tool:active, .actions-toggle:active, .delete-btn:active, .edit-btn:active {
+      transform: none;
+    }
+  }
+
+  /* ---------- 深色模式 ----------
+     不逐条改 304 处 hex（那需要单独的机械化提交），只覆盖"面/字/边"三层：
+     页面底色、卡片/表格/弹窗表面、正文与次要文字、分隔线，以及五种状态色。 */
+  :root { color-scheme: light dark; }
+  @media (prefers-color-scheme: dark) {
+    body { background: #0d1117; color: #e6edf3; }
+    .wrap { background: #161b22; box-shadow: 0 2px 16px rgba(0,0,0,.55); }
+    h1, .m-name, .modal-head h2 { color: #e6edf3; }
+    .class-picker, .settings-row, .recent-filter, .clock, .legend, .data-updated,
+    .recent-count, .settings-hint, .group-label, .mode-note, .copy-hint { color: #8b949e; }
+    .class-picker select, .settings-row input[type="date"], .search-input,
+    .form-row input, .form-row select, .form-row textarea, .class-prompt-input,
+    .conflict-box select, .copy-fallback-text {
+      background: #0d1117; color: #e6edf3; border-color: #30363d;
+    }
+    .actions-toggle, .ghost-btn, .export-choice, .target-card, .mode-card {
+      background: #161b22; color: #e6edf3; border-color: #30363d;
+    }
+    .actions-toggle:hover, .ghost-btn:hover, .export-choice:hover { background: #21262d; border-color: #484f58; }
+    .action-panel { background: #12181f; border-color: #30363d; }
+    .action-group + .action-group { border-left-color: #30363d; }
+    thead th { background: #1c2128; color: #adbac7; border-bottom-color: #30363d; box-shadow: inset 0 -2px 0 #30363d; }
+    tbody td { border-bottom-color: #21262d; }
+    tbody tr { background: #161b22; border-color: #30363d; }
+    tbody tr.row-past td, tbody tr.row-past td.cell-mobile, tbody tr.row-past .m-name { color: #8b949e; }
+    tbody tr.row-today td { background: #3d1a1c; color: #ffb3b0; }
+    tbody tr.row-tomorrow td { background: #12261a; color: #7ee2a8; }
+    tbody tr.row-next td { background: #0d2d4d; }
+    tbody tr.note-row td { background: #12181f; color: #8b949e; }
+    tbody tr.note-row.row-next td { background: #0d2d4d; }
+    .tag-past { background: #30363d; color: #adbac7; }
+    .modal, .restore-section, .confirm-detail, .import-skipped-list, .empty-row td { background: #161b22; color: #e6edf3; }
+    .modal-head, .modal-foot { border-color: #30363d; }
+    .import-status.ok { background: #0f2d1a; color: #56d364; border-color: #1b4721; }
+    .import-status.warn { background: #341a00; color: #e3b341; border-color: #5c4400; }
+    .import-status.error { background: #3d1a1c; color: #ff9492; border-color: #6b1f24; }
+    .search-hit { background: #6b4b00; color: #ffdf5d; }
+    .m-place, .m-line1, .m-note { color: #8b949e; }
+  }
 </style>
 </head>
 <body>
 
 <main class="wrap" id="main">
-  <div class="head-row">
-    <div class="head-title">
+  <header class="head">
+    <div class="head-main">
       <h1>实验课提醒</h1>
       <div class="class-picker">
         <label for="classSelect">班级：</label>
@@ -891,6 +1008,8 @@
           </button>
         </div>
       </div>
+    </div>
+    <div class="head-filters">
       <label class="recent-filter" title="隐藏本周一之前已结束的实验；今天及未来始终显示">
         <input type="checkbox" id="recentFilter" checked>
         <span>已结束仅显示本周</span>
@@ -900,13 +1019,13 @@
         <span>只看冲突</span>
       </label>
       <span class="recent-count" id="recentCount"></span>
-      <span class="data-updated" id="dataUpdated" hidden></span>
     </div>
+    <span class="data-updated" id="dataUpdated" hidden></span>
     <div class="head-actions">
       <button class="ghost-btn copy-week-outside" id="copyWeekBtn" type="button">复制本周</button>
       <button class="actions-toggle" id="actionsToggle" type="button" aria-expanded="false" aria-controls="actionPanel">操作 <span class="caret" aria-hidden="true">▾</span></button>
     </div>
-  </div>
+  </header>
 
   <div class="action-panel" id="actionPanel" role="group" aria-label="实验操作" hidden>
     <div class="action-search">
