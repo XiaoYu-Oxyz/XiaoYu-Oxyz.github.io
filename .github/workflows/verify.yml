@@ -8,6 +8,8 @@ on:
 
 permissions:
   contents: read
+  # ::error:: 会以 check annotation 的形式发布；没有 checks:write 会被静默丢弃
+  checks: write
 
 # 同一分支的新提交直接取消上一次运行，省额度也避免"旧提交红、新提交绿"的错觉。
 concurrency:
