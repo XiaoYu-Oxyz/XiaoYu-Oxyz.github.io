@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-4VikF2X49tYh5N5l6XVYzHVFHRDiEYoVnixhfbZt46g='; script-src-elem 'sha256-4VikF2X49tYh5N5l6XVYzHVFHRDiEYoVnixhfbZt46g='; script-src-attr 'none'; style-src 'sha256-rtFIxgSLAvREQj4kYwbibDSIYTI1dDVebV1wxknerUQ='; style-src-elem 'sha256-rtFIxgSLAvREQj4kYwbibDSIYTI1dDVebV1wxknerUQ='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-hsUdPbWgsRT803vw1o+BMNrViJj64LcRde98YdYCNn0='; script-src-elem 'sha256-hsUdPbWgsRT803vw1o+BMNrViJj64LcRde98YdYCNn0='; script-src-attr 'none'; style-src 'sha256-Xp5inF/h9lACVVbtnkmcYdGz4/vTDzipdWWa6Edeh/Q='; style-src-elem 'sha256-Xp5inF/h9lACVVbtnkmcYdGz4/vTDzipdWWa6Edeh/Q='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>实验课提醒</title>
 <style>
@@ -158,6 +158,44 @@
     font-family: inherit; font-size: 14px; line-height: 1;
   }
   .first-run-close:hover { background: #e3f0ff; }
+  /* ---------- 周视图（桌面 demo）：≥1120px 才出现切换按钮 ---------- */
+  .view-switch { display: none; gap: 4px; align-items: center; }
+  .view-btn {
+    padding: 6px 10px; font-size: 12.5px; font-weight: 600; line-height: 1.4;
+    color: #57606a; background: #fff; border: 1px solid #d0d7de; border-radius: 8px;
+    cursor: pointer; font-family: inherit;
+  }
+  .view-btn[aria-pressed="true"] { color: #fff; background: #0969da; border-color: #0969da; }
+  @media (min-width: 1120px) { .view-switch { display: inline-flex; } }
+  .week-view { display: none; }
+  body.view-week .week-view { display: block; }
+  body.view-week .table-wrap { display: none; }
+  .week-toolbar { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
+  .week-label { font-size: 13px; font-weight: 700; color: #24292f; }
+  .week-grid { display: grid; grid-template-columns: 58px repeat(7, minmax(0, 1fr)); gap: 4px; }
+  .wg-cell {
+    border: 1px solid #e1e6eb; border-radius: 8px; padding: 6px 7px;
+    min-height: 46px; background: #fff; font-size: 12px; line-height: 1.45;
+  }
+  .wg-head {
+    background: #f0f3f6; font-weight: 700; color: #424a53; min-height: 0;
+    text-align: center; padding: 5px 4px;
+  }
+  .wg-head.is-today { background: #eaf3ff; color: #0757b8; }
+  .wg-slot {
+    background: #f8fafc; font-weight: 700; color: #57606a; text-align: center;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .wg-item {
+    display: block; padding: 3px 6px; margin-bottom: 3px; border-radius: 6px;
+    background: #eaf3ff; color: #0757b8;
+  }
+  .wg-item b { display: block; font-size: 12px; }
+  .wg-item span { color: #57606a; font-size: 11.5px; }
+  @media print {
+    body.view-week .table-wrap { display: block !important; }
+    .week-view { display: none !important; }
+  }
   /* 诊断信息：纯静态页面没有后端日志，反馈问题时最缺环境信息 */
   .diag-row { margin: 14px 0 0; text-align: right; }
   .diag-btn {
@@ -1085,6 +1123,10 @@
       <span class="mode-badge" id="modeBadge" hidden></span>
     </div>
     <div class="head-actions">
+      <div class="view-switch" role="group" aria-label="视图切换">
+        <button class="view-btn" id="viewListBtn" type="button" aria-pressed="true">列表</button>
+        <button class="view-btn" id="viewWeekBtn" type="button" aria-pressed="false">课表</button>
+      </div>
       <button class="ghost-btn copy-week-outside" id="copyWeekBtn" type="button">复制本周</button>
       <button class="actions-toggle" id="actionsToggle" type="button" aria-expanded="false" aria-controls="actionPanel">操作 <span class="caret" aria-hidden="true">▾</span></button>
     </div>
@@ -1155,6 +1197,8 @@
       <tbody id="tbody"></tbody>
     </table>
   </div>
+
+  <section class="week-view" id="weekView" aria-label="周课表"></section>
 
   <p class="diag-row">
     <button class="diag-btn" id="diagBtn" type="button" title="复制浏览器/数据版本等信息，方便反馈问题">遇到问题？复制诊断信息</button>
@@ -2644,8 +2688,142 @@ function updateRecentCount(visible, total) {
   if (recentCountEl) recentCountEl.textContent = `显示 ${visible} / 共 ${total}`;
 }
 
+/* ============================================================
+   周视图（桌面 demo，≥1120px 才显示切换按钮）
+   只读呈现"这一周哪天哪几节有课"，与列表共用同一套筛选（本周/只看冲突/搜索）。
+   ============================================================ */
+const WEEK_SLOTS = [
+  { label: '1-2节', start: 1, end: 2 },
+  { label: '3-4节', start: 3, end: 4 },
+  { label: '5-6节', start: 5, end: 6 },
+  { label: '7-8节', start: 7, end: 8 },
+  { label: '9-10节', start: 9, end: 10 }
+];
+const WEEK_VIEW_MIN_WIDTH = 1120;
+const weekViewEl = document.getElementById('weekView');
+const viewListBtn = document.getElementById('viewListBtn');
+const viewWeekBtn = document.getElementById('viewWeekBtn');
+const VIEW_STATE_KEY = STORAGE_PREFIX + 'view:v1';
+let weekViewStart = startOfWeekMonday(startOfDay(new Date()));
+
+function slotIndexOf(entry) {
+  const ranges = parsePeriodRanges(entry.period);
+  if (!ranges) return WEEK_SLOTS.length;
+  const first = Math.min.apply(null, ranges.map(range => range[0]));
+  const index = WEEK_SLOTS.findIndex(slot => first >= slot.start && first <= slot.end);
+  return index < 0 ? WEEK_SLOTS.length : index;
+}
+
+function renderWeekView() {
+  if (!weekViewEl || !document.body.classList.contains('view-week')) return;
+
+  const start = weekViewStart;
+  const days = [];
+  for (let i = 0; i < 7; i += 1) {
+    days.push(new Date(start.getFullYear(), start.getMonth(), start.getDate() + i));
+  }
+  const end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 7);
+  const entries = getFilteredExperimentEntries().filter(e => e._date >= start && e._date < end);
+  const today = startOfDay(new Date());
+  const labels = WEEK_SLOTS.map(slot => slot.label).concat('其他');
+
+  const fragment = document.createDocumentFragment();
+
+  const toolbar = document.createElement('div');
+  toolbar.className = 'week-toolbar';
+  const prevBtn = document.createElement('button');
+  prevBtn.type = 'button';
+  prevBtn.className = 'ghost-btn';
+  prevBtn.id = 'weekPrevBtn';
+  prevBtn.textContent = '‹ 上一周';
+  const nextBtn = document.createElement('button');
+  nextBtn.type = 'button';
+  nextBtn.className = 'ghost-btn';
+  nextBtn.id = 'weekNextBtn';
+  nextBtn.textContent = '下一周 ›';
+  const label = document.createElement('span');
+  label.className = 'week-label';
+  const weekNo = weekNoOf(start);
+  label.textContent = `${toDateStr(start)} ~ ${toDateStr(days[6])}`
+    + (weekNo === null ? '' : ` · 第 ${weekNo} 周`)
+    + ` · ${entries.length} 条`;
+  toolbar.append(prevBtn, label, nextBtn);
+  fragment.appendChild(toolbar);
+
+  const grid = document.createElement('div');
+  grid.className = 'week-grid';
+  const corner = document.createElement('div');
+  corner.className = 'wg-cell wg-head';
+  corner.textContent = '节次';
+  grid.appendChild(corner);
+  days.forEach(day => {
+    const cell = document.createElement('div');
+    cell.className = 'wg-cell wg-head' + (dayDiff(day, today) === 0 ? ' is-today' : '');
+    cell.textContent = `${WEEK_NAMES[day.getDay()].replace('星期', '周')} ${pad2(day.getMonth() + 1)}-${pad2(day.getDate())}`;
+    grid.appendChild(cell);
+  });
+
+  const rows = labels.map(text => {
+    const rowLabel = document.createElement('div');
+    rowLabel.className = 'wg-cell wg-slot';
+    rowLabel.textContent = text;
+    grid.appendChild(rowLabel);
+    return days.map(() => {
+      const cell = document.createElement('div');
+      cell.className = 'wg-cell';
+      grid.appendChild(cell);
+      return cell;
+    });
+  });
+
+  entries.forEach(entry => {
+    const rowIndex = slotIndexOf(entry);
+    const dayIndex = (entry._date.getDay() + 6) % 7;
+    const cell = rows[rowIndex][dayIndex];
+    const item = document.createElement('span');
+    item.className = 'wg-item';
+    const name = document.createElement('b');
+    name.textContent = entry.name;
+    const meta = document.createElement('span');
+    meta.textContent = entry.period + (entry.place ? ' · ' + entry.place : '');
+    item.append(name, meta);
+    cell.appendChild(item);
+  });
+
+  if (!entries.length) {
+    const hint = document.createElement('p');
+    hint.className = 'wg-empty';
+    hint.textContent = '这一周没有实验（受当前筛选影响）。';
+    fragment.appendChild(hint);
+  }
+  fragment.appendChild(grid);
+  weekViewEl.replaceChildren(fragment);
+
+  prevBtn.addEventListener('click', () => {
+    weekViewStart = new Date(start.getFullYear(), start.getMonth(), start.getDate() - 7);
+    renderWeekView();
+  });
+  nextBtn.addEventListener('click', () => {
+    weekViewStart = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 7);
+    renderWeekView();
+  });
+}
+
+function setView(view, persist) {
+  const canWeek = window.matchMedia(`(min-width: ${WEEK_VIEW_MIN_WIDTH}px)`).matches;
+  const isWeek = view === 'week' && canWeek;
+  document.body.classList.toggle('view-week', isWeek);
+  if (viewListBtn) viewListBtn.setAttribute('aria-pressed', String(!isWeek));
+  if (viewWeekBtn) viewWeekBtn.setAttribute('aria-pressed', String(isWeek));
+  if (persist) {
+    try { sessionStorage.setItem(VIEW_STATE_KEY, isWeek ? 'week' : 'list'); } catch (e) {}
+  }
+  if (isWeek) renderWeekView();
+}
+
 function render() {
   syncModeBadge();
+  if (document.body.classList.contains('view-week')) renderWeekView();
   const today = startOfDay(new Date());
   const tbody = tbodyEl;
   const frag = document.createDocumentFragment();
@@ -6285,6 +6463,19 @@ document.addEventListener('keydown', (e) => {
 });
 
 showFirstRunHint();
+if (viewListBtn) viewListBtn.addEventListener('click', () => setView('list', true));
+if (viewWeekBtn) viewWeekBtn.addEventListener('click', () => setView('week', true));
+{
+  let savedView = 'list';
+  try { savedView = sessionStorage.getItem(VIEW_STATE_KEY) || 'list'; } catch (e) {}
+  setView(savedView, false);
+}
+window.addEventListener('resize', () => {
+  if (document.body.classList.contains('view-week')
+      && !window.matchMedia(`(min-width: ${WEEK_VIEW_MIN_WIDTH}px)`).matches) {
+    setView('list', false);
+  }
+});
 syncDateModeUI();
 syncImportModeCards();
 syncClassSelect();
