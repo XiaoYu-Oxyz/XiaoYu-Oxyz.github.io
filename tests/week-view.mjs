@@ -225,22 +225,60 @@ check('回车键也能打开编辑弹窗', (await page.evaluate(() => document.g
 await page.click('#modalCancel');
 await page.waitForFunction(() => !document.getElementById('modalMask').classList.contains('show'));
 
-// ---------- 8c. 课表里点「编辑实验」应切回列表 ----------
+// ---------- 8c. 编辑/删除模式必须在课表里就能用（不跳回列表） ----------
 await page.click('#actionsToggle');
 await page.click('#editModeBtn');
-await page.waitForFunction(() => !document.body.classList.contains('view-week'));
-const switched = await page.evaluate(() => ({
-  editing: document.body.classList.contains('editing'),
-  tableVisible: getComputedStyle(document.querySelector('.table-wrap')).display !== 'none',
-  editBtnText: document.getElementById('editModeBtn').textContent.trim()
+await page.waitForFunction(() => document.body.classList.contains('editing'));
+const editInWeek = await page.evaluate(() => ({
+  week: document.body.classList.contains('view-week'),
+  dashed: [...document.querySelectorAll('.wg-item')].length > 0
+    && [...document.querySelectorAll('.wg-item')].every(el => el.classList.contains('wg-editing'))
 }));
-check('点「编辑实验」自动切回列表', switched.tableVisible);
-check('切回后确实进入编辑模式', switched.editing && switched.editBtnText === '完成');
+check('课表里进入编辑模式后仍留在课表', editInWeek.week);
+check('编辑模式给实验块加虚线标识', editInWeek.dashed);
+await page.locator('.wg-item').first().click();
+await page.waitForSelector('#modalMask.show');
+check('编辑模式里点块仍然打开编辑弹窗', (await page.evaluate(() => document.getElementById('modalTitle').textContent)) === '编辑实验');
+await page.click('#modalCancel');
+await page.waitForFunction(() => !document.getElementById('modalMask').classList.contains('show'));
 await page.click('#editModeBtn');
 await page.waitForFunction(() => !document.body.classList.contains('editing'));
-await page.click('#viewWeekBtn');
-await page.waitForSelector('.week-grid');
-check('编辑模式下切到课表会自动退出编辑', await page.evaluate(() => !document.body.classList.contains('editing')));
+
+const totalBefore = await page.evaluate(() => document.querySelectorAll('.wg-item').length);
+await page.click('#deleteModeBtn');
+await page.waitForFunction(() => document.body.classList.contains('deleting'));
+const deleteInWeek = await page.evaluate(() => ({
+  week: document.body.classList.contains('view-week'),
+  label: document.querySelector('.wg-item').getAttribute('aria-label'),
+  pressed: document.querySelector('.wg-item').getAttribute('aria-pressed')
+}));
+check('课表里进入删除模式后仍留在课表', deleteInWeek.week);
+check('删除模式下块的标签变成「标记删除」', /^标记删除：/.test(deleteInWeek.label) && deleteInWeek.pressed === 'false');
+await page.locator('.wg-item').first().click();
+await page.waitForTimeout(150);
+const markState = await page.evaluate(() => ({
+  marked: document.querySelectorAll('.wg-item.is-marked').length,
+  btn: document.getElementById('deleteModeBtn').textContent.trim(),
+  modalOpen: document.getElementById('modalMask').classList.contains('show')
+}));
+check('点块即标记（不弹编辑框）', markState.marked === 1 && !markState.modalOpen);
+check('完成按钮显示已标记数量', markState.btn === '完成（1）');
+await page.click('#deleteModeBtn');
+await page.waitForFunction(() => !document.body.classList.contains('deleting'));
+const afterDelete = await page.evaluate(() => ({
+  week: document.body.classList.contains('view-week'),
+  items: document.querySelectorAll('.wg-item').length,
+  status: document.getElementById('importStatus').textContent
+}));
+check('在课表里完成删除后仍在课表', afterDelete.week);
+check('删除生效：少了一条', afterDelete.items === totalBefore - 1);
+check('状态栏给出删除结果', /已删除 1 条实验/.test(afterDelete.status));
+await page.evaluate(() => {
+  const undo = [...document.querySelectorAll('#importStatus button')].find(btn => btn.textContent.includes('撤销'));
+  if (undo) undo.click();
+});
+await page.waitForFunction(count => document.querySelectorAll('.wg-item').length === count, totalBefore);
+check('撤销后恢复', true);
 
 // ---------- 9. 页面无脚本错误 ----------
 check('无页面脚本错误', pageErrors.length === 0);

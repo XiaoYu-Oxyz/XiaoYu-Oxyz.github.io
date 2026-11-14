@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-ClpqMCMJ8B8JX/pjfzgXbnxmMX4i3eGIlvAUIOszVW4='; script-src-elem 'sha256-ClpqMCMJ8B8JX/pjfzgXbnxmMX4i3eGIlvAUIOszVW4='; script-src-attr 'none'; style-src 'sha256-7hGjwV43ZHdMQHQZLKxIx81tHtLQRJ/m9lJdFnQqcl0='; style-src-elem 'sha256-7hGjwV43ZHdMQHQZLKxIx81tHtLQRJ/m9lJdFnQqcl0='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-KW9MThk43NMbCMB0qmvTQbcazY08LsDK2T0srI9xweM='; script-src-elem 'sha256-KW9MThk43NMbCMB0qmvTQbcazY08LsDK2T0srI9xweM='; script-src-attr 'none'; style-src 'sha256-uwyXYZ8ckqSXQeE8298RMibieFsxz5ClyvhfOUWTilo='; style-src-elem 'sha256-uwyXYZ8ckqSXQeE8298RMibieFsxz5ClyvhfOUWTilo='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>实验课提醒</title>
 <style>
@@ -163,11 +163,14 @@
   .search-jump { display: none; }
   @media (max-width: 940px) {
     .search-jump {
+      position: relative;
       display: inline-flex; align-items: center; justify-content: center; flex: none;
       width: 32px; height: 32px; padding: 0;
       border: 1px solid #d0d7de; border-radius: 8px; background: #fff; color: #57606a;
       cursor: pointer; font-family: inherit;
     }
+    /* 32px 视觉 + 两侧各 6px 透明热区 = 44px（正好填满与相邻按钮的间距，不会抢点击） */
+    .search-jump::after { content: ''; position: absolute; inset: -6px; border-radius: 10px; }
     .search-jump:active { background: #f6f8fa; }
     .search-jump svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   }
@@ -186,6 +189,7 @@
   .cue-bar.is-today { border-color: #ffc9c7; background: #fff3f2; color: #a40e26; }
   .cue-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
   .cue-close {
+    position: relative;
     margin-left: auto; flex: none;
     width: 26px; height: 26px; padding: 0;
     border: 1px solid currentColor; border-radius: 6px;
@@ -193,6 +197,8 @@
     cursor: pointer; font-family: inherit; font-size: 14px; line-height: 1;
   }
   .cue-close:hover { opacity: 1; }
+  /* 触控热区：视觉还是 26px，实际可点是 44px（WCAG 2.5.5 建议值） */
+  .cue-close::after { content: ''; position: absolute; inset: -9px; border-radius: 8px; }
   /* ---------- 周视图（桌面 demo）：≥1120px 才出现切换按钮 ---------- */
   .view-switch { display: none; gap: 4px; align-items: center; }
   .view-btn {
@@ -242,10 +248,16 @@
   .wg-cell-add:hover { background: #f2f8ff; border-color: #b6d4fb; }
   body.readonly .wg-cell-add { cursor: default; }
   body.readonly .wg-cell-add:hover { background: #fff; border-color: #d8dee4; }
-  /* 点实验块编辑 */
+  /* 点实验块编辑 / 删除模式下点块标记 */
   .wg-clickable { cursor: pointer; }
   .wg-clickable:hover { filter: brightness(.96); }
   .wg-clickable:focus-visible { outline: 2px solid #0969da; outline-offset: 1px; }
+  .wg-item.wg-editing { border: 2px dashed #0969da; }
+  .wg-item.is-marked { outline: 3px solid #cf222e; outline-offset: -3px; }
+  .wg-item.is-marked::after {
+    content: '✕'; position: absolute; right: 4px; top: 1px;
+    font-size: 11px; line-height: 1; color: #cf222e; font-weight: 700;
+  }
   /* 填充色取图例色：今天 / 明天 / 已结束 / 冲突 / 下一次 */
   .wg-item.st-past { background: #eaeef2; color: #57606a; }
   .wg-item.st-today { background: #ffd7d5; color: #a40e26; }
@@ -2958,6 +2970,8 @@ function renderWeekView() {
       cell.title = READ_ONLY ? '' : `点击添加：${dateStr} 第 ${period} 节`;
       if (!READ_ONLY) {
         cell.addEventListener('click', () => {
+          // 编辑/删除模式下点空格没有意义，别弹出添加窗口打断当前操作
+          if (editMode || deleteMode) return;
           openModal({ date: dateStr, period: `第${period}节` });
         });
       }
@@ -3014,18 +3028,31 @@ function renderWeekView() {
         block.appendChild(clipped);
         block.title += '（节次超出 ' + WEEK_MAX_ROWS + ' 节，显示已截断）';
       }
-      // 点/回车课表里的实验块 = 编辑这条实验（只读模式和删除模式下不响应）
-      if (!READ_ONLY && !deleteMode) {
+      // 课表里直接操作：默认点击=编辑；删除模式下点击=标记待删除
+      if (!READ_ONLY) {
+        const summary = `${entry.date} ${entry.period} ${entry.name}`
+          + (entry.place ? `，地点 ${entry.place}` : '');
+        const marked = markedIndices.has(entry._idx);
         block.tabIndex = 0;
         block.setAttribute('role', 'button');
-        block.setAttribute('aria-label', `编辑：${entry.date} ${entry.period} ${entry.name}`
-          + (entry.place ? `，地点 ${entry.place}` : ''));
         block.classList.add('wg-clickable');
-        block.addEventListener('click', () => openEditModal(entry._idx, block));
+        if (deleteMode) {
+          block.classList.toggle('is-marked', marked);
+          block.setAttribute('aria-pressed', String(marked));
+          block.setAttribute('aria-label', `${marked ? '取消删除标记' : '标记删除'}：${summary}`);
+        } else {
+          block.setAttribute('aria-label', `编辑：${summary}`);
+          if (editMode) block.classList.add('wg-editing');
+        }
+        const activate = () => {
+          if (deleteMode) { toggleWeekMark(entry._idx); return; }
+          openEditModal(entry._idx, block);
+        };
+        block.addEventListener('click', activate);
         block.addEventListener('keydown', event => {
           if (event.key !== 'Enter' && event.key !== ' ') return;
           event.preventDefault();
-          openEditModal(entry._idx, block);
+          activate();
         });
       }
       (wrapper || grid).appendChild(block);
@@ -3068,33 +3095,33 @@ function setView(view, persist) {
   document.body.classList.toggle('view-week', isWeek);
   if (viewListBtn) viewListBtn.setAttribute('aria-pressed', String(!isWeek));
   if (viewWeekBtn) viewWeekBtn.setAttribute('aria-pressed', String(isWeek));
-  // 课表按周浏览，忽略"已结束仅显示本周"；把复选框置灰，避免"勾着却没生效"的错觉
-  const recentLabel = recentFilter ? recentFilter.closest('label') : null;
-  if (recentFilter) {
-    recentFilter.disabled = isWeek;
-    recentFilter.setAttribute('aria-disabled', String(isWeek));
-  }
-  if (recentLabel) {
-    recentLabel.classList.toggle('is-disabled', isWeek);
-    recentLabel.title = isWeek
-      ? '课表按周浏览，本选项在课表里不生效'
-      : '隐藏本周一之前已结束的实验；今天及未来始终显示';
-  }
-  if (isWeek) {
-    // 编辑/删除模式的入口都在列表行首，课表里没有可点的对象：
-    // 切到课表时直接退出，避免"模式开了却看不到任何可操作目标"
-    if (editMode) exitEditMode();
-    if (deleteMode) setDeleteModeUI(false);
-  }
+  syncWeekFilterState();
   if (persist) {
     try { sessionStorage.setItem(VIEW_STATE_KEY, isWeek ? 'week' : 'list'); } catch (e) {}
   }
   if (isWeek) renderWeekView();
 }
 
+// 课表按周浏览，忽略「已结束仅显示本周」：把复选框置灰并说明，避免"勾着却没生效"的错觉。
+// 进入/退出编辑、删除模式会重置复选框状态，所以 render() 里也要再同步一次。
+function syncWeekFilterState() {
+  if (!recentFilter) return;
+  const isWeek = document.body.classList.contains('view-week');
+  recentFilter.disabled = isWeek;
+  recentFilter.setAttribute('aria-disabled', String(isWeek));
+  const label = recentFilter.closest('label');
+  if (label) {
+    label.classList.toggle('is-disabled', isWeek);
+    label.title = isWeek
+      ? '课表按周浏览，本选项在课表里不生效'
+      : '隐藏本周一之前已结束的实验；今天及未来始终显示';
+  }
+}
+
 function render() {
   syncModeBadge();
   syncCueBar();
+  syncWeekFilterState();
   if (document.body.classList.contains('view-week')) renderWeekView();
   const today = startOfDay(new Date());
   const tbody = tbodyEl;
@@ -5707,6 +5734,15 @@ function finishDeleteMode() {
   );
 }
 
+// 课表里点块标记/取消标记（删除模式），标记集合与列表共用 markedIndices
+function toggleWeekMark(idx) {
+  if (!experiments[idx]) return;
+  if (markedIndices.has(idx)) markedIndices.delete(idx);
+  else markedIndices.add(idx);
+  renderWeekView();
+  deleteModeBtn.textContent = markedIndices.size ? `完成（${markedIndices.size}）` : '完成';
+}
+
 // 单条删除：给编辑弹窗里的「删除实验」用，撤销沿用 lastDeletedByClass
 function deleteExperimentAt(idx) {
   const target = experiments[idx];
@@ -5851,18 +5887,14 @@ function showUndoForCurrentClass() {
 
 deleteModeBtn.addEventListener('click', () => {
   if (editMode) return;
-  if (deleteMode) { finishDeleteMode(); return; }
-  // 课表里没有行首圆圈，先切回列表再进入删除模式
-  if (document.body.classList.contains('view-week')) setView('list', true);
-  enterDeleteMode();
+  if (deleteMode) finishDeleteMode();
+  else enterDeleteMode();
 });
 
 editModeBtn.addEventListener('click', () => {
   if (deleteMode) return;
-  if (editMode) { exitEditMode(); return; }
-  // 课表里没有行首铅笔，先切回列表再进入编辑模式
-  if (document.body.classList.contains('view-week')) setView('list', true);
-  enterEditMode();
+  if (editMode) exitEditMode();
+  else enterEditMode();
 });
 
 // 删除模式点左侧圆圈；编辑模式点左侧铅笔
