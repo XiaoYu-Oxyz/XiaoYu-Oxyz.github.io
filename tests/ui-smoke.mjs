@@ -176,7 +176,7 @@ try {
   const filteredDownloadPromise = page.waitForEvent('download');
   await page.locator('#exportJsonChoice').click();
   const filteredDownload = await filteredDownloadPromise;
-  assert.equal(filteredDownload.suggestedFilename(), 'Z1-筛选.json');
+  assert.match(filteredDownload.suggestedFilename(), /^Z1-筛选-数据-\d{4}-\d{2}-\d{2}\.json$/);
   const filteredPath = await filteredDownload.path();
 
   // 筛选备份导入：显示警告，替换前二次确认，取消后不写入。
@@ -204,7 +204,7 @@ try {
   const filteredXlsxPromise = page.waitForEvent('download');
   await page.locator('#exportXlsxChoice').click();
   const filteredXlsx = await filteredXlsxPromise;
-  assert.equal(filteredXlsx.suggestedFilename(), 'Z1-筛选.xlsx');
+  assert.match(filteredXlsx.suggestedFilename(), /^Z1-筛选-实验安排-\d{4}-\d{2}-\d{2}\.xlsx$/);
   const filteredXlsxPath = await filteredXlsx.path();
   await page.locator('#fileInput').setInputFiles({
     name: 'Z1-筛选.xlsx',
@@ -222,7 +222,7 @@ try {
   const icsPromise = page.waitForEvent('download');
   await page.locator('#icsBtn').click();
   const icsFile = await icsPromise;
-  assert.equal(icsFile.suggestedFilename(), 'Z1-实验课.ics');
+  assert.match(icsFile.suggestedFilename(), /^Z1-实验课-\d{4}-\d{2}-\d{2}\.ics$/);
   const icsText = fs.readFileSync(await icsFile.path(), 'utf8');
   assert.match(icsText, /^BEGIN:VCALENDAR\r\n/);
   assert.match(icsText, /BEGIN:VTIMEZONE/);
@@ -268,7 +268,7 @@ try {
   const downloadPromise = page.waitForEvent('download');
   await page.locator('#exportJsonChoice').click();
   const download = await downloadPromise;
-  assert.equal(download.suggestedFilename(), 'Z1.json');
+  assert.match(download.suggestedFilename(), /^Z1-数据-\d{4}-\d{2}-\d{2}\.json$/);
 
   // 4. 导入 JSON，再用“撤销导入”恢复导入前的班级。
   await page.locator('#fileInput').setInputFiles(fixture);
@@ -661,8 +661,18 @@ try {
   assert.deepEqual(landErrors, [], '横屏下有脚本错误');
   await landCtx.close();
 
+  // 11. 链接里的班级不存在 → 跳 404 说明情况，不要静默换成别的班。
+  const badCtx = await browser.newContext({ viewport: { width: 1200, height: 900 } });
+  const badPage = await badCtx.newPage();
+  await badPage.goto(`${appUrl}?class=不存在的班级`);
+  await badPage.waitForURL(url => url.pathname.endsWith('/404.html'), { timeout: 8000 });
+  assert.match(await badPage.locator('#errTitle').innerText(), /班级链接失效了/);
+  assert.match(await badPage.locator('#errDesc').innerText(), /不存在的班级/);
+  await badCtx.close();
+
   console.log('UI smoke OK');
 } finally {
   fs.rmSync(fixtureDir, { force: true, recursive: true });
   await browser.close();
 }
+

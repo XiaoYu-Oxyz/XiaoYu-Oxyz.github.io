@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-OhYqspvzjrcgN5lig2/fg1yxCmIvl7g8L94xaYFoHjg='; script-src-attr 'none'; style-src 'sha256-6RvCk6RZCDDfdpXdvKOfLC+VSqIzEl3gCz8A1MRU9ww='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-aNv5np5b+gM6uuUoILkRMqnBbUm/e89zUAEDcCeR+V4='; script-src-attr 'none'; style-src 'sha256-6RvCk6RZCDDfdpXdvKOfLC+VSqIzEl3gCz8A1MRU9ww='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'" />
 <title>404 · 页面走丢了</title>
 <style>
   /* ---------- 基础 ---------- */
@@ -497,6 +497,31 @@
      即使同源别的页面把这个键写坏，也只能变成一段被 encodeURIComponent 的普通参数。 */
   var homeBtn = document.getElementById("homeBtn");
   var homeBtnText = document.getElementById("homeBtnText");
+
+  /* ---------- 链接里的班级不存在（index.html 跳到 404.html?from=class&name=…） ---------- */
+  var classParams = null;
+  try { classParams = new URLSearchParams(location.search); } catch (e) { classParams = null; }
+  var missingClass = "";
+  if (classParams && classParams.get("from") === "class") {
+    missingClass = (classParams.get("name") || "")
+      .replace(/[\u0000-\u001f\u007f]/g, "")
+      .trim()
+      .slice(0, 40);
+    document.title = "CrseCue · 班级链接失效了";
+    var setText = function (id, text) {
+      var el = document.getElementById(id);
+      if (el) el.textContent = text;
+    };
+    setText("eyebrow", "Not Found");
+    setText("codeText", "?");
+    setText("errTitle", "班级链接失效了");
+    var classDesc = document.getElementById("errDesc");
+    if (classDesc) {
+      classDesc.textContent = (missingClass ? "链接里的班级「" + missingClass + "」不存在，" : "链接里的班级不存在，")
+        + "可能已经改名或删除。回到首页重新选一个班级吧。";
+    }
+  }
+
   var lastClass = "";
   try {
     lastClass = localStorage.getItem("ghpages:zhizao2402:selected-class:v1") || "";
@@ -504,7 +529,7 @@
     lastClass = "";
   }
   lastClass = lastClass.replace(/[\u0000-\u001f\u007f]/g, "").trim();
-  if (homeBtn && /^[\w\u4e00-\u9fa5 .\-]{1,40}$/.test(lastClass)) {
+  if (homeBtn && !missingClass && /^[\w\u4e00-\u9fa5 .\-]{1,40}$/.test(lastClass)) {
     homeBtn.href = "/?class=" + encodeURIComponent(lastClass);
     if (homeBtnText) homeBtnText.textContent = "继续查看 " + lastClass + " 的实验课";
   }

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-TFZPE/meKMzVjfY6tMvmdDItyRnpI87TYxTE+HWcHFI='; script-src-elem 'sha256-TFZPE/meKMzVjfY6tMvmdDItyRnpI87TYxTE+HWcHFI='; script-src-attr 'none'; style-src 'sha256-yWBuiy7a4QE2krgO6eX8Fd1Cy8uoY7kE3TWnuwp5btQ='; style-src-elem 'sha256-yWBuiy7a4QE2krgO6eX8Fd1Cy8uoY7kE3TWnuwp5btQ='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-IY67a+8utYNr4UQsykbUmkbdQx6gKsNbtUFnPLHrH3Q='; script-src-elem 'sha256-IY67a+8utYNr4UQsykbUmkbdQx6gKsNbtUFnPLHrH3Q='; script-src-attr 'none'; style-src 'sha256-yWBuiy7a4QE2krgO6eX8Fd1Cy8uoY7kE3TWnuwp5btQ='; style-src-elem 'sha256-yWBuiy7a4QE2krgO6eX8Fd1Cy8uoY7kE3TWnuwp5btQ='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>CrseCue</title>
 <style>
@@ -2008,6 +2008,18 @@ function getAllClassIds() {
 }
 
 let classIds = getAllClassIds();
+
+// 链接里的班级不存在（改名/删除/手打错）：直接跳 404，
+// 否则页面会静默换成第一个班，让人对着别人班的课表而不自知。
+const REQUESTED_CLASS = (() => {
+  try {
+    return new URLSearchParams(location.search).get(CLASS_QUERY_PARAM) || '';
+  } catch (e) {
+    return '';
+  }
+})();
+
+const REQUESTED_CLASS_MISSING = !!REQUESTED_CLASS && !classIds.includes(REQUESTED_CLASS);
 
 function readSelectedClass() {
   try {
@@ -5240,7 +5252,8 @@ function exportJsonBackup() {
     const list = getExportExperiments();
     const text = buildJsonBackup(list, scope);
     const blob = new Blob([text], { type: 'application/json;charset=utf-8' });
-    const fileName = `${selectedClass}${scope === 'filtered' ? '-筛选' : ''}.json`;
+    // 文件名统一为「班级[-筛选]-用途-日期.json」，导入时靠 classIdFromFileName 剥回去
+  const fileName = `${selectedClass}${scope === 'filtered' ? '-筛选' : ''}-数据-${toDateStr(new Date())}.json`;
     downloadBlob(blob, fileName);
     showStatus('ok', `已导出 ${selectedClass} 的 JSON（${scope === 'filtered' ? '当前筛选' : '全部'} ${list.length} 条）：${fileName}`);
   } catch (err) {
@@ -6517,9 +6530,12 @@ const IMPORT_NOTE_REPLACE =
 let pendingImport = null;
 
 function classIdFromFileName(name) {
-  const s = String(name || '');
-  if (!/\.(xlsx|json)$/i.test(s)) return '';
-  return s.slice(0, -5);
+  let base = String(name || '');
+  if (!/\.(xlsx|json)$/i.test(base)) return '';
+  base = base.slice(0, -5);
+  // 导出文件名是「Z1-筛选-数据-2026-11-14.json」：先剥日期、再剥用途标签
+  base = base.replace(/-\d{4}-\d{2}-\d{2}$/, '').replace(/-(实验安排|数据|实验课)$/, '');
+  return base;
 }
 
 function resolveImportFileClass(fileClass, metaClass) {
@@ -7207,7 +7223,7 @@ function exportIcs() {
   }
   try {
     const blob = new Blob([buildIcsText(list, selectedClass)], { type: 'text/calendar;charset=utf-8' });
-    const fileName = `${selectedClass}-实验课.ics`;
+    const fileName = `${selectedClass}-实验课-${toDateStr(new Date())}.ics`;
     downloadBlob(blob, fileName);
     showStatus('ok', `已导出 ${list.length} 条实验到 ${fileName}。导入手机日历后会提前 2 小时提醒。`);
   } catch (err) {
@@ -7255,7 +7271,7 @@ function exportXlsx() {
       ['数据更新时间', DATA_UPDATED_AT || ''],
       ['导出时间', formatExportTime(new Date())]
     ]);
-    const fileName = `${selectedClass}${scope === 'filtered' ? '-筛选' : ''}.xlsx`;
+    const fileName = `${selectedClass}${scope === 'filtered' ? '-筛选' : ''}-实验安排-${toDateStr(new Date())}.xlsx`;
     downloadBlob(blob, fileName);
 
     const base = rows.length
@@ -7561,7 +7577,15 @@ syncDateModeUI();
 syncImportModeCards();
 syncClassSelect();
 syncHeaderActions();
-syncUrlClass();
+
+// 链接里的班级不存在：跳 404 说明情况，不要静默换成别的班
+if (REQUESTED_CLASS_MISSING) {
+  try {
+    location.replace('404.html?from=class&name=' + encodeURIComponent(cleanText(REQUESTED_CLASS, 40)));
+  } catch (e) {}
+} else {
+  syncUrlClass();
+}
 updateClock();
 render();
 

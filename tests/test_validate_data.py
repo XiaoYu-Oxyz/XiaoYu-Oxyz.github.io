@@ -15,7 +15,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from openpyxl import Workbook
+from openpyxl import Workbook, load_workbook
 
 BASE = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location("validate_data", BASE / "validate-data.py")
@@ -142,6 +142,22 @@ class ClassFileTests(ValidatorCase):
         _, errors, warnings = self.collect([GOOD_ROW, GOOD_ROW], {"班级": "Z1"})
         self.assertEqual(errors, [])
         self.assertTrue(any("疑似重复" in item for item in warnings), warnings)
+
+    def test_merged_cells_are_reported(self):
+        # 合并单元格：左上角以外的行会读成空值，报错却是"第 N 行…为空"
+        path = self.tmp / "Z1.xlsx"
+        make_class_file(path, [GOOD_ROW, GOOD_ROW, GOOD_ROW], {"班级": "Z1"})
+        wb = load_workbook(path)
+        ws = wb["实验安排"]
+        ws.merge_cells("E2:E3")
+        wb.save(path)
+        wb.close()
+        errors, warnings = [], []
+        VALIDATE.check_class(path, errors, warnings)
+        # 合并后第 3 行的名称读成空 → 报错；警告要指出这是合并导致的
+        self.assertTrue(any("实验名称为空" in item for item in errors), errors)
+        self.assertTrue(any("合并单元格" in item for item in warnings), warnings)
+        self.assertTrue(any("E2:E3" in item for item in warnings), warnings)
 
 
 class MainExitCodeTests(ValidatorCase):

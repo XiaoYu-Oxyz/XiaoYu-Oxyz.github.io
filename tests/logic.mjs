@@ -124,6 +124,13 @@ const r = await page.evaluate(() => {
   const blob = buildXlsxBlob([['日期'], ['2026-11-02']], '实验安排', [12], null, [['键', '值'], ['班级', 'Z1']]);
   out.xlsxBlobSize = blob instanceof Blob && blob.size > 1000;
   out.xlsxBlobType = /spreadsheetml/.test(blob.type);
+
+  // 导出文件名带日期后，导入仍要能剥回班级名
+  out.fileClassPlain = classIdFromFileName('Z1.json');
+  out.fileClassDated = classIdFromFileName('Z1-数据-2026-11-14.json');
+  out.fileClassFiltered = classIdFromFileName('Z1-筛选-数据-2026-11-14.json');
+  out.fileClassXlsx = classIdFromFileName('Z1-实验安排-2026-11-14.xlsx');
+  out.fileClassBad = classIdFromFileName('readme.txt');
   return out;
 });
 
@@ -175,7 +182,13 @@ const cases = [
   ['xlsx 只有表头时范围是 A1:B1', r.xlsxHeaderOnly, true],
   ['xmlEscape 去掉控制字符', r.xlsxControlChars, true],
   ['buildXlsxBlob 产出非空 Blob', r.xlsxBlobSize, true],
-  ['buildXlsxBlob 的 MIME 是 spreadsheetml', r.xlsxBlobType, true]
+  ['buildXlsxBlob 的 MIME 是 spreadsheetml', r.xlsxBlobType, true],
+  // 导出文件名带日期后仍可导入
+  ['文件名 Z1.json → Z1', r.fileClassPlain, 'Z1'],
+  ['文件名带日期 → Z1', r.fileClassDated, 'Z1'],
+  ['文件名 筛选+日期 → Z1-筛选', r.fileClassFiltered, 'Z1-筛选'],
+  ['文件名 xlsx 用途标签 → Z1', r.fileClassXlsx, 'Z1'],
+  ['非备份文件名返回空', r.fileClassBad, '']
 ];
 
 let failed = 0;

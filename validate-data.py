@@ -155,6 +155,28 @@ def check_class(path, errors, warnings):
         rows = list(ws.iter_rows(values_only=True))
     finally:
         wb.close()
+
+    # 合并单元格：read_only 模式下 openpyxl 读不到 merged_cells，所以单开一次
+    # （班级文件都很小）。合并会让左上角以外的行读成空值，报错却是
+    # “第 N 行实验名称为空”——用户对着 Excel 里明明有字的单元格一脸懵。
+    try:
+        full_wb = load_workbook(filename=str(path), read_only=False, data_only=True)
+        try:
+            for sheet in full_wb.worksheets:
+                ranges = list(sheet.merged_cells.ranges)
+                if not ranges:
+                    continue
+                preview = "、".join(str(item) for item in ranges[:3])
+                more = " 等 %d 处" % len(ranges) if len(ranges) > 3 else ""
+                warnings.append(
+                    "%s 的「%s」有合并单元格（%s%s）；合并后只有左上角有值，"
+                    "其余行会读成空值 —— 若报“第 N 行…为空”，请先取消合并"
+                    % (path.name, sheet.title, preview, more)
+                )
+        finally:
+            full_wb.close()
+    except Exception:
+        pass
     if not rows:
         errors.append("%s：实验安排是空工作表" % path.name)
         return 0
