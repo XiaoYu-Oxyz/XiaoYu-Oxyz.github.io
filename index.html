@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-bYLAZqeSB2WEJSzhhFRynPKEETCQhxsOdapVNB0cLw0='; script-src-elem 'sha256-bYLAZqeSB2WEJSzhhFRynPKEETCQhxsOdapVNB0cLw0='; script-src-attr 'none'; style-src 'sha256-T7WUFiUg+HnF9rFOzn1k3A32vU6SMZ18LtChVzuYGoY='; style-src-elem 'sha256-T7WUFiUg+HnF9rFOzn1k3A32vU6SMZ18LtChVzuYGoY='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-YyO3Sj9OpOcvJN1G0F4GqHzMA3iE7iA2yl40Vtjt93o='; script-src-elem 'sha256-YyO3Sj9OpOcvJN1G0F4GqHzMA3iE7iA2yl40Vtjt93o='; script-src-attr 'none'; style-src 'sha256-yKh6ROlCMJT4IQh1jwzz3KPmM4hHnvP/lafUs5ZZqdI='; style-src-elem 'sha256-yKh6ROlCMJT4IQh1jwzz3KPmM4hHnvP/lafUs5ZZqdI='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>CrseCue</title>
 <style>
@@ -363,16 +363,6 @@
     font-variant-numeric: tabular-nums;
   }
   .saved-tip { color: #2da44e; }
-  /* 「现在第几节 / 离下一节多久」：只在今天有课时出现 */
-  .period-status {
-    padding: 1px 8px; border-radius: 10px;
-    background: #eaf3ff; color: #0757b8; font-weight: 700;
-  }
-  .period-range { font-weight: 400; }
-  /* 320/360 这类窄屏：时间范围会把时钟行多折一行，直接省掉 */
-  @media (max-width: 400px) {
-    .period-range { display: none; }
-  }
 
   .legend {
     display: flex; gap: 20px; flex-wrap: wrap;
@@ -5268,40 +5258,6 @@ window.addEventListener('resize', () => {
 /* ============================================================
    9. 顶部时间
    ============================================================ */
-// 用节次时间算「此刻在第几节 / 离下一节还有多久」；今天没课就不显示
-function currentPeriodStatus(now) {
-  const today = startOfDay(now);
-  const hasToday = getExperimentEntries().some(entry => entry._date.getTime() === today.getTime());
-  if (!hasToday) return '';
-
-  const nowMin = now.getHours() * 60 + now.getMinutes();
-  const slots = Object.keys(currentPeriodTimes()).map(key => {
-    const parts = key.split('-').map(Number);
-    const start = currentPeriodTimes()[key][0];
-    const end = currentPeriodTimes()[key][1];
-    return {
-      label: `${parts[0]}-${parts[1]}节`,
-      startText: start,
-      endText: end,
-      startMin: Number(start.slice(0, 2)) * 60 + Number(start.slice(3)),
-      endMin: Number(end.slice(0, 2)) * 60 + Number(end.slice(3))
-    };
-  }).sort((a, b) => a.startMin - b.startMin);
-
-  const ongoing = slots.find(slot => nowMin >= slot.startMin && nowMin < slot.endMin);
-  if (ongoing) {
-    return { text: `${ongoing.label} 进行中`, range: `${ongoing.startText}–${ongoing.endText}` };
-  }
-
-  const upcoming = slots.find(slot => slot.startMin > nowMin);
-  if (upcoming) {
-    const mins = upcoming.startMin - nowMin;
-    const left = mins >= 60 ? `${Math.floor(mins / 60)} 小时 ${mins % 60} 分` : `${mins} 分钟`;
-    return { text: `距 ${upcoming.label} 还有 ${left}`, range: upcoming.startText };
-  }
-  return { text: '今天的课已结束', range: '' };
-}
-
 function updateClock() {
   const now = new Date();
   const wkNow = weekNoOf(now);
@@ -5319,22 +5275,6 @@ function updateClock() {
   clockTime.className = 'clock-time';
   clockTime.textContent = `${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
   frag.appendChild(clockTime);
-
-  const periodStatus = currentPeriodStatus(now);
-  if (periodStatus) {
-    frag.appendChild(document.createTextNode(' · '));
-    const span = document.createElement('span');
-    span.className = 'period-status';
-    span.textContent = periodStatus.text;
-    // 窄屏放不下具体时间：单独包一层，≤400px 时隐藏，保证时钟行不多折一行
-    if (periodStatus.range) {
-      const range = document.createElement('span');
-      range.className = 'period-range';
-      range.textContent = `（${periodStatus.range}）`;
-      span.appendChild(range);
-    }
-    frag.appendChild(span);
-  }
 
   if (usingSaved) {
     frag.appendChild(document.createTextNode(' · '));
