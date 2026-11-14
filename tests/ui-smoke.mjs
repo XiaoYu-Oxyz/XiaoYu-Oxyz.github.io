@@ -635,20 +635,21 @@ try {
   landPage.on('pageerror', error => landErrors.push(error.message));
   await landPage.goto(`${appUrl}?class=Z1`);
   await landPage.waitForSelector('#tbody tr');
-  const landCols = await landPage.evaluate(() => new Set(
-    Array.from(document.querySelectorAll('#tbody tr')).map(row => Math.round(row.getBoundingClientRect().left))
-  ).size);
-  assert.equal(landCols, 2, '横屏应为两列卡片');
-  // 两列的同一排必须顶边齐平（周分隔不能把一侧顶下去）
-  const landPairs = await landPage.evaluate(() => {
-    const rows = Array.from(document.querySelectorAll('#tbody tr'));
-    const out = [];
-    for (let i = 0; i + 1 < rows.length; i += 2) {
-      out.push(Math.abs(rows[i].getBoundingClientRect().top - rows[i + 1].getBoundingClientRect().top));
-    }
-    return out;
+  const landLayout = await landPage.evaluate(() => {
+    const rows = Array.from(document.querySelectorAll('#tbody tr')).filter(r => !r.classList.contains('note-row'));
+    const lefts = Array.from(new Set(rows.map(r => Math.round(r.getBoundingClientRect().left)))).sort((a, b) => a - b);
+    const weekStarts = rows.filter(r => r.classList.contains('week-start'));
+    return {
+      cols: lefts.length,
+      // 换周必须落到新一行的左列（否则两列会把不同周并排）
+      weekStartOnRight: weekStarts.filter(r => Math.round(r.getBoundingClientRect().left) !== lefts[0]).length,
+      // 卡片不许有 margin：两列里任何 margin 都会把同一排的另一张顶歪
+      margins: Array.from(new Set(rows.map(r => getComputedStyle(r).marginTop)))
+    };
   });
-  assert.ok(landPairs.every(diff => diff <= 1), `两列左右没有对齐：${landPairs.join(',')}`);
+  assert.equal(landLayout.cols, 2, '横屏应为两列卡片');
+  assert.equal(landLayout.weekStartOnRight, 0, '换周应掉到新一行的左列');
+  assert.deepEqual(landLayout.margins, ['0px'], `卡片不应有 margin-top：${landLayout.margins.join(',')}`);
   // 编辑模式下的行首铅笔可点开弹窗
   await landPage.locator('#actionsToggle').click();
   await landPage.locator('#editModeBtn').click();

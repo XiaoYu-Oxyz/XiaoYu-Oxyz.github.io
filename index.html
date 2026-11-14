@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-6yorD83uBsyxEgcxWuG6qBD5WxO1WVbfemo/ZgFlAjE='; script-src-elem 'sha256-6yorD83uBsyxEgcxWuG6qBD5WxO1WVbfemo/ZgFlAjE='; script-src-attr 'none'; style-src 'sha256-yWBuiy7a4QE2krgO6eX8Fd1Cy8uoY7kE3TWnuwp5btQ='; style-src-elem 'sha256-yWBuiy7a4QE2krgO6eX8Fd1Cy8uoY7kE3TWnuwp5btQ='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-6yorD83uBsyxEgcxWuG6qBD5WxO1WVbfemo/ZgFlAjE='; script-src-elem 'sha256-6yorD83uBsyxEgcxWuG6qBD5WxO1WVbfemo/ZgFlAjE='; script-src-attr 'none'; style-src 'sha256-XtSZkvrEHiko8sw6WrUKULWzpT06Ci0xIL92ziYvf1A='; style-src-elem 'sha256-XtSZkvrEHiko8sw6WrUKULWzpT06Ci0xIL92ziYvf1A='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>CrseCue</title>
 <style>
@@ -1036,7 +1036,9 @@
     .settings-row { order: 5; }
     .import-status { order: 6; }
     .clock { order: 7; font-size: 12px; margin-bottom: 8px; }
-    .legend { display: none; }
+    /* 图例在所有端都显示：小屏压成一行、可换行，颜色仍是五种状态 */
+    .legend { order: 7; flex-wrap: wrap; gap: 3px 9px; font-size: 11px; margin-bottom: 6px; }
+    .legend i { width: 9px; height: 9px; }
     .table-wrap { order: 8; min-width: 0; }
     .diag-row { order: 9; }
     .actions-toggle { padding: 7px 11px; font-size: 12.5px; min-height: 44px; }
@@ -1080,9 +1082,10 @@
        横线画在卡片的 .cell-mobile 上（tr 是表格行，伪元素在 Chrome 里不渲染）。 */
     tbody tr.week-start { margin-top: 24px; }
     tbody tr.week-start > td { border-top: 0; }
+    /* 周分隔线：左右略长于列宽、垂直落在 24px 行距正中（24/2 − 线高/2 = 11） */
     tbody tr.week-start td.cell-mobile::before {
-      content: ''; position: absolute; top: -13px; left: 50%;
-      width: 45%; max-width: 180px; height: 2px;
+      content: ''; position: absolute; top: -11px; left: 50%;
+      width: calc(100% + 12px); height: 2px;
       transform: translateX(-50%);
       background: #d0d7de; border-radius: 1px;
     }
@@ -1123,24 +1126,21 @@
     tbody tr.row-tomorrow td.cell-mobile { color: #1a7f37; font-weight: 700; }
     tbody tr.row-past td.cell-mobile { color: #6e7781; }
     tbody tr.row-past .m-name { color: #6e7781; }
-    tbody tr.row-conflict { border-left: 6px solid #c28a12; }
-    tbody tr.row-past.row-conflict { border-left-color: #c49a45; }
+    /* 冲突：卡片自带一条完整的琥珀色左边 + 极浅底纹。
+       两列并排时左右各成一条，不再用"跨卡片接续"的桥接块（那种画法在并排时会断裂）。 */
+    tbody tr.row-conflict {
+      border-left: 5px solid #c28a12;
+      background: #fffaf0;
+    }
+    tbody tr.row-past.row-conflict { border-left-color: #c49a45; background: #fdfaf3; }
+    tbody tr.row-conflict.conflict-peer { border-left-color: #8a5306; background: #fff5e0; }
     tbody tr.row-conflict td.cell-mark,
     tbody tr.row-conflict.row-past td.cell-mark {
       background: transparent; box-shadow: none;
     }
+    /* 同周内上下相邻的冲突卡：只把中间那段圆角和间距收掉，左边线照样连续 */
     tbody tr.row-conflict.conflict-join-next { border-bottom-left-radius: 0; }
-    tbody tr.row-conflict.conflict-join-top {
-      border-top-left-radius: 0; overflow: visible;
-    }
-    tbody tr.row-conflict.conflict-join-top::before {
-      content: ""; position: absolute; left: -6px; top: -14px;
-      width: 6px; height: 15px; background: #c28a12;
-      pointer-events: none; z-index: 1;
-    }
-    tbody tr.row-past.row-conflict.conflict-join-top::before {
-      background: #c49a45;
-    }
+    tbody tr.row-conflict.conflict-join-top { border-top-left-radius: 0; }
     .cell-mobile .m-line1 {
       display: flex; align-items: center; flex-wrap: wrap; gap: 2px 6px;
       font-size: 12.5px; color: #57606a; line-height: 1.6; overflow-wrap: anywhere;
@@ -1194,11 +1194,12 @@
   @media (min-width: 561px) and (max-width: 940px) {
     tbody { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: start; }
     tbody tr { margin-bottom: 0; }
-    /* 周分隔仍然是"居中的细横线"，只是两列时不能用 margin-top 留白：
-       那会把同一行的另一张卡晾在上面（左右不齐）。行距交给 gap，
-       线依旧绝对定位，不参与布局，所以左右卡片顶边始终齐平。 */
-    tbody tr.week-start { margin-top: 0; }
-    tbody tr.week-start td.cell-mobile::before { top: -6px; width: 40%; }
+    /* 换周时强制落到新一行的左列：不同周的实验不并排，分隔线才有意义 */
+    tbody tr.week-start { grid-column-start: 1; margin-top: 0; }
+    /* 两列时隔线横跨整行（左右各比一列宽出一点），垂直落在 10px 行距正中 */
+    tbody tr.week-start td.cell-mobile::before {
+      left: 0; width: calc(200% + 10px); transform: none; top: -6px;
+    }
     tbody tr.empty-row { grid-column: 1 / -1; }
     tbody tr.note-row { display: none; }
   }
@@ -1242,7 +1243,10 @@
     .wrap { padding: 10px; }
     .head { margin-bottom: 6px; }
     .head-filters { margin-bottom: 6px; }
-    .settings-row, .first-run, .legend { display: none; }
+    .settings-row, .first-run { display: none; }
+    /* 横屏也保留图例：压成一行、不额外占高（图例已在小屏规则里缩过） */
+    .legend { gap: 3px 8px; font-size: 11px; margin-bottom: 4px; }
+    .legend i { width: 8px; height: 8px; margin-right: 4px; }
     /* 头部控件也收一档：横屏时高度比可点面积更稀缺 */
     h1 { font-size: 17px; }
     .actions-toggle, .copy-week-outside { min-height: 34px; padding: 4px 8px; }
@@ -1255,7 +1259,7 @@
     .action-panel { margin-bottom: 6px; }
     tbody tr { margin-bottom: 6px; }
     /* 周分隔在横屏（两列）时同样收窄，避免压到上一行卡片 */
-    tbody tr.week-start td.cell-mobile::before { top: -6px; width: 40%; }
+
   }
 
   /* ---------- 深色模式 ----------
@@ -1296,6 +1300,38 @@
     .import-status.error { background: #3d1a1c; color: #ff9492; border-color: #6b1f24; }
     .search-hit { background: #6b4b00; color: #ffdf5d; }
     .m-place, .m-line1, .m-note { color: #8b949e; }
+
+    /* ---- 卡片布局（手机 / 两列 / 横屏）的深色版 ----
+       手机段的 `tbody tr.row-past`/`.cell-mobile .m-name` 等规则特异性高于
+       这里的 `tbody tr`，不显式覆盖的话深色下会出现"浅底 + 浅字"（几乎不可读）。 */
+    tbody tr.row-past { background: #161b22; border-color: #21262d; }
+    tbody tr.row-today { background: #2a1517; border-color: #6b1f24; }
+    tbody tr.row-tomorrow { background: #10241a; border-color: #1b4721; }
+    tbody tr.row-today td.cell-mobile { color: #ffb3b0; }
+    tbody tr.row-tomorrow td.cell-mobile { color: #7ee2a8; }
+    tbody tr.row-past td.cell-mobile { color: #8b949e; }
+    .cell-mobile .m-name { color: #e6edf3; }
+    tbody tr.row-past .cell-mobile .m-name { color: #8b949e; }
+    .cell-mobile .m-place { color: #8b949e; }
+    .cell-mobile .m-note { border-top-color: #21262d; color: #8b949e; }
+    /* 冲突卡：深底 + 琥珀左边，两条并排时各自完整 */
+    tbody tr.row-conflict { background: #241d10; border-left-color: #9e6a03; }
+    tbody tr.row-conflict.conflict-peer { background: #2c2311; border-left-color: #bb8009; }
+    tbody tr.row-past.row-conflict { background: #1d1810; border-left-color: #7d5b12; }
+    /* 周分隔线 */
+    tbody tr.week-start td.cell-mobile::before { background: #30363d; }
+    tbody tr.week-start.row-today td.cell-mobile::before { background: #6b1f24; }
+    tbody tr.week-start.row-tomorrow td.cell-mobile::before { background: #1b4721; }
+    /* 图例色块与"下一次"徽标：浅色版在深色背景上像四个亮点 */
+    .legend .dot-today { background: #5c2a2e; }
+    .legend .dot-tomorrow { background: #1b4721; }
+    .legend .dot-past { background: #30363d; }
+    .legend .dot-conflict { background: #4a3a10; }
+    .legend .dot-next { background: #0d2d4d; }
+    .next-badge { background: #0d2d4d; border-color: #1f6feb66; color: #79c0ff; }
+    .tag-today { background: #5c2a2e; color: #ffb3b0; }
+    .tag-tomorrow { background: #14351f; color: #7ee2a8; }
+    .tag-conflict { background: #4a3a10; color: #e3b341; }
 
     /* 「下一次」的浅色底规则带两个 :not()，特异性高于本条之前的写法，
        深色下会把白底刷到行上（文字仍是浅色 → 1.12:1 不可读）。这里用同样的选择器纠正。 */
