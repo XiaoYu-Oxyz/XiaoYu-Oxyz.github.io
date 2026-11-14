@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-bH01SmiDKhju70U+wLqpNhl0GI9mXlsi+PVzHh2uUGs='; script-src-elem 'sha256-bH01SmiDKhju70U+wLqpNhl0GI9mXlsi+PVzHh2uUGs='; script-src-attr 'none'; style-src 'sha256-dmTyWonD7vJ3461pORB8b1rRHe4ialb8fjn2b28AfCE='; style-src-elem 'sha256-dmTyWonD7vJ3461pORB8b1rRHe4ialb8fjn2b28AfCE='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-bH01SmiDKhju70U+wLqpNhl0GI9mXlsi+PVzHh2uUGs='; script-src-elem 'sha256-bH01SmiDKhju70U+wLqpNhl0GI9mXlsi+PVzHh2uUGs='; script-src-attr 'none'; style-src 'sha256-xm0S6N3JYLnPmg3z7ZGQmwNvrR1R+nnfaFhoFHGZ9qY='; style-src-elem 'sha256-xm0S6N3JYLnPmg3z7ZGQmwNvrR1R+nnfaFhoFHGZ9qY='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>CrseCue</title>
 <style>
@@ -418,7 +418,7 @@
   /* 冲突连线：绝对定位在表格容器里，z-index 低于卡片，所以线段只在行距/列距里露出来 */
   .conflict-link-layer { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
   .conflict-link-layer svg { display: block; width: 100%; height: 100%; overflow: visible; }
-  .conflict-link-line { stroke: #c28a12; stroke-width: 2; stroke-linecap: round; fill: none; }
+  .conflict-link-line { stroke: #b7791f; stroke-width: 2; stroke-linecap: round; fill: none; }
   tbody { position: relative; z-index: 1; }
   table { width: 100%; min-width: 860px; border-collapse: collapse; font-size: 14px; }
   #scheduleTable:focus-visible { outline: 2px solid #0969da; outline-offset: 3px; }
@@ -1139,11 +1139,11 @@
     /* 冲突：整张卡片描一圈琥珀色边框 + 极浅底纹（卡片是方角，填充也跟着方角），
        同组的两条再用一条最短对角线段连起来（见 .conflict-link-layer）。 */
     tbody tr.row-conflict {
-      border: 2px solid #c28a12;
+      border: 2px solid #b7791f;
       background: #fffaf0;
     }
-    tbody tr.row-past.row-conflict { border-color: #c49a45; background: #fdfaf3; }
-    tbody tr.row-conflict.conflict-peer { border-color: #8a5306; background: #fff5e0; }
+    tbody tr.row-past.row-conflict { border-color: #b08a45; background: #fdfaf3; }
+    tbody tr.row-conflict.conflict-peer { border-color: #8a5306; background: #fff6e3; }
     /* 边框已经表达了冲突，标记列不再重复填色 */
     tbody tr.row-conflict td.cell-mark,
     tbody tr.row-conflict.row-past td.cell-mark {
@@ -1359,10 +1359,26 @@
     .cell-mobile .m-place { color: #8b949e; }
     .cell-mobile .m-note { border-top-color: #21262d; color: #8b949e; }
     /* 冲突卡：深底 + 琥珀左边，两条并排时各自完整 */
-    tbody tr.row-conflict { background: #241d10; border-color: #9e6a03; }
-    tbody tr.row-conflict.conflict-peer { background: #2c2311; border-color: #bb8009; }
-    tbody tr.row-past.row-conflict { background: #1d1810; border-color: #7d5b12; }
-    .conflict-link-line { stroke: #d29922; }
+    /* 置灰 / 禁用态：浅色规则里写死了浅底，深色下必须逐个覆盖，否则编辑/删除模式下会冒出白块 */
+    .class-picker select:disabled,
+    .form-row input:disabled, .form-row select:disabled, .form-row textarea:disabled,
+    .import-btn:disabled, .import-btn:disabled:hover,
+    .delete-btn:disabled, .delete-btn:disabled:hover,
+    .ghost-btn:disabled, .ghost-btn:disabled:hover {
+      background: #161b22; border-color: #30363d; color: #6e7681;
+    }
+    .add-btn:disabled, .add-btn:disabled:hover {
+      background: #1f6feb; border-color: #1f6feb; color: #fff;
+    }
+    .edit-btn:disabled, .edit-btn:disabled:hover {
+      background: #21262d; border-color: #30363d; color: #6e7681;
+    }
+    /* 单选/复选：浅色用 #0969da，深色下偏暗，换亮一档 */
+    input[type="radio"], input[type="checkbox"] { accent-color: #1f6feb; }
+    tbody tr.row-conflict { background: #1f1a10; border-color: #8a6100; }
+    tbody tr.row-conflict.conflict-peer { background: #26200f; border-color: #a97400; }
+    tbody tr.row-past.row-conflict { background: #1a1710; border-color: #6b5200; }
+    .conflict-link-line { stroke: #a97400; }
     /* 周分隔线 */
     tbody tr.week-start td.cell-mobile::before { background: #30363d; }
     tbody tr.week-start.row-today td.cell-mobile::before { background: #6b1f24; }
