@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-/cqLv8UBeSlz54grXHMXzLIDNExcyhcWGLcDOR4JjKc='; script-src-elem 'sha256-/cqLv8UBeSlz54grXHMXzLIDNExcyhcWGLcDOR4JjKc='; script-src-attr 'none'; style-src 'sha256-ix3EOcpKzi5/0+uVqWur6i6xoX7Sl9oiGQzbLHKQKGE='; style-src-elem 'sha256-ix3EOcpKzi5/0+uVqWur6i6xoX7Sl9oiGQzbLHKQKGE='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-/cqLv8UBeSlz54grXHMXzLIDNExcyhcWGLcDOR4JjKc='; script-src-elem 'sha256-/cqLv8UBeSlz54grXHMXzLIDNExcyhcWGLcDOR4JjKc='; script-src-attr 'none'; style-src 'sha256-755/EyQt4CwDWbKGOEEnq8Nc5sxKM38TgJmkYWZ9M1Y='; style-src-elem 'sha256-755/EyQt4CwDWbKGOEEnq8Nc5sxKM38TgJmkYWZ9M1Y='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>CrseCue</title>
 <style>
@@ -173,7 +173,8 @@
   .cue-text.is-jumpable { cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
   .cue-text.is-jumpable:hover { text-decoration-style: solid; }
   .cue-text.is-jumpable:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; border-radius: 4px; }
-  .is-flash { outline: 3px solid #d4a72c; outline-offset: -2px; }
+  /* 跳转高亮：琥珀已被"冲突"占用，换成状态色里没有的紫 */
+  .is-flash { outline: 3px solid #8250df; outline-offset: -2px; }
   .cue-close {
     position: relative;
     margin-left: auto; flex: none;
