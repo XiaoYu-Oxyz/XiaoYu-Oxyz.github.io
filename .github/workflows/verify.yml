@@ -146,11 +146,19 @@ jobs:
       - name: Surface failures as annotations
         if: failure()
         run: |
+          # 注解每步最多显示 10 条，所以只挑"看起来是失败原因"的行，
+          # 再用"每个日志最后 4 行"兜底（避免崩在别处时完全没有信息）。
           for f in test-results/*.log; do
             [ -e "$f" ] || continue
-            echo "::group::$(basename "$f")"
-            tail -n 20 "$f" | tr -d '\r' | while IFS= read -r line; do
-              [ -n "$line" ] && echo "::error::$line"
+            echo "::group::$(basename "$f") 🔎"
+            grep -aE '(✗|AssertionError|TimeoutError|Error:|not ok|failed|失败)' "$f" \
+              | tail -n 8 | tr -d '\r' | while IFS= read -r line; do
+                [ -n "$line" ] && echo "::error::$(basename "$f"): ${line:0:900}"
+              done
+            echo "::endgroup::"
+            echo "::group::$(basename "$f") ⏹ tail"
+            tail -n 4 "$f" | tr -d '\r' | while IFS= read -r line; do
+              [ -n "$line" ] && echo "::notice::$(basename "$f") tail: ${line:0:400}"
             done
             echo "::endgroup::"
           done
