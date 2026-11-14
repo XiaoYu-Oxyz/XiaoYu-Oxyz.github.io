@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-36Vq9oj99WhKEEK43PuIGCX9zaMI5tx7rLrAOO4i7MM='; script-src-elem 'sha256-36Vq9oj99WhKEEK43PuIGCX9zaMI5tx7rLrAOO4i7MM='; script-src-attr 'none'; style-src 'sha256-RxtHp+SmcSiB/G+Ruw5QQF1VEkEmgxess7cHhaUi4TA='; style-src-elem 'sha256-RxtHp+SmcSiB/G+Ruw5QQF1VEkEmgxess7cHhaUi4TA='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-/cqLv8UBeSlz54grXHMXzLIDNExcyhcWGLcDOR4JjKc='; script-src-elem 'sha256-/cqLv8UBeSlz54grXHMXzLIDNExcyhcWGLcDOR4JjKc='; script-src-attr 'none'; style-src 'sha256-ix3EOcpKzi5/0+uVqWur6i6xoX7Sl9oiGQzbLHKQKGE='; style-src-elem 'sha256-ix3EOcpKzi5/0+uVqWur6i6xoX7Sl9oiGQzbLHKQKGE='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>CrseCue</title>
 <style>
@@ -169,6 +169,11 @@
   }
   .cue-bar.is-today { border-color: #ffc9c7; background: #fff3f2; color: #a40e26; }
   .cue-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  /* 提示条本身可点：跳到对应那条实验并闪一下 */
+  .cue-text.is-jumpable { cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
+  .cue-text.is-jumpable:hover { text-decoration-style: solid; }
+  .cue-text.is-jumpable:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; border-radius: 4px; }
+  .is-flash { outline: 3px solid #d4a72c; outline-offset: -2px; }
   .cue-close {
     position: relative;
     margin-left: auto; flex: none;
@@ -1260,6 +1265,7 @@
         <button class="ghost-btn"  id="exportBtn" type="button"><span class="label-long">导出（.xlsx/.json）</span><span class="label-short">导出</span></button>
         <button class="ghost-btn"  id="icsBtn" type="button" title="导出 .ics：导入手机日历后由系统提前 30 分钟提醒"><span class="label-long">日历（.ics）</span><span class="label-short">日历</span></button>
         <button class="ghost-btn"  id="icsCopyBtn" type="button" title="复制订阅地址：在手机日历里「订阅日历」填一次，以后数据更新会自动同步"><span class="label-long">复制订阅地址</span><span class="label-short">订阅</span></button>
+        <button class="ghost-btn"  id="wipeLocalBtn" type="button" title="清除这台设备保存的班级改动、隐藏的班级与节次时间；部署的数据不受影响"><span class="label-long">清理本机数据</span><span class="label-short">清理</span></button>
       </div>
     </div>
   </div>
@@ -1377,8 +1383,10 @@
 
       <div class="form-row">
         <label>实验地点</label>
-        <input type="text" id="formPlace" maxlength="200" placeholder="留空则显示“待定”">
+        <input type="text" id="formPlace" list="placeList" maxlength="200" placeholder="留空则显示“待定”">
       </div>
+      <!-- 已有地点做输入联想：避免「A302」「机械楼A302」写成两种，搜索命中不了 -->
+      <datalist id="placeList"></datalist>
 
       <div class="form-row">
         <label for="formNote">备注</label>
@@ -3072,7 +3080,9 @@ function renderWeekView() {
         block.style.gridRow = span;
         block.style.gridColumn = column;
       }
-      block.title = [entry.name, entry.period, entry.place].filter(Boolean).join(' · ');
+      const clippedSuffix = item.clipped ? '（节次超出 ' + WEEK_MAX_ROWS + ' 节，显示已截断）' : '';
+      block.title = [entry.name, entry.period, entry.place, entry.note].filter(Boolean).join(' · ') + clippedSuffix;
+      block.dataset.idx = String(entry._idx);
       const name = document.createElement('b');
       name.textContent = entry.name;
       block.appendChild(name);
@@ -3088,7 +3098,6 @@ function renderWeekView() {
         clipped.textContent = '…';
         clipped.setAttribute('aria-label', '节次超出显示范围，已截断');
         block.appendChild(clipped);
-        block.title += '（节次超出 ' + WEEK_MAX_ROWS + ' 节，显示已截断）';
       }
       // 课表里直接操作：默认点击=编辑；删除模式下点击=标记待删除
       if (!READ_ONLY) {
@@ -3211,8 +3220,15 @@ function render() {
       : '未选择班级';
   }
   if (printHead) {
+    // 打印稿要能看出这是筛选后的结果，否则纸面上和"全部实验"没法区分
+    const filterBits = [];
+    if (conflictOnly) filterBits.push('只看冲突');
+    const query = searchInput ? searchInput.value.trim() : '';
+    if (query) filterBits.push(`搜索「${query}」`);
+    if (recentOnly) filterBits.push('已结束仅显示本周');
+    const filterText = filterBits.length ? ` · 筛选：${filterBits.join(' + ')}` : '';
     printHead.textContent = selectedClass
-      ? `${selectedClass} 实验安排 · ${toDateStr(today)} · ${rows.length} 条`
+      ? `${selectedClass} 实验安排 · ${toDateStr(today)} · ${rows.length} 条${filterText}`
       : '未选择班级';
   }
   updateRecentCount(rows.length, allRows.length);
@@ -3298,6 +3314,7 @@ function render() {
   rows.forEach((e, rowPos) => {
     const diff = dayDiff(e._date, today);
     const tr = document.createElement('tr');
+    tr.dataset.idx = String(e._idx);
 
     // 同一周的实验连成一组，换周时打一条横线分隔（手机卡片同样生效）
     const weekKey = weekNoOf(e._date);
@@ -4632,6 +4649,7 @@ function syncCueBar() {
   if (todays.length) {
     const detail = todays.length === 1 ? withTime(todays[0]) : todays.map(entry => withTime(entry)).join('；');
     cueTextEl.textContent = `今天 ${todays.length} 节：${detail}`;
+    setCueTarget(todays[0]._idx);
     cueBarEl.classList.add('is-today');
     cueBarEl.hidden = false;
     return;
@@ -4641,6 +4659,7 @@ function syncCueBar() {
   cueBarEl.classList.remove('is-today');
   if (!next) {
     cueTextEl.textContent = '这门课暂时没有更多实验了';
+    setCueTarget(null);
     cueBarEl.hidden = false;
     return;
   }
@@ -4648,7 +4667,66 @@ function syncCueBar() {
   const dayName = WEEK_NAMES[next._date.getDay()].replace('星期', '周');
   cueTextEl.textContent = `下一节：${pad2(next._date.getMonth() + 1)}-${pad2(next._date.getDate())} ${dayName}`
     + ` ${withTime(next)}（${days} 天后）`;
+  setCueTarget(next._idx);
   cueBarEl.hidden = false;
+}
+
+// 提示条上记住目标条目的下标：点一下就能跳过去并高亮
+function setCueTarget(idx) {
+  if (!cueTextEl) return;
+  if (idx === null || idx === undefined) {
+    delete cueTextEl.dataset.idx;
+    cueTextEl.classList.remove('is-jumpable');
+    cueTextEl.removeAttribute('role');
+    cueTextEl.removeAttribute('tabindex');
+    cueTextEl.removeAttribute('title');
+    return;
+  }
+  cueTextEl.dataset.idx = String(idx);
+  cueTextEl.classList.add('is-jumpable');
+  cueTextEl.setAttribute('role', 'button');
+  cueTextEl.tabIndex = 0;
+  cueTextEl.title = '点击跳到这条实验';
+}
+
+function flashElement(el) {
+  if (!el) return;
+  el.classList.add('is-flash');
+  window.setTimeout(() => el.classList.remove('is-flash'), 1600);
+}
+
+function jumpToCueTarget() {
+  const idx = Number(cueTextEl && cueTextEl.dataset.idx);
+  if (!Number.isFinite(idx)) return;
+  const entry = experiments[idx];
+  if (!entry) return;
+  const date = parseDate(entry.date);
+  if (document.body.classList.contains('view-week')) {
+    const weekStart = startOfWeekMonday(date);
+    if (weekStart.getTime() !== weekViewStart.getTime()) {
+      weekViewStart = weekStart;
+      renderWeekView();
+    }
+    const block = weekViewEl && weekViewEl.querySelector(`.wg-item[data-idx="${idx}"]`);
+    if (block) {
+      block.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      flashElement(block);
+    }
+    return;
+  }
+  const row = tableBodyEl.querySelector(`tr[data-idx="${idx}"]`);
+  if (!row) return;
+  row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  flashElement(row);
+}
+
+if (cueTextEl) {
+  cueTextEl.addEventListener('click', jumpToCueTarget);
+  cueTextEl.addEventListener('keydown', event => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    jumpToCueTarget();
+  });
 }
 
 const cueCloseBtn = document.getElementById('cueClose');
@@ -5390,9 +5468,34 @@ function resetForm() {
   updateFormConflictHint();
 }
 
+// 已有地点做输入联想：同一个地方写成两种写法，搜索就命不中
+function refreshPlaceSuggestions() {
+  const list = document.getElementById('placeList');
+  if (!list) return;
+  const seen = new Map();
+  const collect = items => {
+    (items || []).forEach(item => {
+      const place = String(item && item.place ? item.place : '').trim();
+      if (!place || place === '待定') return;
+      const key = place.toLowerCase();
+      if (!seen.has(key)) seen.set(key, place);
+    });
+  };
+  classIds.forEach(id => {
+    collect(id === selectedClass ? experiments : (readClassStored(id) || getDefaultClassExperiments(id)));
+  });
+  const values = [...seen.values()].sort((a, b) => a.localeCompare(b, 'zh-Hans-CN'));
+  list.replaceChildren(...values.slice(0, 100).map(place => {
+    const option = document.createElement('option');
+    option.value = place;
+    return option;
+  }));
+}
+
 function openModal(prefill) {
   editingIndex = null;
   resetForm();
+  refreshPlaceSuggestions();
   // 课表里点空格：按日期模式预填该天与节次，直接输入名称即可
   const prefilled = !!(prefill && prefill.date);
   if (prefilled) {
@@ -5423,6 +5526,7 @@ function openEditModal(idx, opener) {
   if (!item) return;
 
   resetForm();
+  refreshPlaceSuggestions();
   editingIndex = idx;
   modalTitle.textContent = '编辑实验';
   modalSubmit.textContent = '保存修改';
@@ -6869,14 +6973,38 @@ document.getElementById('icsCopyBtn').addEventListener('click', () => {
 // 诊断信息：粘到群里就能定位"为什么显示不对"
 document.getElementById('diagBtn').addEventListener('click', () => {
   const shownRows = document.querySelectorAll('#tbody tr:not(.note-row)').length;
+  // 本机存储占用：换学期/长期使用后，用户最需要知道这份缓存有多大
+  let usedBytes = 0;
+  let usedKeys = 0;
+  try {
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const key = localStorage.key(i);
+      if (!key || !key.startsWith(STORAGE_PREFIX)) continue;
+      usedKeys += 1;
+      usedBytes += (key.length + String(localStorage.getItem(key) || '').length) * 2;
+    }
+  } catch (e) {}
+  const timesSource = readStoredClassTimes(selectedClass)
+    ? '本机保存'
+    : (DEFAULT_CLASS_TIMES.has(selectedClass) ? '页面数据' : '内置默认');
+  const filterBits = [];
+  if (recentOnly) filterBits.push('已结束仅显示本周');
+  if (conflictOnly) filterBits.push('只看冲突');
+  const query = searchInput ? searchInput.value.trim() : '';
+  if (query) filterBits.push(`搜索「${query}」`);
+
   const text = [
-    '【实验课提醒 · 诊断信息】',
+    '【CrseCue · 诊断信息】',
     '时间：' + new Date().toLocaleString('zh-CN'),
     '班级：' + (selectedClass || '（无）'),
     '该班实验：' + experiments.length + ' 条，当前显示 ' + shownRows + ' 条',
     '数据版本：' + (DATA_UPDATED_AT || '未知'),
     '第 1 周星期一：' + toDateStr(week1Start),
     '本机数据：' + (usingSaved ? '有（只在这台设备）' : '无'),
+    '本机存储：' + usedKeys + ' 个键 / ' + (usedBytes / 1024).toFixed(1) + ' KB',
+    '节次时间来源：' + timesSource,
+    '当前筛选：' + (filterBits.length ? filterBits.join(' + ') : '无'),
+    '视图：' + (document.body.classList.contains('view-week') ? '课表' : '列表'),
     '模式：' + (READ_ONLY ? '只读' : '可编辑'),
     '视口：' + window.innerWidth + '×' + window.innerHeight,
     'UA：' + navigator.userAgent
@@ -6888,6 +7016,45 @@ document.getElementById('diagBtn').addEventListener('click', () => {
     showCopyFallback(text, '诊断信息');
   }
 });
+
+// 清理本机数据：只清这台设备上的覆盖，部署数据不动
+const wipeLocalBtn = document.getElementById('wipeLocalBtn');
+if (wipeLocalBtn) {
+  wipeLocalBtn.addEventListener('click', async () => {
+    if (READ_ONLY) {
+      showStatus('warn', '只读链接不会写入本机数据，无需清理');
+      return;
+    }
+    const keys = [];
+    try {
+      for (let i = 0; i < localStorage.length; i += 1) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith(STORAGE_PREFIX)) keys.push(key);
+      }
+    } catch (e) {}
+    if (!keys.length) {
+      showStatus('ok', '本机没有可清理的数据');
+      return;
+    }
+    let bytes = 0;
+    keys.forEach(key => {
+      try { bytes += (key.length + String(localStorage.getItem(key) || '').length) * 2; } catch (e) {}
+    });
+    const ok = await askConfirm({
+      title: '清理本机数据？',
+      message: `将删除这台设备上保存的 ${keys.length} 项数据（约 ${(bytes / 1024).toFixed(1)} KB）：班级改动、隐藏的内置班、班级节次时间与当前选择。`,
+      detail: '只影响这台设备，部署的数据不会变。清理后页面会重新加载；需要保留请先导出。',
+      okText: '清理'
+    });
+    if (!ok) return;
+    keys.forEach(key => {
+      try { localStorage.removeItem(key); } catch (e) {}
+    });
+    try { sessionStorage.removeItem(VIEW_STATE_KEY); } catch (e) {}
+    showStatus('ok', `已清理 ${keys.length} 项本机数据，正在重新加载…`);
+    window.setTimeout(() => { window.location.reload(); }, 600);
+  });
+}
 
 // 键盘 /：展开「操作」面板并聚焦搜索（桌面快捷入口；手机从「操作」进入）
 document.addEventListener('keydown', ev => {
