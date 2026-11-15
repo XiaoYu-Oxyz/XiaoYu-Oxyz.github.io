@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-0uOux32SDZevz8BFqExCKk4bvTMDjoRf+Sr+T1NYwkk='; script-src-elem 'sha256-0uOux32SDZevz8BFqExCKk4bvTMDjoRf+Sr+T1NYwkk='; script-src-attr 'none'; style-src 'sha256-xwKQP5BkoKAVQXxXugwnMYk2I8ZU79isytWSPoVK6h8='; style-src-elem 'sha256-xwKQP5BkoKAVQXxXugwnMYk2I8ZU79isytWSPoVK6h8='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-2UWSoHL/hCNd5fRmUSzp+yjjxIYQA81yAHiOIjiFkbQ='; script-src-elem 'sha256-2UWSoHL/hCNd5fRmUSzp+yjjxIYQA81yAHiOIjiFkbQ='; script-src-attr 'none'; style-src 'sha256-xwKQP5BkoKAVQXxXugwnMYk2I8ZU79isytWSPoVK6h8='; style-src-elem 'sha256-xwKQP5BkoKAVQXxXugwnMYk2I8ZU79isytWSPoVK6h8='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>CrseCue</title>
 <style>
@@ -3569,7 +3569,11 @@ function render() {
   const nextTitle = nextDate
     ? `下一次实验：${toDateStr(nextDate)}，${nextDays === 0 ? '就是今天' : `还有 ${nextDays} 天`}`
     : '';
-  if (nextLegend) nextLegend.hidden = !nextDate;
+  // 「下一次」只服务于"还没到跟前"的那天：最近一次就是今天/明天时，
+  // 行上已经有「今天 / 明天」标签，蓝框和"N天后"徽标都属于重复表达，一并让位。
+  const nextIsImminent = nextDays === 0 || nextDays === 1;
+  const nextHighlightable = !!nextDate && !nextIsImminent;
+  if (nextLegend) nextLegend.hidden = !nextHighlightable;
 
   if (!selectedClass) {
     const tr = document.createElement('tr');
@@ -3663,7 +3667,8 @@ function render() {
       tagClass = 'tag tag-past';
     }
 
-    const isNext = !!nextDate && e._date.getTime() === nextDate.getTime();
+    // 今天/明天那行不再叠加"下一次"（蓝框 + N天后徽标），状态只由今天/明天表达
+    const isNext = nextHighlightable && e._date.getTime() === nextDate.getTime();
     if (isNext) {
       tr.classList.add('row-next');
       tr.dataset.next = '1';

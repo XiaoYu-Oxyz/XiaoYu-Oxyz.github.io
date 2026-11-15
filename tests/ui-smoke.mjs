@@ -37,6 +37,20 @@ const waitNotValue = (locator, expected) => poll(async () => (await locator.inpu
 const waitText = (locator, pattern) => poll(async () => pattern.test(await locator.innerText()), `innerText 匹配 ${pattern}`);
 const waitAttr = (locator, name, expected) => poll(async () => (await locator.getAttribute(name)) === expected, `${name} = ${expected}`);
 const waitCount = (locator, expected) => poll(async () => (await locator.count()) === expected, `count = ${expected}`);
+
+// 对比度：深色下「下一次」行曾因规则特异性变成 1.12:1；这里留一条与真实日期无关的恒定断言
+function relLum(rgb) {
+  const parts = (rgb.match(/\d+/g) || []).slice(0, 3).map(Number).map(v => {
+    const s = v / 255;
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * parts[0] + 0.7152 * parts[1] + 0.0722 * parts[2];
+}
+function contrastRatio(fg, bg) {
+  const a = relLum(fg), c = relLum(bg);
+  const hi = Math.max(a, c), lo = Math.min(a, c);
+  return (hi + 0.05) / (lo + 0.05);
+}
 const waitVisible = (locator, expected) => poll(async () => (await locator.isVisible()) === expected, `visible = ${expected}`);
 // 焦点归位走 setTimeout(0)，必须轮询，不能点完立刻断言
 const waitFocus = (page, id) => poll(async () => (await page.evaluate(() => document.activeElement.id)) === id, `focus = ${id}`);
@@ -1046,6 +1060,66 @@ try {
       assert.equal(sep.isToday, true, '前置条件：该行应标记为今天');
       assert.equal(sep.mobile, expected, `${scheme} 下换周线不应跟随今天变红/绿，实际 ${sep.mobile}`);
       await sepCtx.close();
+    }
+  }
+  // 21. 「下一次」让位给「今天 / 明天」：最近一次就在今天或明天时，不再叠加蓝框与 N 天后徽标
+  {
+    const cases = [
+      { label: '明天', time: '2026-11-15T12:00:00', date: '2026-11-16', name: '明天实验', expectNext: false },
+      { label: '今天', time: '2026-11-16T12:00:00', date: '2026-11-16', name: '今天实验', expectNext: false },
+      { label: '三天后', time: '2026-11-15T12:00:00', date: '2026-11-18', name: '三天后实验', expectNext: true }
+    ];
+    for (const item of cases) {
+      const nextCtx = await browser.newContext({ viewport: { width: 390, height: 900 } });
+      const nextPage = await nextCtx.newPage();
+      await nextPage.clock.install({ time: new Date(item.time) });
+      await nextPage.addInitScript(rows => {
+        localStorage.setItem('ghpages:zhizao2402:classdata:v1:Z1', JSON.stringify(rows));
+      }, [{ date: item.date, period: '第3-4节', name: item.name, place: 'A1', note: '' }]);
+      await nextPage.goto(`${appUrl}?class=Z1`);
+      await nextPage.waitForSelector('tbody tr[data-idx]');
+      await nextPage.waitForTimeout(300);
+      const state = await nextPage.evaluate(() => {
+        const row = document.querySelector('tbody tr[data-idx]');
+        const legend = document.getElementById('nextLegend');
+        return {
+          isNextRow: row.classList.contains('row-next'),
+          nextBadge: row.querySelectorAll('.next-badge').length,
+          tag: (row.querySelector('.tag') || {}).textContent || '',
+          legendHidden: legend ? legend.hidden : null
+        };
+      });
+      if (item.expectNext) {
+        assert.equal(state.isNextRow, true, `${item.label}：3 天后应保留 row-next`);
+        assert.ok(state.nextBadge >= 1, `${item.label}：3 天后应有 N 天后徽标（桌面/卡片各一个）`);
+        assert.equal(state.legendHidden, false, `${item.label}：图例「下一次」应可见`);
+        // 与真实日期无关的深色对比度守护：视觉冒烟在"最近一次是今天/明天"时会跳过「下一次」那项
+        const contrastCtx = await browser.newContext({ viewport: { width: 390, height: 900 }, colorScheme: 'dark' });
+        const contrastPage = await contrastCtx.newPage();
+        await contrastPage.clock.install({ time: new Date(item.time) });
+        await contrastPage.addInitScript(rows => {
+          localStorage.setItem('ghpages:zhizao2402:classdata:v1:Z1', JSON.stringify(rows));
+        }, [{ date: item.date, period: '第3-4节', name: item.name, place: 'A1', note: '' }]);
+        await contrastPage.goto(`${appUrl}?class=Z1`);
+        await contrastPage.waitForSelector('tbody tr[data-idx].row-next');
+        const colors = await contrastPage.evaluate(() => {
+          const cell = document.querySelector('tbody tr.row-next td.cell-mobile');
+          const row = document.querySelector('tbody tr.row-next');
+          const fg = getComputedStyle(cell).color;
+          let bg = getComputedStyle(cell).backgroundColor;
+          if (/rgba\(0, 0, 0, 0\)/.test(bg)) bg = getComputedStyle(row).backgroundColor;
+          return { fg, bg };
+        });
+        const ratio = contrastRatio(colors.fg, colors.bg);
+        assert.ok(ratio >= 4.5, `深色「下一次」行对比度 ${ratio.toFixed(2)} < 4.5（${colors.fg} on ${colors.bg}）`);
+        await contrastCtx.close();
+      } else {
+        assert.equal(state.isNextRow, false, `${item.label}：已有今天/明天标记时不应再加 row-next`);
+        assert.equal(state.nextBadge, 0, `${item.label}：不应再显示 N 天后徽标`);
+        assert.equal(state.tag, item.label, `${item.label}：应保留今天/明天标签`);
+        assert.equal(state.legendHidden, true, `${item.label}：没有行在用蓝色时图例应隐藏「下一次」`);
+      }
+      await nextCtx.close();
     }
   }
   console.log('UI smoke OK');
