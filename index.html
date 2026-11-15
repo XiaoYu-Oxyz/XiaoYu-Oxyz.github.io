@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-2UWSoHL/hCNd5fRmUSzp+yjjxIYQA81yAHiOIjiFkbQ='; script-src-elem 'sha256-2UWSoHL/hCNd5fRmUSzp+yjjxIYQA81yAHiOIjiFkbQ='; script-src-attr 'none'; style-src 'sha256-xwKQP5BkoKAVQXxXugwnMYk2I8ZU79isytWSPoVK6h8='; style-src-elem 'sha256-xwKQP5BkoKAVQXxXugwnMYk2I8ZU79isytWSPoVK6h8='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-2UWSoHL/hCNd5fRmUSzp+yjjxIYQA81yAHiOIjiFkbQ='; script-src-elem 'sha256-2UWSoHL/hCNd5fRmUSzp+yjjxIYQA81yAHiOIjiFkbQ='; script-src-attr 'none'; style-src 'sha256-yoVbAMQ/dMG6sZC+rU8B9tLhFJ5TD4f3syqyr+TJl5s='; style-src-elem 'sha256-yoVbAMQ/dMG6sZC+rU8B9tLhFJ5TD4f3syqyr+TJl5s='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>CrseCue</title>
 <style>
@@ -1402,6 +1402,29 @@
     }
     /* 单选/复选：浅色用 #0969da，深色下偏暗，换亮一档 */
     input[type="radio"], input[type="checkbox"] { accent-color: #1f6feb; }
+    /* 删除模式里"已标记"的行：浅色是 #f7f8fa 浅底（深色下等于一块白板），
+       这里压回深底 + 灰字，并把标记按钮的绿换成深色版绿 */
+    tbody tr.row-marked td { background: transparent; color: #6e7681; }
+    tbody tr.row-marked td.cell-mark { background: transparent; }
+    tbody tr.row-marked .cell-mobile .m-name { color: #8b949e; }
+    .mark-btn[aria-pressed="true"], .mark-btn[aria-pressed="true"]:hover {
+      background: #000; border-color: #3fb950; color: #3fb950;
+    }
+    /* 状态栏里的「撤销」按钮：浅色是半透明白底，深色下会变成一块浅色药丸 */
+    .status-action { background: rgba(255, 255, 255, .12); color: inherit; }
+    .status-action:hover { background: rgba(255, 255, 255, .22); }
+    /* 导入弹窗的几块浅底：摘要、同名提示、选中的方式卡、推荐徽标 */
+    .import-summary { background: #0d1117; border-color: #30363d; color: #c9d1d9; }
+    .import-summary b { color: #58a6ff; }
+    .form-conflict, .import-conflict { background: #1f1a10; border-left-color: #8a6100; color: #d4a72c; }
+    .mode-card.selected { background: #0d2d4d; border-color: #1f6feb; }
+    .mode-card:hover { background: #161b22; }
+    .mode-card .mode-badge { background: #14351f; border-color: #1b4721; color: #7ee2a8; }
+    .import-skipped { color: #8b949e; }
+    /* 同名同时间提示盒（导入弹窗里的 conflict-box）：浅黄底 → 深琥珀底 */
+    .conflict-box { background: #1f1a10; border-color: #4a3a10; color: #d4a72c; }
+    .conflict-box select { background: #0d1117; border-color: #4a3a10; color: #c9d1d9; }
+    .import-skipped summary { color: #d4a72c; }
     tbody tr.row-conflict { background: #1f1a10; border-color: #8a6100; }
     tbody tr.row-conflict.conflict-peer { background: #26200f; border-color: #a97400; }
     tbody tr.row-past.row-conflict { background: #1a1710; border-color: #6b5200; }

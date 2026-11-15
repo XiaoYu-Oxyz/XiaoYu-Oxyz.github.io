@@ -1122,6 +1122,77 @@ try {
       await nextCtx.close();
     }
   }
+  // 22. 深色模式不许出现浅色块：任何一种状态下，可见元素的不透明背景亮度都要 ≤0.45
+  //     （删除模式里"已标记"的行、状态栏的撤销按钮、导入弹窗的几块浅底都曾整块发白。）
+  {
+    const states = [
+      ['基础列表', async () => {}],
+      ['操作面板', async page => { await page.locator('#actionsToggle').click(); }],
+      ['编辑模式', async page => {
+        await page.locator('#actionsToggle').click();
+        await page.locator('#editModeBtn').click();
+      }],
+      ['删除模式+已标记', async page => {
+        await page.locator('#actionsToggle').click();
+        await page.locator('#deleteModeBtn').click();
+        await page.waitForTimeout(250);
+        await page.evaluate(() => document.querySelector('tbody tr[data-idx] .mark-btn').click());
+      }],
+      ['删除后的撤销条', async page => {
+        await page.locator('#actionsToggle').click();
+        await page.locator('#deleteModeBtn').click();
+        await page.waitForTimeout(250);
+        await page.evaluate(() => document.querySelector('tbody tr[data-idx] .mark-btn').click());
+        await page.waitForTimeout(150);
+        await page.locator('#deleteModeBtn').click();
+        await page.waitForTimeout(700);
+      }],
+      ['导出弹窗', async page => {
+        await page.locator('#actionsToggle').click();
+        await page.locator('#exportBtn').click();
+        await page.waitForTimeout(350);
+      }],
+      ['课表视图', async page => {
+        await page.evaluate(() => setView('week', false));
+        await page.waitForTimeout(400);
+      }]
+    ];
+    for (const [label, setup] of states) {
+      const darkCtx = await browser.newContext({ viewport: { width: 390, height: 900 }, colorScheme: 'dark' });
+      const darkPage = await darkCtx.newPage();
+      await darkPage.goto(`${appUrl}?class=Z2`);
+      await darkPage.waitForSelector('tbody tr[data-idx]');
+      await setup(darkPage);
+      await darkPage.waitForTimeout(200);
+      const lightBlocks = await darkPage.evaluate(() => {
+        const toLum = parts => {
+          const q = parts.map(Number).map(v => {
+            const s = v / 255;
+            return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+          });
+          return 0.2126 * q[0] + 0.7152 * q[1] + 0.0722 * q[2];
+        };
+        const out = [];
+        for (const el of document.querySelectorAll('body *')) {
+          if (el.closest('svg')) continue;
+          const cs = getComputedStyle(el);
+          if (cs.display === 'none' || cs.visibility === 'hidden') continue;
+          const rect = el.getBoundingClientRect();
+          if (rect.width < 4 || rect.height < 4) continue;
+          const m = cs.backgroundColor.match(/rgba?\((\d+), (\d+), (\d+)(?:, ([\d.]+))?\)/);
+          if (!m) continue;
+          const alpha = m[4] === undefined ? 1 : Number(m[4]);
+          if (alpha < 0.5) continue;
+          if (toLum([m[1], m[2], m[3]]) > 0.45) {
+            out.push((el.id ? '#' + el.id : el.tagName.toLowerCase() + '.' + String(el.className).split(' ').slice(0, 2).join('.')) + ' ' + cs.backgroundColor);
+          }
+        }
+        return Array.from(new Set(out)).slice(0, 6);
+      });
+      assert.deepEqual(lightBlocks, [], `深色「${label}」出现浅色块：${lightBlocks.join('；')}`);
+      await darkCtx.close();
+    }
+  }
   console.log('UI smoke OK');
 } finally {
   fs.rmSync(fixtureDir, { force: true, recursive: true });
