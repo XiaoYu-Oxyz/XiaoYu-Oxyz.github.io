@@ -726,6 +726,53 @@ try {
   assert.ok(conflict.lines.every(n => n <= 40), `连线应是最短线段：${conflict.lines.join(',')}`);
   await confCtx.close();
 
+  // 14. 按钮只用"文字色 + 边框色"表达：亮色底纯白、暗色底纯黑，不允许彩色填充。
+  const styleCtx = await browser.newContext({ viewport: { width: 360, height: 792 } });
+  const stylePage = await styleCtx.newPage();
+  await stylePage.emulateMedia({ colorScheme: 'light' });
+  await stylePage.goto(`${appUrl}?class=Z2`);
+  await stylePage.waitForSelector('#tbody tr');
+  await stylePage.locator('#actionsToggle').click();
+  await stylePage.locator('#editModeBtn').click();
+  // 按钮有 .15s 的颜色过渡：读样式前必须等它走完，否则读到的是插值色
+  await stylePage.waitForTimeout(400);
+  const btnColors = () => stylePage.evaluate(() => {
+    const take = selector => {
+      const el = document.querySelector(selector);
+      if (!el) return null;
+      const cs = getComputedStyle(el);
+      return { bg: cs.backgroundColor, fg: cs.color, border: cs.borderTopColor };
+    };
+    return {
+      add: take('#addBtn'),
+      importBtn: take('#importBtn'),
+      editActive: take('#editModeBtn'),
+      del: take('#deleteModeBtn'),
+      ghost: take('#exportBtn'),
+      toggle: take('#actionsToggle'),
+      rowIcon: take('.edit-row-btn')
+    };
+  });
+  const light = await btnColors();
+  for (const [name, value] of Object.entries(light)) {
+    if (!value) continue;
+    assert.equal(value.bg, 'rgb(255, 255, 255)', `亮色按钮 ${name} 底色应为纯白，实际 ${value.bg}`);
+    assert.notEqual(value.fg, value.bg, `亮色按钮 ${name} 的文字不能和底色相同`);
+  }
+  // 主操作 / 激活态必须是"有色边框 + 同色文字"
+  assert.equal(light.add.fg, light.add.border, '添加实验的边框与文字应同色');
+  assert.equal(light.editActive.fg, light.editActive.border, '编辑激活态的边框与文字应同色');
+
+  await stylePage.emulateMedia({ colorScheme: 'dark' });
+  await stylePage.waitForTimeout(400);
+  const dark = await btnColors();
+  for (const [name, value] of Object.entries(dark)) {
+    if (!value) continue;
+    assert.equal(value.bg, 'rgb(0, 0, 0)', `暗色按钮 ${name} 底色应为纯黑，实际 ${value.bg}`);
+    assert.notEqual(value.fg, value.bg, `暗色按钮 ${name} 的文字不能和底色相同`);
+  }
+  await styleCtx.close();
+
   console.log('UI smoke OK');
 } finally {
   fs.rmSync(fixtureDir, { force: true, recursive: true });

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-5qz8xWm+ZpIutHB5m5kdnmu/bu8OveKecXTlrqUQbB0='; script-src-elem 'sha256-5qz8xWm+ZpIutHB5m5kdnmu/bu8OveKecXTlrqUQbB0='; script-src-attr 'none'; style-src 'sha256-gWvAszpSVJb2OscNFTWP1HvYVb/LMvVepVe++yTtxhA='; style-src-elem 'sha256-gWvAszpSVJb2OscNFTWP1HvYVb/LMvVepVe++yTtxhA='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-5qz8xWm+ZpIutHB5m5kdnmu/bu8OveKecXTlrqUQbB0='; script-src-elem 'sha256-5qz8xWm+ZpIutHB5m5kdnmu/bu8OveKecXTlrqUQbB0='; script-src-attr 'none'; style-src 'sha256-4E0N+aQMjF5CrooUcn8JHY6Al0CoS8xC918OjUTRcMc='; style-src-elem 'sha256-4E0N+aQMjF5CrooUcn8JHY6Al0CoS8xC918OjUTRcMc='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>CrseCue</title>
 <style>
@@ -54,7 +54,7 @@
     border-radius: 8px; cursor: pointer; font-family: inherit; white-space: nowrap;
     transition: background .15s, border-color .15s;
   }
-  .actions-toggle:hover { background: #f6f8fa; border-color: #afb8c1; }
+  .actions-toggle:hover { border-color: #afb8c1; }
   .actions-toggle .caret {
     display: inline-block; color: #57606a; font-size: 11px;
     line-height: 1; transition: transform .15s;
@@ -309,27 +309,27 @@
   .data-updated[hidden] { display: none !important; }
   .import-btn {
     padding: 8px 16px; font-size: 14px; font-weight: 600; line-height: 1.4;
-    color: #24292f; background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 8px;
+    color: #24292f; background: #fff; border: 1px solid #d0d7de; border-radius: 8px;
     cursor: pointer; font-family: inherit; white-space: nowrap;
     transition: background .15s, border-color .15s;
   }
-  .import-btn:hover { background: #eaeef2; border-color: #afb8c1; }
-  .import-btn:disabled { background: #f6f8fa; color: #b8c0c8; cursor: not-allowed; }
+  .import-btn:hover { border-color: #afb8c1; }
+  .import-btn:disabled { color: #8c959f; border-color: #d0d7de; cursor: not-allowed; }
   .ghost-btn {
     padding: 8px 14px; font-size: 13px; font-weight: 600; line-height: 1.4;
     color: #57606a; background: #fff; border: 1px solid #d0d7de; border-radius: 8px;
     cursor: pointer; font-family: inherit; white-space: nowrap;
     transition: background .15s;
   }
-  .ghost-btn:hover { background: #f6f8fa; }
+  .ghost-btn:hover { border-color: #afb8c1; color: #24292f; }
   .add-btn {
     padding: 8px 16px; font-size: 14px; font-weight: 600; line-height: 1.4;
-    color: #fff; background: #0969da; border: 1px solid #0969da; border-radius: 8px;
+    color: #0969da; background: #fff; border: 1px solid #0969da; border-radius: 8px;
     cursor: pointer; font-family: inherit; white-space: nowrap;
     transition: background .15s, border-color .15s;
   }
-  .add-btn:hover { background: #0757b8; border-color: #0757b8; }
-  .add-btn:active { background: #0550ae; border-color: #0550ae; }
+  .add-btn:hover { border-color: #0757b8; color: #0757b8; }
+  .add-btn:active { border-color: #0550ae; color: #0550ae; }
 
   /* 第 1 周设置行 */
   .settings-row {
@@ -536,30 +536,30 @@
   .delete-btn {
     width: 88px; padding: 8px 0; text-align: center;
     font-size: 13px; font-weight: 600; line-height: 1.4;
-    color: #cf222e; background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 8px;
+    color: #cf222e; background: #fff; border: 1px solid #d0d7de; border-radius: 8px;
     cursor: pointer; font-family: inherit; white-space: nowrap;
     transition: background .15s, color .15s, border-color .15s;
   }
-  .delete-btn:hover { background: #ffebe9; border-color: #ff8182; }
+  .delete-btn:hover { border-color: #ff8182; color: #a40e26; }
   .delete-btn.active {
-    color: #fff; background: #cf222e; border-color: #cf222e;
-    box-shadow: 0 1px 4px rgba(207,34,46,.25);
+    color: #cf222e; background: #fff; border-color: #cf222e;
+    box-shadow: inset 0 0 0 1px currentColor;
   }
-  .delete-btn.active:hover { background: #a40e26; border-color: #a40e26; }
+  .delete-btn.active:hover { color: #a40e26; border-color: #a40e26; }
 
   .edit-btn {
     width: 88px; padding: 8px 0; text-align: center;
     font-size: 13px; font-weight: 600; line-height: 1.4;
-    color: #24292f; background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 8px;
+    color: #24292f; background: #fff; border: 1px solid #d0d7de; border-radius: 8px;
     cursor: pointer; font-family: inherit; white-space: nowrap;
     transition: background .15s, color .15s, border-color .15s;
   }
-  .edit-btn:hover { background: #eaeef2; border-color: #afb8c1; }
+  .edit-btn:hover { border-color: #afb8c1; }
   .edit-btn.active {
-    color: #fff; background: #0969da; border-color: #0969da;
-    box-shadow: 0 1px 4px rgba(9,105,218,.25);
+    color: #0969da; background: #fff; border-color: #0969da;
+    box-shadow: inset 0 0 0 1px currentColor;
   }
-  .edit-btn.active:hover { background: #0757b8; border-color: #0757b8; }
+  .edit-btn.active:hover { color: #0757b8; border-color: #0757b8; }
 
   .ghost-btn:disabled, .ghost-btn:disabled:hover,
   .add-btn:disabled, .add-btn:disabled:hover,
@@ -567,8 +567,8 @@
     opacity: .45; cursor: not-allowed;
   }
   .ghost-btn:disabled:hover { background: #fff; }
-  .add-btn:disabled:hover { background: #2da44e; }
-  .edit-btn:disabled:hover { background: #f5f9ff; }
+  .add-btn:disabled:hover { border-color: #0969da; color: #0969da; }
+  .edit-btn:disabled:hover { border-color: #d0d7de; color: #24292f; }
   .delete-btn:disabled, .delete-btn:disabled:hover {
     opacity: .45; cursor: not-allowed; background: #fff;
   }
@@ -1294,9 +1294,9 @@
     input[type="date"] { color-scheme: dark; }
     input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(.75); cursor: pointer; }
     .actions-toggle, .ghost-btn, .export-choice, .target-card, .mode-card {
-      background: #161b22; color: #adbac7; border-color: #30363d;
+      background: #000; color: #adbac7; border-color: #30363d;
     }
-    .actions-toggle:hover, .ghost-btn:hover, .export-choice:hover { background: #21262d; border-color: #484f58; }
+    .actions-toggle:hover, .ghost-btn:hover, .export-choice:hover { background: #000; border-color: #484f58; }
     /* 操作面板按钮：一律"黑底 + 有色描边与文字"，不再用大面积彩色填充。
        主操作（添加）用蓝色边字，危险动作（删除）用红色边字，其余中性灰。 */
     .add-btn, .add-btn:hover, .add-btn:active,
@@ -1315,9 +1315,9 @@
     .import-btn:hover, .edit-btn:hover, .ghost-btn:hover, .delete-btn:hover { border-color: #484f58; }
     .delete-btn, .delete-btn:disabled, .delete-btn:disabled:hover { color: #ff7b72; }
     .edit-btn.active { background: #000; border-color: #1f6feb; color: #79c0ff; }
-    .edit-btn.active:hover { background: #000; border-color: #388bfd; }
+    .edit-btn.active:hover { background: #000; border-color: #388bfd; color: #79c0ff; }
     .delete-btn.active { background: #000; border-color: #f85149; color: #ff7b72; }
-    .delete-btn.active:hover { background: #000; border-color: #ff7b72; }
+    .delete-btn.active:hover { background: #000; border-color: #ff7b72; color: #ff7b72; }
     /* 行内笔 / 圈杠按钮：同样黑底 + 有色描边（原来背景是 #fff，深色下是白方块） */
     .mark-btn { background: #000; border-color: #da3633; color: #ff7b72; }
     .mark-btn:hover { background: #14080a; border-color: #f85149; }
