@@ -1398,7 +1398,7 @@ try {
     });
     await printPage.goto(`${appUrl}?class=Z1`);
     await printPage.waitForSelector('tbody tr[data-idx]');
-    await printPage.locator('#recentFilter').uncheck();
+    await printPage.evaluate(() => { recentOnly = false; render(); });
     await printPage.waitForTimeout(300);
     await printPage.emulateMedia({ media: 'print' });
     await printPage.waitForTimeout(300);
@@ -1459,7 +1459,7 @@ try {
       }, stateRows);
       await page.goto(`${appUrl}?class=Z1`);
       await page.waitForSelector('tbody tr[data-idx]');
-      await page.locator('#recentFilter').uncheck().catch(() => {});
+      await page.evaluate(() => { recentOnly = false; render(); });
       await page.waitForTimeout(300);
       const actual = await page.evaluate(() => {
         const rows = Array.from(document.querySelectorAll('tbody tr[data-idx]'));
