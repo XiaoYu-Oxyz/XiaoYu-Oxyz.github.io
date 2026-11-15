@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-0uOux32SDZevz8BFqExCKk4bvTMDjoRf+Sr+T1NYwkk='; script-src-elem 'sha256-0uOux32SDZevz8BFqExCKk4bvTMDjoRf+Sr+T1NYwkk='; script-src-attr 'none'; style-src 'sha256-i6h0D/0rIrZcZTbiTeIJGPGA/ru//yXLlgevMUQE9Is='; style-src-elem 'sha256-i6h0D/0rIrZcZTbiTeIJGPGA/ru//yXLlgevMUQE9Is='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-0uOux32SDZevz8BFqExCKk4bvTMDjoRf+Sr+T1NYwkk='; script-src-elem 'sha256-0uOux32SDZevz8BFqExCKk4bvTMDjoRf+Sr+T1NYwkk='; script-src-attr 'none'; style-src 'sha256-3duHqCuvACcgxiLs1uUXeszrwfBOdb96Rkvzd2u62sw='; style-src-elem 'sha256-3duHqCuvACcgxiLs1uUXeszrwfBOdb96Rkvzd2u62sw='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>CrseCue</title>
 <style>
@@ -1072,8 +1072,11 @@
     .action-panel .delete-btn { min-height: 44px; }
     .export-choice { flex: 1 1 100%; }
     .action-panel { padding: 7px; margin-bottom: 10px; }
-    .action-groups { flex-wrap: nowrap; gap: 6px; }
-    .action-group { flex: 1 1 auto; flex-wrap: nowrap; gap: 4px; min-width: 0; }
+    /* 放不下就换行，而不是把按钮压窄：之前 nowrap + flex:1 1 auto 会在 361–440px
+       把 8 个按钮压成一行，「添加实验」只剩 54px、导入/导出只剩 26px，文字被裁。 */
+    .action-groups { flex-wrap: wrap; gap: 6px; row-gap: 6px; }
+    .action-group { flex: 1 1 auto; flex-wrap: wrap; gap: 4px; min-width: 0; }
+    .action-group > button { flex: 0 0 auto; }   /* 按钮永远保持自身宽度 */
     .action-group + .action-group {
       margin: 0; padding-left: 6px; border-left: 1px solid #e1e6eb;
     }

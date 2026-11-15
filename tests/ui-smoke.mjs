@@ -972,6 +972,31 @@ try {
     assert.match(recovered.status, /已清除筛选.*定位到/, `状态栏应说明发生了什么，实际「${recovered.status}」`);
     await filterCtx.close();
   }
+  // 18. 操作面板按钮：放不下要换行，不能被压到裁字（361–440px 曾把 8 个按钮挤成一行）
+  {
+    for (const width of [390, 664]) {
+      const panelCtx = await browser.newContext({ viewport: { width, height: 900 } });
+      const panelPage = await panelCtx.newPage();
+      await panelPage.goto(`${appUrl}?class=Z2`);
+      await panelPage.waitForSelector('tbody tr[data-idx]');
+      await panelPage.locator('#actionsToggle').click();
+      await panelPage.waitForTimeout(250);
+      const panel = await panelPage.evaluate(() => {
+        const btns = [...document.querySelectorAll('.action-groups button')];
+        return {
+          rows: new Set(btns.map(b => Math.round(b.getBoundingClientRect().top))).size,
+          clipped: btns.filter(b => b.scrollWidth > b.clientWidth + 1).map(b => b.textContent.trim()),
+          minHeight: Math.min(...btns.map(b => Math.round(b.getBoundingClientRect().height))),
+          overflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth
+        };
+      });
+      assert.deepEqual(panel.clipped, [], `${width}px 下按钮文字被裁：${panel.clipped.join('、')}`);
+      assert.equal(panel.overflowX, 0, `${width}px 下不应横向溢出`);
+      assert.ok(panel.minHeight >= 44, `${width}px 下按钮高度应 ≥44px，实际 ${panel.minHeight}`);
+      if (width === 390) assert.ok(panel.rows >= 2, `390px 下按钮应换行，实际只有 ${panel.rows} 行`);
+      await panelCtx.close();
+    }
+  }
   console.log('UI smoke OK');
 } finally {
   fs.rmSync(fixtureDir, { force: true, recursive: true });
