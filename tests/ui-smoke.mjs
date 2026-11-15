@@ -997,6 +997,25 @@ try {
       await panelCtx.close();
     }
   }
+  // 19. 可点目标不小于 24×24（WCAG 2.2 · 2.5.8）：页脚两个反馈按钮曾只有 20px 高
+  {
+    for (const width of [320, 390]) {
+      const targetCtx = await browser.newContext({ viewport: { width, height: 900 } });
+      const targetPage = await targetCtx.newPage();
+      await targetPage.goto(`${appUrl}?class=Z2`);
+      await targetPage.waitForSelector('tbody tr[data-idx]');
+      await targetPage.waitForTimeout(250);
+      const small = await targetPage.evaluate(() => Array.from(document.querySelectorAll('button'))
+        .filter(el => el.offsetParent !== null)
+        .map(el => {
+          const rect = el.getBoundingClientRect();
+          return { id: el.id || el.className.split(' ')[0], w: Math.round(rect.width), h: Math.round(rect.height) };
+        })
+        .filter(item => item.w < 24 || item.h < 24));
+      assert.deepEqual(small, [], `${width}px 下存在小于 24×24 的可点目标：${JSON.stringify(small)}`);
+      await targetCtx.close();
+    }
+  }
   console.log('UI smoke OK');
 } finally {
   fs.rmSync(fixtureDir, { force: true, recursive: true });
