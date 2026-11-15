@@ -131,6 +131,25 @@ const r = await page.evaluate(() => {
   out.fileClassFiltered = classIdFromFileName('Z1-筛选-数据-2026-11-14.json');
   out.fileClassXlsx = classIdFromFileName('Z1-实验安排-2026-11-14.xlsx');
   out.fileClassBad = classIdFromFileName('readme.txt');
+
+  // 早于「第 1 周周一」的实验：桌面周次列与手机卡片行都必须写「学期前」，不能留「—」
+  out.weekLabelBeforeTerm = (() => {
+    const savedExperiments = experiments;
+    const savedRecentOnly = recentOnly;
+    experiments = [{ date: '2026-08-03', period: '第1-2节', name: '学期前补课', place: 'A1', note: '' }];
+    recentOnly = false;
+    render();
+    const weekCell = document.querySelector('tbody tr td[headers="col-week"]');
+    const cardLine = document.querySelector('tbody tr .m-line1');
+    const value = {
+      desktop: weekCell ? weekCell.textContent.trim() : '',
+      mobile: cardLine ? cardLine.textContent.replace(/\s+/g, ' ').trim() : ''
+    };
+    experiments = savedExperiments;
+    recentOnly = savedRecentOnly;
+    render();
+    return value;
+  })();
   return out;
 });
 
@@ -188,7 +207,10 @@ const cases = [
   ['文件名带日期 → Z1', r.fileClassDated, 'Z1'],
   ['文件名 筛选+日期 → Z1-筛选', r.fileClassFiltered, 'Z1-筛选'],
   ['文件名 xlsx 用途标签 → Z1', r.fileClassXlsx, 'Z1'],
-  ['非备份文件名返回空', r.fileClassBad, '']
+  ['非备份文件名返回空', r.fileClassBad, ''],
+  // 学期前（week1 之前）的周次文案
+  ['学期前文案：桌面周次列', r.weekLabelBeforeTerm.desktop, '学期前'],
+  ['学期前文案：手机卡片行', /^08-03 · 学期前 ·/.test(r.weekLabelBeforeTerm.mobile), true]
 ];
 
 let failed = 0;

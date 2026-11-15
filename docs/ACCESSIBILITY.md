@@ -96,7 +96,7 @@
 
 ```powershell
 python tools/verify.py
-python -m unittest discover -s tests -p "test_*.py" -v   # 42 个
+python -m unittest discover -s tests -p "test_*.py" -v   # 47 个
 npm run test:ui
 npm run test:ui:webkit
 npm run test:visual

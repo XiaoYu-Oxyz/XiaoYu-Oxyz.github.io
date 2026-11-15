@@ -791,8 +791,8 @@ git push
 |---|---|
 | `python tools/build.py` | 3 个班 65 条；同时生成 `calendars/Z1.ics` / `Z2.ics` / `Z5.ics` |
 | `python tools/verify.py` | `index.html`、`404.html`、3 个 `.ics` 全部 PASS |
-| Python 单元测试 | **42/42**（build 6 + 校验器 22 + 体检脚本 14，含节次时间解析/合并/优先级、ICS 13:30 + 30 分钟提醒、坏数据逐条识别） |
-| `npm run test:logic`（Chromium / WebKit） | **52 个用例**：日期/周次/节次/冲突/ICS + 重复判定 + **xlsx 生成（转义、冲突高亮、冻结、列宽、空表）** |
+| Python 单元测试 | **47/47**（build 11 + 校验器 22 + 体检脚本 14，含节次时间解析/合并/优先级、ICS 13:30 + 30 分钟提醒、坏数据逐条识别） |
+| `npm run test:logic`（Chromium / WebKit） | **54 个用例**：日期/周次/节次/冲突/ICS + 重复判定 + **xlsx 生成（转义、冲突高亮、冻结、列宽、空表）** |
 | `npm run test:ui`（Chromium / WebKit） | 全绿（含只读链接、首次提示、`.ics`、诊断信息） |
 | `npm run test:week`（Chromium / WebKit） | **50 项**：行数上限 14、截断标记、逐节次跨行、堆垛平分、今天/明天/冲突配色、课表内置灰筛选、回到本周、点空格添加、点块编辑+删除、课表内进入编辑/删除模式、Tab/回车可达、撤销 |
 | `npm run test:visual`（Chromium / WebKit） | **8 个视口**（320 / 360 / 横屏 640×360 / 390 / 暗色 390 / 768 / 1440 / 课表）：无横向溢出、图例色不变、首行不超 380px、关提示条回落量 = 提示条高度；**另加 2 个暗色弹窗**（添加 / 导出）：弹窗内无亮底色块、标题与可交互输入框对比度 ≥ 4.5，截图上传为 CI artifact |
