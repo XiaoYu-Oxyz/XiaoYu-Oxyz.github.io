@@ -2,10 +2,6 @@
   "generatedFrom": "index.html",
   "tokens": [
     {
-      "token": "--c-f5f7fa",
-      "value": "#f5f7fa"
-    },
-    {
       "token": "--c-24292f",
       "value": "#24292f"
     },
@@ -250,10 +246,6 @@
       "value": "#fbfcfd"
     },
     {
-      "token": "--c-f4f9ff",
-      "value": "#f4f9ff"
-    },
-    {
       "token": "--c-f6e3b8",
       "value": "#f6e3b8"
     },
@@ -352,18 +344,6 @@
     {
       "token": "--c-rgb-255-255-255-75",
       "value": "rgba(255,255,255,.75)"
-    },
-    {
-      "token": "--c-b08a45",
-      "value": "#b08a45"
-    },
-    {
-      "token": "--c-fdfaf3",
-      "value": "#fdfaf3"
-    },
-    {
-      "token": "--c-fff6e3",
-      "value": "#fff6e3"
     },
     {
       "token": "--c-0d1117",
@@ -490,10 +470,6 @@
       "value": "#7ee2a8"
     },
     {
-      "token": "--c-0f2d1a",
-      "value": "#0f2d1a"
-    },
-    {
       "token": "--c-56d364",
       "value": "#56d364"
     },
@@ -534,10 +510,6 @@
       "value": "#2a1517"
     },
     {
-      "token": "--c-10241a",
-      "value": "#10241a"
-    },
-    {
       "token": "--c-3fb950",
       "value": "#3fb950"
     },
@@ -560,22 +532,6 @@
     {
       "token": "--c-14351f",
       "value": "#14351f"
-    },
-    {
-      "token": "--c-26200f",
-      "value": "#26200f"
-    },
-    {
-      "token": "--c-a97400",
-      "value": "#a97400"
-    },
-    {
-      "token": "--c-1a1710",
-      "value": "#1a1710"
-    },
-    {
-      "token": "--c-6b5200",
-      "value": "#6b5200"
     },
     {
       "token": "--c-5c2a2e",
@@ -607,45 +563,121 @@
     }
   ],
   "semantic": {
-    "pageBg": {
-      "light": "--c-f5f7fa",
-      "dark": "--c-0d1117"
+    "pageBg": "--page-bg",
+    "textMain": "--text-main",
+    "rowPastBg": "--row-past-bg",
+    "rowTodayBg": "--row-today-cell-bg",
+    "rowTomorrowBg": "--row-tomorrow-cell-bg",
+    "rowNextBg": "--row-next-bg",
+    "conflictBorder": "--row-conflict-border",
+    "conflictBg": "--row-conflict-bg",
+    "statusOkBg": "--status-ok-bg",
+    "statusOkText": "--status-ok-text"
+  },
+  "aliases": {
+    "--page-bg": {
+      "light": "#f5f7fa",
+      "dark": "#0d1117"
     },
-    "textMain": {
-      "light": "--c-24292f",
-      "dark": "--c-e6edf3"
+    "--text-main": {
+      "light": "#24292f",
+      "dark": "#e6edf3"
     },
-    "rowPastBg": {
-      "light": "--c-f6f8fa",
-      "dark": "--c-161b22"
+    "--status-ok-bg": {
+      "light": "#e6f9ea",
+      "dark": "#0f2d1a"
     },
-    "rowTodayBg": {
-      "light": "--c-ffe9e8",
-      "dark": "--c-3d1a1c"
+    "--status-ok-text": {
+      "light": "#1a7f37",
+      "dark": "#56d364"
     },
-    "rowTomorrowBg": {
-      "light": "--c-e6f9ea",
-      "dark": "--c-12261a"
+    "--status-ok-border": {
+      "light": "#c3f0cd",
+      "dark": "#1b4721"
     },
-    "rowNextBg": {
-      "light": "--c-f4f9ff",
-      "dark": "--c-0d2d4d"
+    "--legend-today": {
+      "light": "#ffd7d5",
+      "dark": "#5c2a2e"
     },
-    "conflictBorder": {
-      "light": "--c-b7791f",
-      "dark": "--c-8a6100"
+    "--legend-tomorrow": {
+      "light": "#d3f5d9",
+      "dark": "#1b4721"
     },
-    "conflictBg": {
-      "light": "--c-fffaf0",
-      "dark": "--c-1f1a10"
+    "--row-next-bg": {
+      "light": "#f4f9ff",
+      "dark": "#0d2d4d"
     },
-    "statusOkBg": {
-      "light": "--c-e6f9ea",
-      "dark": "--c-0f2d1a"
+    "--row-next-cell-bg": {
+      "light": "#f4f9ff",
+      "dark": "#0d2d4d"
     },
-    "statusOkText": {
-      "light": "--c-1a7f37",
-      "dark": "--c-56d364"
+    "--row-today-cell-bg": {
+      "light": "#ffe9e8",
+      "dark": "#3d1a1c"
+    },
+    "--row-today-text": {
+      "light": "#a40e26",
+      "dark": "#ffb3b0"
+    },
+    "--row-tomorrow-cell-bg": {
+      "light": "#e6f9ea",
+      "dark": "#12261a"
+    },
+    "--row-tomorrow-text": {
+      "light": "#1a7f37",
+      "dark": "#7ee2a8"
+    },
+    "--row-past-text": {
+      "light": "#57606a",
+      "dark": "#8b949e"
+    },
+    "--row-today-bg": {
+      "light": "#ffe9e8",
+      "dark": "#2a1517"
+    },
+    "--row-today-border": {
+      "light": "#ffc9c7",
+      "dark": "#6b1f24"
+    },
+    "--row-tomorrow-bg": {
+      "light": "#e6f9ea",
+      "dark": "#10241a"
+    },
+    "--row-tomorrow-border": {
+      "light": "#c3f0cd",
+      "dark": "#1b4721"
+    },
+    "--row-past-bg": {
+      "light": "#f6f8fa",
+      "dark": "#161b22"
+    },
+    "--row-next-border": {
+      "light": "#9ec9f5",
+      "dark": "#1f6feb"
+    },
+    "--row-conflict-border": {
+      "light": "#b7791f",
+      "dark": "#8a6100"
+    },
+    "--row-conflict-bg": {
+      "light": "#fffaf0",
+      "dark": "#1f1a10"
+    },
+    "--row-conflict-past-border": {
+      "light": "#b08a45",
+      "dark": "#6b5200"
+    },
+    "--row-conflict-past-bg": {
+      "light": "#fdfaf3",
+      "dark": "#1a1710"
+    },
+    "--row-conflict-peer-border": {
+      "light": "#8a5306",
+      "dark": "#a97400"
+    },
+    "--row-conflict-peer-bg": {
+      "light": "#fff6e3",
+      "dark": "#26200f"
     }
   }
 }

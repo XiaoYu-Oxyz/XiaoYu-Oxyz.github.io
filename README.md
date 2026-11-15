@@ -245,6 +245,20 @@
 
 ### 2.8.1 色值 token（全站唯一颜色来源）
 
+<!-- palette:start -->
+| 语义 | 别名 | 浅色 | 深色 |
+|---|---|---|---|
+| 页面底色 | `--page-bg` | `#f5f7fa` | `#0d1117` |
+| 主文字 | `--text-main` | `#24292f` | `#e6edf3` |
+| 已结束行 | `--row-past-bg` | `#f6f8fa` | `#161b22` |
+| 今天行 | `--row-today-cell-bg` | `#ffe9e8` | `#3d1a1c` |
+| 明天行 | `--row-tomorrow-cell-bg` | `#e6f9ea` | `#12261a` |
+| 下一次行 | `--row-next-bg` | `#f4f9ff` | `#0d2d4d` |
+| 冲突描边 | `--row-conflict-border` | `#b7791f` | `#8a6100` |
+| 冲突底色 | `--row-conflict-bg` | `#fffaf0` | `#1f1a10` |
+| 成功状态底 | `--status-ok-bg` | `#e6f9ea` | `#0f2d1a` |
+| 成功状态字 | `--status-ok-text` | `#1a7f37` | `#56d364` |
+<!-- palette:end -->
 - `index.html` 的 `<style>` 开头有一个 `:root { --c-…: …; }` 块，**所有颜色只在这里出现字面量**，其余位置一律 `var(--c-…)`；
 - 共 **151 个 token**（含 12 个 `rgba()`），由 `tools/palette.json` 记录并校验；
 - 语义映射（今天/明天/已结束/下一次/冲突/状态栏等 10 组）写在 `palette.json` 的 `semantic` 段，`ui-smoke` §26 会逐项比对计算样式；

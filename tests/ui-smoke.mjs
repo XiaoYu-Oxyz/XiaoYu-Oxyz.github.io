@@ -1463,15 +1463,70 @@ try {
       await colorCtx.close();
     }
   }
+  // A4/C4：打印态对比度 ≥4.5、焦点环对比度 ≥3
+  {
+    const contrastOf = (a, b) => {
+      const lum = rgb => {
+        const m = rgb.match(/\d+/g).map(Number).slice(0, 3);
+        const f = v => { const s = v / 255; return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4); };
+        return 0.2126 * f(m[0]) + 0.7152 * f(m[1]) + 0.0722 * f(m[2]);
+      };
+      const l1 = Math.max(lum(a), lum(b)), l2 = Math.min(lum(a), lum(b));
+      return (l1 + 0.05) / (l2 + 0.05);
+    };
+    for (const scheme of ['light', 'dark']) {
+      const ctx = await browser.newContext({ viewport: { width: 794, height: 1123 }, colorScheme: scheme });
+      const page = await ctx.newPage();
+      await page.goto(`${appUrl}?class=Z2`);
+      await page.waitForSelector('tbody tr[data-idx]');
+      await page.evaluate(() => { recentOnly = false; render(); });
+      await page.emulateMedia({ media: 'print' });
+      await page.waitForTimeout(250);
+      const colors = await page.evaluate(() => {
+        const g = (sel, prop) => {
+          const el = document.querySelector(sel);
+          return el ? getComputedStyle(el)[prop] : null;
+        };
+        return {
+          bodyBg: g('body', 'backgroundColor'), bodyFg: g('body', 'color'),
+          thBg: g('th', 'backgroundColor'), thFg: g('th', 'color'),
+          metaFg: g('.print-meta', 'color')
+        };
+      });
+      assert.ok(contrastOf(colors.bodyFg, colors.bodyBg) >= 4.5, `${scheme} 打印正文对比度不足`);
+      assert.ok(contrastOf(colors.thFg, colors.thBg) >= 4.5, `${scheme} 打印表头对比度不足`);
+      assert.ok(contrastOf(colors.metaFg, colors.bodyBg) >= 4.5, `${scheme} 打印元信息对比度不足`);
+      await page.emulateMedia({ media: 'screen' });
+      await ctx.close();
+    }
+    for (const scheme of ['light', 'dark']) {
+      const ctx = await browser.newContext({ viewport: { width: 390, height: 900 }, colorScheme: scheme });
+      const page = await ctx.newPage();
+      await page.goto(`${appUrl}?class=Z2`);
+      await page.waitForSelector('tbody tr[data-idx]');
+      await page.locator('#actionsToggle').click();
+      await page.keyboard.press('Tab');
+      const ring = await page.evaluate(() => {
+        const el = document.activeElement;
+        const cs = getComputedStyle(el);
+        const bg = getComputedStyle(document.body).backgroundColor;
+        return { outline: cs.outlineColor, bg, width: cs.outlineWidth };
+      });
+      assert.ok(contrastOf(ring.outline, ring.bg) >= 3, `${scheme} 焦点环对比度不足（${ring.outline} on ${ring.bg}）`);
+      await ctx.close();
+    }
+  }
+
   console.log('\u00a726 语义色与 token 表一致：改色必须同时改 tools/palette.json，否则这里会红');
   // 26. 语义色与 token 表一致：改色必须同时改 tools/palette.json，否则这里会红
   {
     const palette = JSON.parse(fs.readFileSync(path.join(root, 'tools', 'palette.json'), 'utf8'));
-    const tokenValue = name => {
-      const item = palette.tokens.find(t => t.token === name);
-      return item ? item.value : null;
+    // palette.semantic 现在指向语义别名（--row-today-bg 等），别名再给出明暗两个色值
+    const expect = (scheme, role) => {
+      const alias = palette.semantic[role];
+      const entry = palette.aliases[alias];
+      return entry ? entry[scheme] : null;
     };
-    const expect = (scheme, name) => tokenValue(palette.semantic[name][scheme]);
     const rgb = hex => {
       const v = hex.replace('#', '');
       const n = v.length === 3 ? v.split('').map(c => c + c).join('') : v.slice(0, 6);
@@ -1593,6 +1648,28 @@ try {
       await ctx.close();
     }
   }
+  // F5：404 页也要能用（CSP 允许、有返回入口、无脚本错误）
+  {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const page = await ctx.newPage();
+    const errs = [];
+    page.on('pageerror', e => errs.push(e.message));
+    const url = pathToFileURL(path.join(root, '404.html')).href;
+    await page.goto(url);
+    await page.waitForTimeout(200);
+    const info = await page.evaluate(() => ({
+      title: document.title,
+      text: document.body.innerText.slice(0, 120),
+      back: !!document.querySelector('a[href="index.html"], a[href="./index.html"], a[href="/"]'),
+      overflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth
+    }));
+    assert.ok(info.text.length > 0, '404 页应有提示文字');
+    assert.ok(info.back, '404 页应提供返回入口');
+    assert.equal(info.overflowX, 0, '404 页不应横向溢出');
+    assert.deepEqual(errs, [], '404 页不应有脚本错误');
+    await ctx.close();
+  }
+
   console.log('UI smoke OK');
 } finally {
   fs.rmSync(fixtureDir, { force: true, recursive: true });

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-3Phk4agx1xzxUbcaXQVeIMjuyHgQMbqSz6V0XHx8DUU='; script-src-elem 'sha256-3Phk4agx1xzxUbcaXQVeIMjuyHgQMbqSz6V0XHx8DUU='; script-src-attr 'none'; style-src 'sha256-8ZA+qHO5vU1vTcAp7iFZabiYCmUMbjkTxVkkL96Y3oE='; style-src-elem 'sha256-8ZA+qHO5vU1vTcAp7iFZabiYCmUMbjkTxVkkL96Y3oE='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-rOqqb6/5eumWHVSKMHQz889AowtanpFyOaI1w4GqjLk='; script-src-elem 'sha256-rOqqb6/5eumWHVSKMHQz889AowtanpFyOaI1w4GqjLk='; script-src-attr 'none'; style-src 'sha256-Lbp6Vg3A437dxSuhRwskDqosssBC2J70ayFieqoquyA='; style-src-elem 'sha256-Lbp6Vg3A437dxSuhRwskDqosssBC2J70ayFieqoquyA='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>CrseCue</title>
 <style>
@@ -12,7 +12,8 @@
      其它地方一律用 var(--c-…)，不要再写死颜色字面量
      ============================================================ */
   :root {
-    --c-f5f7fa: #f5f7fa;
+    /* ---- 值 token：全站唯一的颜色字面量处（--c-<hex> 按值命名）----
+       配色优先改下面的语义层；这里的 token 被多处共用，改一个会牵连多处。 */
     --c-24292f: #24292f;
     --c-0969da: #0969da;
     --c-fff: #fff;
@@ -74,7 +75,6 @@
     --c-e8f2ff: #e8f2ff;
     --c-f7f9fb: #f7f9fb;
     --c-fbfcfd: #fbfcfd;
-    --c-f4f9ff: #f4f9ff;
     --c-f6e3b8: #f6e3b8;
     --c-c49a45: #c49a45;
     --c-ffd978: #ffd978;
@@ -100,9 +100,6 @@
     --c-e6d391: #e6d391;
     --c-rgb-154-103-0-28: rgba(154,103,0,.28);
     --c-rgb-255-255-255-75: rgba(255,255,255,.75);
-    --c-b08a45: #b08a45;
-    --c-fdfaf3: #fdfaf3;
-    --c-fff6e3: #fff6e3;
     --c-0d1117: #0d1117;
     --c-e6edf3: #e6edf3;
     --c-161b22: #161b22;
@@ -134,7 +131,6 @@
     --c-ffb3b0: #ffb3b0;
     --c-12261a: #12261a;
     --c-7ee2a8: #7ee2a8;
-    --c-0f2d1a: #0f2d1a;
     --c-56d364: #56d364;
     --c-1b4721: #1b4721;
     --c-341a00: #341a00;
@@ -145,17 +141,12 @@
     --c-ffdf5d: #ffdf5d;
     --c-f0f6fc: #f0f6fc;
     --c-2a1517: #2a1517;
-    --c-10241a: #10241a;
     --c-3fb950: #3fb950;
     --c-rgb-255-255-255-12: rgba(255, 255, 255, .12);
     --c-rgb-255-255-255-22: rgba(255, 255, 255, .22);
     --c-1f1a10: #1f1a10;
     --c-8a6100: #8a6100;
     --c-14351f: #14351f;
-    --c-26200f: #26200f;
-    --c-a97400: #a97400;
-    --c-1a1710: #1a1710;
-    --c-6b5200: #6b5200;
     --c-5c2a2e: #5c2a2e;
     --c-1f6feb66: #1f6feb66;
     --c-12212f: #12212f;
@@ -163,6 +154,33 @@
     --c-2f2712: #2f2712;
     --c-a371f7: #a371f7;
     --c-9e6a03: #9e6a03;
+    /* ---- 语义层：改配色优先改这里（值 token 见上方）---- */
+    --page-bg: #f5f7fa;
+    --text-main: #24292f;
+    --status-ok-bg: #e6f9ea;
+    --status-ok-text: #1a7f37;
+    --status-ok-border: #c3f0cd;
+    --legend-today: #ffd7d5;
+    --legend-tomorrow: #d3f5d9;
+    --row-next-bg: #f4f9ff;
+    --row-next-cell-bg: #f4f9ff;
+    --row-today-cell-bg: #ffe9e8;
+    --row-today-text: #a40e26;
+    --row-tomorrow-cell-bg: #e6f9ea;
+    --row-tomorrow-text: #1a7f37;
+    --row-past-text: #57606a;
+    --row-today-bg: #ffe9e8;
+    --row-today-border: #ffc9c7;
+    --row-tomorrow-bg: #e6f9ea;
+    --row-tomorrow-border: #c3f0cd;
+    --row-past-bg: #f6f8fa;
+    --row-next-border: #9ec9f5;
+    --row-conflict-border: #b7791f;
+    --row-conflict-bg: #fffaf0;
+    --row-conflict-past-border: #b08a45;
+    --row-conflict-past-bg: #fdfaf3;
+    --row-conflict-peer-border: #8a5306;
+    --row-conflict-peer-bg: #fff6e3;
   }
 
   * { box-sizing: border-box; }
@@ -174,7 +192,7 @@
   body {
     margin: 0; padding: 24px 16px;
     font-family: "Microsoft YaHei", "PingFang SC", system-ui, -apple-system, sans-serif;
-    background: var(--c-f5f7fa); color: var(--c-24292f);
+    background: var(--page-bg); color: var(--text-main);
     /* iOS/老 WebView 转横屏时会"自动放大"字号，把布局顶乱；这里统一关掉，交给浏览器缩放 */
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
@@ -525,7 +543,7 @@
     display: none; white-space: pre-line; word-break: break-word;
   }
   .import-status.show { display: block; }
-  .import-status.ok    { background: var(--c-e6f9ea); color: var(--c-1a7f37); border-color: var(--c-c3f0cd); }
+  .import-status.ok    { background: var(--status-ok-bg); color: var(--status-ok-text); border-color: var(--status-ok-border); }
   .import-status.warn  { background: var(--c-fff8e1); color: var(--c-9a6700); border-color: var(--c-f0e0a8); }
   .import-status.error { background: var(--c-ffe9e8); color: var(--c-a40e26); border-color: var(--c-ffc9c7); }
   .import-skipped { margin-top: 7px; font-size: 12px; color: var(--c-57606a); }
@@ -554,8 +572,8 @@
     display: inline-block; width: 13px; height: 13px; border-radius: 3px;
     margin-right: 6px; vertical-align: -2px;
   }
-  .dot-today    { background: var(--c-ffd7d5); border: 1px solid var(--c-e5484d); }
-  .dot-tomorrow { background: var(--c-d3f5d9); border: 1px solid var(--c-2da44e); }
+  .dot-today    { background: var(--legend-today); border: 1px solid var(--c-e5484d); }
+  .dot-tomorrow { background: var(--legend-tomorrow); border: 1px solid var(--c-2da44e); }
   .dot-past     { background: var(--c-eaeef2); border: 1px solid var(--c-d0d7de); }
   .dot-conflict { background: var(--c-ffe6a6); border: 1px solid var(--c-b7791f); }
   .dot-next     { background: var(--c-eaf3ff); border: 1px solid var(--c-0969da); }
@@ -626,9 +644,9 @@
   tbody tr.note-row:hover td { filter: none; }
 
   /* "下一次"只加左侧蓝条，不覆盖今天/明天自己的底色 */
-  tbody tr.row-next:not(.row-today):not(.row-tomorrow) td { background: var(--c-f4f9ff); }
+  tbody tr.row-next:not(.row-today):not(.row-tomorrow) td { background: var(--row-next-bg); }
   tbody tr.row-next td:nth-child(2) { box-shadow: inset 3px 0 0 var(--c-0969da); }
-  tbody tr.note-row.row-next td { background: var(--c-f4f9ff); }
+  tbody tr.note-row.row-next td { background: var(--row-next-cell-bg); }
   .next-badge {
     display: inline-block; margin-left: 6px; padding: 1px 7px;
     border: 1px solid var(--c-b6d6f8); border-radius: 10px;
@@ -638,14 +656,14 @@
   }
 
   .row-today td {
-    background: var(--c-ffe9e8); color: var(--c-a40e26); font-weight: 700;
+    background: var(--row-today-cell-bg); color: var(--row-today-text); font-weight: 700;
     border-bottom-color: var(--c-ffc9c7);
   }
   .row-tomorrow td {
-    background: var(--c-e6f9ea); color: var(--c-1a7f37); font-weight: 700;
+    background: var(--row-tomorrow-cell-bg); color: var(--row-tomorrow-text); font-weight: 700;
     border-bottom-color: var(--c-c3f0cd);
   }
-  .row-past td { color: var(--c-57606a); }
+  .row-past td { color: var(--row-past-text); }
 
   /* ---------- 时间冲突：左侧整列浅琥珀色（无文字） ---------- */
   tbody tr.row-conflict td.cell-mark {
@@ -805,6 +823,12 @@
   tbody tr.row-marked td.cell-mark { background: var(--c-f7f8fa); }
   tbody tr.row-marked .tag { opacity: .4; }
 
+  .empty-clear {
+    margin-left: 4px; padding: 3px 10px; min-height: 24px;
+    font-family: inherit; font-size: 12.5px; color: var(--c-0969da);
+    background: none; border: 1px solid var(--c-b6d6f8); border-radius: 999px; cursor: pointer;
+  }
+  .empty-clear:hover { background: var(--c-eaf3ff); }
   .empty-row td {
     text-align: center; color: var(--c-6e7781); font-size: 13px;
     line-height: 1.9; padding: 40px 16px; background: var(--c-fff);
@@ -1038,7 +1062,7 @@
     color: var(--c-24292f); font: 12.5px/1.6 ui-monospace, SFMono-Regular, Consolas, monospace;
     white-space: pre-wrap; overflow-wrap: anywhere;
   }
-  .print-head { display: none; }
+    .print-head, .print-meta { display: none; }
   .print-note { display: none; }
 
   /* ---------- 老浏览器兜底（Chrome < 84 的 flex gap、< 86 的 focus-visible） ----------
@@ -1066,7 +1090,8 @@
     .recent-filter, .recent-count, .data-updated, .saved-tip,
     .cue-bar, .first-run, .week-view, .view-switch { display: none !important; }
     .wrap { max-width: none; margin: 0; padding: 0 !important; background: var(--c-fff) !important; box-shadow: none; border-radius: 0; }
-    .print-head { display: block; margin: 0 0 10px; font-size: 16px; font-weight: 700; color: var(--c-000) !important; }
+    .print-head { display: block; margin: 0 0 2px; font-size: 16px; font-weight: 700; color: var(--c-000) !important; }
+    .print-meta { display: block; margin: 0 0 10px; font-size: 10px; color: var(--c-57606a) !important; }
     .table-wrap { overflow: visible; }
     table {
       display: table !important; width: 100% !important; min-width: 0 !important;
@@ -1114,6 +1139,8 @@
     .row-today, .row-tomorrow, .row-past, .row-next, .row-conflict { background: var(--c-fff) !important; }
     tbody tr.row-conflict { border-left: 3px solid var(--c-000) !important; }
     .row-conflict td:nth-child(2) { border-left: 3px solid var(--c-000) !important; }
+    /* 已结束的行在纸上压成浅灰，一眼区别于未到/待做 */
+    tbody tr.row-past td, tbody tr.row-past td * { color: var(--c-57606a) !important; }
   }
   .class-prompt-label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; }
   .class-prompt-input {
@@ -1310,10 +1337,10 @@
     body.editing tbody tr .edit-row-btn svg { width: 14px; height: 14px; }
     body.deleting tbody tr .mark-btn::before { width: 11px; height: 2px; }
     body.deleting tbody tr .mark-btn::after { width: 2px; height: 11px; }
-    tbody tr.row-today { background: var(--c-ffe9e8); border-color: var(--c-ffc9c7); }
-    tbody tr.row-tomorrow { background: var(--c-e6f9ea); border-color: var(--c-c3f0cd); }
-    tbody tr.row-past { background: var(--c-f6f8fa); }
-    tbody tr.row-next { border-color: var(--c-9ec9f5); box-shadow: inset 0 0 0 1px var(--c-9ec9f5); }
+    tbody tr.row-today { background: var(--row-today-bg); border-color: var(--row-today-border); }
+    tbody tr.row-tomorrow { background: var(--row-tomorrow-bg); border-color: var(--row-tomorrow-border); }
+    tbody tr.row-past { background: var(--row-past-bg); }
+    tbody tr.row-next { border-color: var(--row-next-border); box-shadow: inset 0 0 0 1px var(--row-next-border); }
     tbody tr.row-today td.cell-mobile { color: var(--c-a40e26); font-weight: 700; }
     tbody tr.row-tomorrow td.cell-mobile { color: var(--c-1a7f37); font-weight: 700; }
     tbody tr.row-past td.cell-mobile { color: var(--c-6e7781); }
@@ -1321,11 +1348,11 @@
     /* 冲突：整张卡片描一圈琥珀色边框 + 极浅底纹（卡片是方角，填充也跟着方角），
        同组的两条再用一条最短对角线段连起来（见 .conflict-link-layer）。 */
     tbody tr.row-conflict {
-      border: 2px solid var(--c-b7791f);
-      background: var(--c-fffaf0);
+      border: 2px solid var(--row-conflict-border);
+      background: var(--row-conflict-bg);
     }
-    tbody tr.row-past.row-conflict { border-color: var(--c-b08a45); background: var(--c-fdfaf3); }
-    tbody tr.row-conflict.conflict-peer { border-color: var(--c-8a5306); background: var(--c-fff6e3); }
+    tbody tr.row-past.row-conflict { border-color: var(--row-conflict-past-border); background: var(--row-conflict-past-bg); }
+    tbody tr.row-conflict.conflict-peer { border-color: var(--row-conflict-peer-border); background: var(--row-conflict-peer-bg); }
     /* 边框已经表达了冲突，标记列不再重复填色 */
     tbody tr.row-conflict td.cell-mark,
     tbody tr.row-conflict.row-past td.cell-mark {
@@ -1458,6 +1485,35 @@
      页面底色、卡片/表格/弹窗表面、正文与次要文字、分隔线，以及五种状态色。 */
   :root { color-scheme: light dark; }
   @media (prefers-color-scheme: dark) {
+    /* ---- 深色语义层：同名别名换值 ---- */
+    :root {
+      --page-bg: #0d1117;
+      --text-main: #e6edf3;
+      --row-past-bg: #161b22;
+      --row-past-text: #8b949e;
+      --row-today-bg: #2a1517;
+      --row-today-border: #6b1f24;
+      --row-today-cell-bg: #3d1a1c;
+      --row-today-text: #ffb3b0;
+      --row-tomorrow-bg: #10241a;
+      --row-tomorrow-border: #1b4721;
+      --row-tomorrow-cell-bg: #12261a;
+      --row-tomorrow-text: #7ee2a8;
+      --row-next-bg: #0d2d4d;
+      --row-next-cell-bg: #0d2d4d;
+      --row-next-border: #1f6feb;
+      --row-conflict-border: #8a6100;
+      --row-conflict-bg: #1f1a10;
+      --row-conflict-peer-border: #a97400;
+      --row-conflict-peer-bg: #26200f;
+      --row-conflict-past-border: #6b5200;
+      --row-conflict-past-bg: #1a1710;
+      --status-ok-bg: #0f2d1a;
+      --status-ok-text: #56d364;
+      --status-ok-border: #1b4721;
+      --legend-today: #5c2a2e;
+      --legend-tomorrow: #1b4721;
+    }
     body { background: var(--c-0d1117); color: var(--c-e6edf3); }
     .wrap { background: var(--c-161b22); box-shadow: 0 2px 16px var(--c-rgb-0-0-0-55); }
     h1, .m-name, .modal-head h2 { color: var(--c-e6edf3); }
@@ -1529,11 +1585,11 @@
     tbody tr.row-tomorrow td { background: var(--c-12261a); color: var(--c-7ee2a8); }
     tbody tr.row-next td { background: var(--c-0d2d4d); }
     tbody tr.note-row td { background: var(--c-12181f); color: var(--c-8b949e); }
-    tbody tr.note-row.row-next td { background: var(--c-0d2d4d); }
+    tbody tr.note-row.row-next td { background: var(--row-next-cell-bg); }
     .tag-past { background: var(--c-30363d); color: var(--c-adbac7); }
     .modal, .restore-section, .confirm-detail, .import-skipped-list, .empty-row td { background: var(--c-161b22); color: var(--c-e6edf3); }
     .modal-head, .modal-foot { border-color: var(--c-30363d); }
-    .import-status.ok { background: var(--c-0f2d1a); color: var(--c-56d364); border-color: var(--c-1b4721); }
+    .import-status.ok { background: var(--status-ok-bg); color: var(--status-ok-text); border-color: var(--status-ok-border); }
     .import-status.warn { background: var(--c-341a00); color: var(--c-e3b341); border-color: var(--c-5c4400); }
     .import-status.error { background: var(--c-3d1a1c); color: var(--c-ff9492); border-color: var(--c-6b1f24); }
     .search-hit { background: var(--c-6b4b00); color: var(--c-ffdf5d); }
@@ -1563,9 +1619,9 @@
     /* ---- 卡片布局（手机 / 两列 / 横屏）的深色版 ----
        手机段的 `tbody tr.row-past`/`.cell-mobile .m-name` 等规则特异性高于
        这里的 `tbody tr`，不显式覆盖的话深色下会出现"浅底 + 浅字"（几乎不可读）。 */
-    tbody tr.row-past { background: var(--c-161b22); border-color: var(--c-21262d); }
-    tbody tr.row-today { background: var(--c-2a1517); border-color: var(--c-6b1f24); }
-    tbody tr.row-tomorrow { background: var(--c-10241a); border-color: var(--c-1b4721); }
+    tbody tr.row-past { background: var(--row-past-bg); border-color: var(--c-21262d); }
+    tbody tr.row-today { background: var(--row-today-bg); border-color: var(--row-today-border); }
+    tbody tr.row-tomorrow { background: var(--row-tomorrow-bg); border-color: var(--row-tomorrow-border); }
     tbody tr.row-today td.cell-mobile { color: var(--c-ffb3b0); }
     tbody tr.row-tomorrow td.cell-mobile { color: var(--c-7ee2a8); }
     tbody tr.row-past td.cell-mobile { color: var(--c-8b949e); }
@@ -1606,15 +1662,15 @@
     .conflict-box { background: var(--c-1f1a10); border-color: var(--c-4a3a10); color: var(--c-d4a72c); }
     .conflict-box select { background: var(--c-0d1117); border-color: var(--c-4a3a10); color: var(--c-c9d1d9); }
     .import-skipped summary { color: var(--c-d4a72c); }
-    tbody tr.row-conflict { background: var(--c-1f1a10); border-color: var(--c-8a6100); }
-    tbody tr.row-conflict.conflict-peer { background: var(--c-26200f); border-color: var(--c-a97400); }
-    tbody tr.row-past.row-conflict { background: var(--c-1a1710); border-color: var(--c-6b5200); }
+    tbody tr.row-conflict { background: var(--row-conflict-bg); border-color: var(--c-8a6100); }
+    tbody tr.row-conflict.conflict-peer { background: var(--row-conflict-peer-bg); border-color: var(--row-conflict-peer-border); }
+    tbody tr.row-past.row-conflict { background: var(--row-conflict-past-bg); border-color: var(--row-conflict-past-border); }
     .conflict-link-line { stroke: var(--c-8a6100); }
     /* 周分隔线：结构性信息，深色下同样不跟随今天/明天改色 */
     tbody tr.week-start td.cell-mobile::before { background: var(--c-30363d); }
     /* 图例色块与"下一次"徽标：浅色版在深色背景上像四个亮点 */
-    .legend .dot-today { background: var(--c-5c2a2e); }
-    .legend .dot-tomorrow { background: var(--c-1b4721); }
+    .legend .dot-today { background: var(--legend-today); }
+    .legend .dot-tomorrow { background: var(--legend-tomorrow); }
     .legend .dot-past { background: var(--c-30363d); }
     .legend .dot-conflict { background: var(--c-4a3a10); }
     .legend .dot-next { background: var(--c-0d2d4d); }
@@ -1624,7 +1680,7 @@
 
     /* 「下一次」的浅色底规则带两个 :not()，特异性高于本条之前的写法，
        深色下会把白底刷到行上（文字仍是浅色 → 1.12:1 不可读）。这里用同样的选择器纠正。 */
-    tbody tr.row-next:not(.row-today):not(.row-tomorrow) td { background: var(--c-0d2d4d); }
+    tbody tr.row-next:not(.row-today):not(.row-tomorrow) td { background: var(--row-next-bg); }
     tbody tr.row-next td:nth-child(2) { box-shadow: inset 3px 0 0 var(--c-58a6ff); }
 
     /* 提示条与首次提示：原来只有浅色版，深色下是一块亮斑 */
@@ -1763,6 +1819,7 @@
 
   <div class="table-wrap">
     <div class="print-head" id="printHead" aria-hidden="true"></div>
+  <div class="print-meta" id="printMeta" aria-hidden="true"></div>
     <p class="sr-only" id="tableKeyboardHint">实验表格。按 Tab 进入第一行并逐行前进，Shift+Tab 反向；上下方向键也可逐条朗读；编辑/删除模式下 Tab 到行内按钮；按 Esc 返回表格。</p>
     <p class="sr-only" id="tableHeaderSummary">表头：日期、周次、星期、节次、实验名称、实验地点。</p>
     <table id="scheduleTable" tabindex="0" aria-labelledby="tableCaption" aria-describedby="tableKeyboardHint tableHeaderSummary">
@@ -3766,6 +3823,12 @@ function render() {
       ? `${selectedClass} 实验安排 · ${toDateStr(today)} · ${rows.length} 条${filterText}`
       : '未选择班级';
   }
+  if (printMeta) {
+    const stamp = new Date();
+    const pad2 = v => String(v).padStart(2, '0');
+    printMeta.textContent = `数据更新至 ${DATA_UPDATED_AT || '—'} · 打印于 ${stamp.getFullYear()}-${pad2(stamp.getMonth() + 1)}-${pad2(stamp.getDate())} ${pad2(stamp.getHours())}:${pad2(stamp.getMinutes())}`;
+  }
+
   updateRecentCount(rows.length, allRows.length);
 
   const firstUpcoming = allRows.find(e => e._date >= today) || null;
@@ -3826,9 +3889,20 @@ function render() {
         `没有匹配“${searchQuery}”的实验；已隐藏 ${hidden} 条。`
       ));
       td.appendChild(document.createElement('br'));
-      td.appendChild(document.createTextNode(
-        '在“操作”里清空搜索，或取消其他筛选后再看。'
-      ));
+      td.appendChild(document.createTextNode('在“操作”里清空搜索，或取消其他筛选后再看。'));
+      const clearBtn = document.createElement('button');
+      clearBtn.type = 'button';
+      clearBtn.className = 'empty-clear';
+      clearBtn.textContent = '清除搜索';
+      clearBtn.addEventListener('click', () => {
+        if (!searchInput) return;
+        searchInput.value = '';
+        // 复用搜索框自己的 input 处理（它负责更新 searchQuery 并重绘）
+        searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+        searchInput.focus();
+      });
+      td.appendChild(document.createTextNode(' '));
+      td.appendChild(clearBtn);
     } else {
       td.appendChild(document.createTextNode(
         noConflict
@@ -5266,6 +5340,7 @@ function syncTableA11y() {
   });
 }
 const printHead = document.getElementById('printHead');
+const printMeta = document.getElementById('printMeta');
 const recentCountEl = document.getElementById('recentCount');
 const modeBadgeEl = document.getElementById('modeBadge');
 const firstRunEl = document.getElementById('firstRunHint');
