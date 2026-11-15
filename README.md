@@ -243,6 +243,21 @@
 - 导出：导出的 xlsx 仍是固定 7 列，冲突行单元格使用浅琥珀色填充（`FFFFF1C2`），不增加列，旧文件仍可导入。
 - 当前数据（2026-11-06）：Z1 为 3 组 / 6 条，Z2 为 2 组 / 4 条，Z5 为 0 组。
 
+### 2.8.0 源码结构与构建（G1）
+
+```
+src/index.template.html   页面骨架（含 CSS/JS 占位与 CSP meta）
+src/app.css               样式（= 产物里的 <style>）
+src/app.js                脚本（= 产物里的 <script>）
+index.html                构建产物（单文件，Pages 直接发布的就是它）
+```
+
+改样式/脚本：改 `src/` 里的文件 → `python tools/build.py` → 把 `src/` 与 `index.html` 一起提交。
+只想知道产物有没有过期：`python tools/build.py --check`（不一致会失败）。
+
+> 产物仍是**单个** `index.html`：CSP 仍用内联哈希、`file://` 双击、离线发文件都不受影响。
+> 构建时不写死哈希，按内联后的实际内容重算。
+
 ### 2.8.1 色值 token（全站唯一颜色来源）
 
 <!-- palette:start -->

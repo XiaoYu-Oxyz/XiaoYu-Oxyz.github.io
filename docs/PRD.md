@@ -444,3 +444,14 @@
 
 _本 PRD 描述"已实现的产品"，不是"设想中的产品"。任何与本文件冲突的实现都应视为缺陷；任何新增需求应先更新本文件再改代码。_
 
+
+## 附录 A 源码结构
+
+| 文件 | 作用 |
+|---|---|
+| `src/index.template.html` | 页面骨架（CSS/JS 占位 + CSP meta） |
+| `src/app.css` | 样式源码（产物里的 `<style>`） |
+| `src/app.js` | 脚本源码（产物里的 `<script>`） |
+| `index.html` | 构建产物（单文件，Pages 发布对象） |
+
+构建：`python tools/build.py`（按内联后内容重算 CSP 哈希）；漂移检查：`python tools/build.py --check`。

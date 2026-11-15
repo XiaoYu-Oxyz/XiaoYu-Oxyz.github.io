@@ -4,6 +4,7 @@
 Usage (在仓库根目录执行):
     python tools/build.py            # 用 data/设置.json 的 updatedAt 构建
     python tools/build.py --stamp    # 顺便把 updatedAt 设为今天
+    python tools/build.py --check    # 只对比 index.html 是否与 src/ 同步，不写盘
 
 Rules:
   - class name = xlsx filename stem (data/Z1.xlsx -> Z1)
@@ -15,9 +16,15 @@ Rules:
   - optional 备注 column (exported last); old 6-column files are accepted
   - shared week1 comes from data/设置.json
 
+源码结构（G1 之后）：
+    src/index.template.html   页面骨架，含 /*__CRSECUE_CSS__*/ 与 /*__CRSECUE_JS__*/ 两个占位
+    src/app.css               = 原 <style> 内容
+    src/app.js                = 原 <script> 内容
+构建时把三者内联回**单个** index.html，并按实际内容重算 CSP 哈希；
+产物仍是单文件（GitHub Pages 行为、file:// 双击、离线分发都不变）。
+
 The default data is written into the inert <template id="defaultData"> JSON,
-so changing data does NOT change the CSP hashes. Code changes still require
-`python tools/verify.py --apply`.
+so changing data does NOT change the CSP hashes.
 """
 import importlib.util
 import json
@@ -40,6 +47,12 @@ DATA_DIR = common.DATA_DIR
 SETTINGS = common.SETTINGS
 DEPLOY = common.INDEX
 CALENDARS_DIR = common.CALENDARS_DIR
+SRC_DIR = common.REPO_ROOT / "src"
+PAGE_TEMPLATE = SRC_DIR / "index.template.html"
+APP_CSS = SRC_DIR / "app.css"
+APP_JS = SRC_DIR / "app.js"
+CSS_SLOT = "/*__CRSECUE_CSS__*/"
+JS_SLOT = "/*__CRSECUE_JS__*/"
 ICS_SUFFIX = ".ics"
 
 TEMPLATE_RE = re.compile(r'(<template id="defaultData">)([\s\S]*?)(</template>)')
@@ -678,9 +691,16 @@ def main(argv=None):
         "classes": classes,
     }
 
-    if not DEPLOY.exists():
-        fail("找不到 %s" % DEPLOY.name)
-    html = DEPLOY.read_bytes().decode("utf-8-sig").replace("\r\n", "\n")
+    for required in (PAGE_TEMPLATE, APP_CSS, APP_JS):
+        if not required.exists():
+            fail("找不到源文件 %s" % required.relative_to(BASE))
+    html = PAGE_TEMPLATE.read_bytes().decode("utf-8-sig").replace("\r\n", "\n")
+    css = APP_CSS.read_bytes().decode("utf-8").replace("\r\n", "\n")
+    js = APP_JS.read_bytes().decode("utf-8").replace("\r\n", "\n")
+    if html.count(CSS_SLOT) != 1 or html.count(JS_SLOT) != 1:
+        fail("src/index.template.html 里必须各有一个 %s / %s 占位" % (CSS_SLOT, JS_SLOT))
+    html = html.replace(CSS_SLOT, css)
+    html = html.replace(JS_SLOT, js)
     matches = list(TEMPLATE_RE.finditer(html))
     if len(matches) != 1:
         fail('源文件中必须恰好有一个 <template id="defaultData">...</template>')
@@ -692,9 +712,18 @@ def main(argv=None):
     # 先校验内存里的产物，通过后才允许写盘：这样"哈希过期/模板坏掉/危险 sink"
     # 永远不会以半成品形式落到 index.html 上。
     verifier = load_verifier()
+    # 源码拆开后，CSP 哈希由构建按实际内联内容重算
+    html, _, _ = verifier.apply_hashes_to_html(html)
     errors = verifier.verify_html(html, DEPLOY.name)
     if errors:
         fail("产物未通过校验，未写入任何文件：\n  " + "\n  ".join(errors))
+
+    if "--check" in argv:
+        current = DEPLOY.read_bytes() if DEPLOY.exists() else b""
+        if current != encoded:
+            fail("index.html 与 src/ 不同步；跑 python tools/build.py 重新生成后一起提交")
+        print("OK: index.html 与 src/ 一致（%d 字节）" % len(encoded))
+        return 0
 
     common.write_atomic(DEPLOY, encoded)
 
