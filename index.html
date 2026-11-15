@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-2UWSoHL/hCNd5fRmUSzp+yjjxIYQA81yAHiOIjiFkbQ='; script-src-elem 'sha256-2UWSoHL/hCNd5fRmUSzp+yjjxIYQA81yAHiOIjiFkbQ='; script-src-attr 'none'; style-src 'sha256-/t2pPSu7N+9sSCleKJR2xljGO5Fhszp7vgz85dAwvHA='; style-src-elem 'sha256-/t2pPSu7N+9sSCleKJR2xljGO5Fhszp7vgz85dAwvHA='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-2UWSoHL/hCNd5fRmUSzp+yjjxIYQA81yAHiOIjiFkbQ='; script-src-elem 'sha256-2UWSoHL/hCNd5fRmUSzp+yjjxIYQA81yAHiOIjiFkbQ='; script-src-attr 'none'; style-src 'sha256-ZDV+gltW7eTYxMcbo5Xb0AqhfyEDN74cTgx5Q88UvNs='; style-src-elem 'sha256-ZDV+gltW7eTYxMcbo5Xb0AqhfyEDN74cTgx5Q88UvNs='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>CrseCue</title>
 <style>
@@ -92,7 +92,7 @@
   .action-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
   .action-group + .action-group { padding-left: 16px; border-left: 1px solid #e1e6eb; }
   .group-label {
-    font-size: 11px; font-weight: 700; color: #6e7781;
+    font-size: 11px; font-weight: 700; color: #57606a;
     letter-spacing: .08em; white-space: nowrap;
   }
   .label-short { display: none; }
@@ -386,7 +386,7 @@
     color: #24292f; font-weight: 700;
     font-variant-numeric: tabular-nums;
   }
-  .saved-tip { color: #2da44e; }
+  .saved-tip { color: #1a7f37; }   /* 原 #2da44e 在白底上 3.22:1 */
 
   .legend {
     display: flex; gap: 20px; flex-wrap: wrap;
@@ -642,7 +642,7 @@
   .edit-row-btn:focus-visible { outline: 2px solid #0969da; outline-offset: 2px; }
 
   tbody tr.row-marked td {
-    background: #f7f8fa; color: #b0b8c1;
+    background: #f7f8fa; color: #57606a;   /* 原 #b0b8c1 在 #f7f8fa 上只有 1.89:1 */
   }
   tbody tr.row-marked td.cell-mark { background: #f7f8fa; }
   tbody tr.row-marked .tag { opacity: .4; }
@@ -853,7 +853,7 @@
     margin: 5px 0; font-size: 13px; color: #24292f; cursor: pointer;
   }
   .export-scope-option input { margin: 0; width: 15px; height: 15px; }
-  .export-count { color: #6e7781; font-size: 12px; }
+  .export-count { color: #57606a; font-size: 12px; }
   .export-options { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
   .export-choice {
     flex: 1 1 190px; min-width: 0; padding: 12px 14px;
@@ -1157,7 +1157,7 @@
     tbody tr.row-today td.cell-mobile { color: #a40e26; font-weight: 700; }
     tbody tr.row-tomorrow td.cell-mobile { color: #1a7f37; font-weight: 700; }
     tbody tr.row-past td.cell-mobile { color: #6e7781; }
-    tbody tr.row-past .m-name { color: #6e7781; }
+    tbody tr.row-past .m-name { color: #57606a; }   /* 原 #6e7781 在 #f6f8fa 上只有 4.27:1 */
     /* 冲突：整张卡片描一圈琥珀色边框 + 极浅底纹（卡片是方角，填充也跟着方角），
        同组的两条再用一条最短对角线段连起来（见 .conflict-link-layer）。 */
     tbody tr.row-conflict {
@@ -1378,6 +1378,27 @@
     .import-status.error { background: #3d1a1c; color: #ff9492; border-color: #6b1f24; }
     .search-hit { background: #6b4b00; color: #ffdf5d; }
     .m-place, .m-line1, .m-note { color: #8b949e; }
+    /* 手机段的 `.cell-mobile .m-line1` 特异性 (0,2,0) 高过上面那行，
+       深色下日期行仍是 #57606a（2.71:1），这里用同等特异性压回去 */
+    td.cell-mobile .m-line1 { color: #adbac7; }
+    tbody tr.row-past td.cell-mobile .m-line1 { color: #8b949e; }
+    /* 时钟：`.clock-time` 原来只有浅色 #24292f，深色下几乎看不见（1.18:1） */
+    .clock { color: #8b949e; }
+    .clock b { color: #79c0ff; }
+    .clock-time { color: #e6edf3; }
+    .export-count { color: #8b949e; }
+    .saved-tip { color: #56d364; }
+    /* 页脚两个反馈入口：浅色 #57606a 在深色底 2.71:1 */
+    .diag-btn { color: #adbac7; }
+    .diag-btn:hover { color: #58a6ff; }
+    /* 导出方式卡里的说明文字（#57606a on #000 = 3.29） */
+    .export-choice span { color: #adbac7; }
+    .export-choice { color: #f0f6fc; }
+    /* 表单字段标签（#424a53 on #161b22 = 1.92） */
+    .form-row > label, .choice-body label { color: #adbac7; }
+    /* 课表视图：周标题与格子里的地点（#24292f / #57606a 在深色底几乎看不见） */
+    .week-label { color: #e6edf3; }
+    .wg-item span { color: #adbac7; }
 
     /* ---- 卡片布局（手机 / 两列 / 横屏）的深色版 ----
        手机段的 `tbody tr.row-past`/`.cell-mobile .m-name` 等规则特异性高于
@@ -1404,7 +1425,7 @@
     input[type="radio"], input[type="checkbox"] { accent-color: #1f6feb; }
     /* 删除模式里"已标记"的行：浅色是 #f7f8fa 浅底（深色下等于一块白板），
        这里压回深底 + 灰字，并把标记按钮的绿换成深色版绿 */
-    tbody tr.row-marked td { background: transparent; color: #6e7681; }
+    tbody tr.row-marked td { background: transparent; color: #8b949e; }
     tbody tr.row-marked td.cell-mark { background: transparent; }
     tbody tr.row-marked .cell-mobile .m-name { color: #8b949e; }
     .mark-btn[aria-pressed="true"], .mark-btn[aria-pressed="true"]:hover {

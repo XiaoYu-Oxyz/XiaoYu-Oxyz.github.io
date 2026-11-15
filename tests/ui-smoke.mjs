@@ -1195,6 +1195,97 @@ try {
       await darkCtx.close();
     }
   }
+  // 23. 文字对比度：所有可见文字按 WCAG 1.4.3 检查（正文 4.5:1、大字 3:1）
+  //     这轮靠它抓出 15 处：深色时钟 1.18、深色表单标签 1.92、浅色已标记行 1.89…
+  {
+    const combos = [
+      { width: 390, scheme: 'light', state: 'base' },
+      { width: 390, scheme: 'light', state: 'marked' },
+      { width: 390, scheme: 'light', state: 'week' },
+      { width: 1440, scheme: 'light', state: 'marked' },
+      { width: 390, scheme: 'dark', state: 'base' },
+      { width: 390, scheme: 'dark', state: 'marked' },
+      { width: 390, scheme: 'dark', state: 'undo' },
+      { width: 1440, scheme: 'dark', state: 'marked' }
+    ];
+    for (const combo of combos) {
+      const contrastCtx = await browser.newContext({ viewport: { width: combo.width, height: 950 }, colorScheme: combo.scheme });
+      const contrastPage = await contrastCtx.newPage();
+      await contrastPage.goto(`${appUrl}?class=Z2`);
+      await contrastPage.waitForSelector('tbody tr[data-idx]');
+      if (combo.state === 'week') {
+        await contrastPage.evaluate(() => setView('week', false));
+        await contrastPage.waitForTimeout(400);
+      }
+      if (combo.state === 'marked' || combo.state === 'undo') {
+        await contrastPage.locator('#actionsToggle').click();
+        await contrastPage.locator('#deleteModeBtn').click();
+        await contrastPage.waitForTimeout(260);
+        await contrastPage.evaluate(() => document.querySelector('tbody tr[data-idx] .mark-btn').click());
+        if (combo.state === 'undo') {
+          await contrastPage.waitForTimeout(150);
+          await contrastPage.locator('#deleteModeBtn').click();
+          await contrastPage.waitForTimeout(700);
+        }
+      }
+      await contrastPage.waitForTimeout(150);
+      const low = await contrastPage.evaluate(() => {
+        const parse = c => {
+          const m = String(c).match(/rgba?\(([\d.]+), ([\d.]+), ([\d.]+)(?:, ([\d.]+))?\)/);
+          return m ? { r: +m[1], g: +m[2], b: +m[3], a: m[4] === undefined ? 1 : +m[4] } : null;
+        };
+        const lum = ({ r, g, b }) => {
+          const f = v => { const s = v / 255; return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4); };
+          return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+        };
+        const blend = (fg, bg) => ({ r: fg.r * fg.a + bg.r * (1 - fg.a), g: fg.g * fg.a + bg.g * (1 - fg.a), b: fg.b * fg.a + bg.b * (1 - fg.a), a: 1 });
+        const ratio = (a, c) => { const l1 = Math.max(lum(a), lum(c)), l2 = Math.min(lum(a), lum(c)); return (l1 + 0.05) / (l2 + 0.05); };
+        const effectiveBg = el => {
+          let cur = el;
+          const stack = [];
+          while (cur && cur !== document.documentElement) {
+            const c = parse(getComputedStyle(cur).backgroundColor);
+            if (c && c.a > 0) stack.push(c);
+            if (c && c.a >= 0.999) break;
+            cur = cur.parentElement;
+          }
+          let base = { r: 255, g: 255, b: 255, a: 1 };
+          const htmlBg = parse(getComputedStyle(document.documentElement).backgroundColor);
+          const bodyBg = parse(getComputedStyle(document.body).backgroundColor);
+          if (htmlBg && htmlBg.a > 0.5) base = htmlBg;
+          if (bodyBg && bodyBg.a > 0.5) base = bodyBg;
+          for (let i = stack.length - 1; i >= 0; i -= 1) base = blend(stack[i], base);
+          return base;
+        };
+        const hasOwnText = el => Array.from(el.childNodes).some(n => n.nodeType === 3 && n.textContent.trim().length > 1);
+        const out = [];
+        for (const el of document.querySelectorAll('body *')) {
+          if (el.closest('svg') || el.closest('.sr-only')) continue;
+          if (!hasOwnText(el)) continue;
+          const cs = getComputedStyle(el);
+          if (cs.display === 'none' || cs.visibility === 'hidden') continue;
+          const rect = el.getBoundingClientRect();
+          if (rect.width < 4 || rect.height < 4) continue;
+          if (el.closest(':disabled, [aria-disabled="true"], .is-disabled')) continue;
+          if (Number(cs.opacity) < 0.9) continue;
+          const fg = parse(cs.color);
+          if (!fg) continue;
+          const bg = effectiveBg(el);
+          const composed = fg.a < 1 ? blend(fg, bg) : fg;
+          const size = parseFloat(cs.fontSize);
+          const large = size >= 24 || (size >= 18.66 && Number(cs.fontWeight) >= 700);
+          const need = large ? 3 : 4.5;
+          const r = ratio(composed, bg);
+          if (r < need) {
+            out.push((el.id ? '#' + el.id : el.tagName.toLowerCase() + '.' + String(el.className).split(' ').slice(0, 2).join('.')) + ' ' + r.toFixed(2) + ' < ' + need + '（fg ' + cs.color + '）');
+          }
+        }
+        return Array.from(new Set(out)).slice(0, 5);
+      });
+      assert.deepEqual(low, [], `${combo.width}px ${combo.scheme} ${combo.state} 对比度不足：${low.join('；')}`);
+      await contrastCtx.close();
+    }
+  }
   console.log('UI smoke OK');
 } finally {
   fs.rmSync(fixtureDir, { force: true, recursive: true });
