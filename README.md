@@ -18,6 +18,7 @@
 | [docs/ACCESSIBILITY.md](docs/ACCESSIBILITY.md) | 改了表格/焦点/模式后，按清单做读屏回归 |
 | [SECURITY.md](SECURITY.md) | 改了 `index.html` 的 `<style>`/`<script>` 后，怎么做哈希维护 |
 | [docs/scripts.md](docs/scripts.md) | 想一键构建/检查/发布（替代原先两个 .bat） |
+| [docs/新学期.md](docs/新学期.md) | **学期结束/新学期第一次换数据**，按这份清单走（4 步 + 自查） |
 
 三句话版本：**README 教你怎么用，PRD 说清做什么与不做什么，重构记录解释为什么这么做。**
 
@@ -108,6 +109,7 @@
 - 备注非空时，第三行显示小字“备注：…”，支持换行；**超过 60 字先折三行**，下面给「展开备注 / 收起备注」（手机上一段长备注会把整张卡撑满）。
 - **名称/地点联想**：新增/编辑弹窗里「实验名称」和「实验地点」都带 `<datalist>`，选项来自所有班已有数据（去重、按拼音排序、最多 100 个）。实测名称列表里就能看到「电工电子」与「电工电子实验」并存——正是搜不到的那类写法。**iOS Safari 不渲染 datalist**，所以在 iPhone 上改用自绘的建议列表（`NEEDS_JS_SUGGEST` 检测 UA/API），桌面仍走原生。
 - 编辑/删除模式下，小图标叠放在卡片右侧垂直居中，不额外占正文宽度；按钮 24px（WCAG 2.5.8 最小可点尺寸），外层定位容器 36×36px；普通浏览时不显示图标。
+- **筛选复选框的触控热区**：两个复选框（「已结束仅显示本周」「只看冲突」）视觉仍是 18px，用 `padding: 6px 3px` + 等量负 margin 把可点区扩到 **30px 高**（纵向 ±6px、横向 ±3px，落在 8–10px 行距与 10–12px 列距里），外框尺寸不变、行高与首屏高度一个像素都不动。不用 `::after` 覆盖层：它会盖住 `<input>` 本身，`page.uncheck()` 会报 "label intercepts pointer events"，读屏落焦也会落到 label 而不是复选框。44px（WCAG 2.5.5 AAA）需要增行高，320px 首屏会从 363px 顶到 389px、超过 PRD G2 的 380px 预算，故取 30px。
 - 桌面端（≥ 941px）保持原表格布局；561–940px 为两列卡片。
 - 已验证 390px、820px、900px 无横向滚动；941px 起恢复桌面表格；320/360px 操作菜单自动两行且无横向滚动。
 
@@ -365,13 +367,14 @@ CrseCue/
 │  │  └─ Z1-import.json       # UI 导入固定样本
 │  ├─ ui-smoke.mjs            # Playwright UI 冒烟测试（Chromium/WebKit）
 │  ├─ week-view.mjs           # 课表视图 50 项断言
-│  ├─ visual-smoke.mjs        # 8 视口几何 + 深色对比度 + 截图
+│  ├─ visual-smoke.mjs        # 8 视口几何 + 2 个暗色弹窗 + 深色对比度 + 截图
 │  └─ logic.mjs               # 纯函数回归（page.evaluate 直接调用全局函数）
 ├─ .github/workflows/verify.yml # CI：构建 + CSP + 单元/UI 测试 + 产物检查
 ├─ .github/workflows/update-data.yml # 手动触发：构建+校验+自动提交（一键更新数据）
 ├─ docs/PRD.md                # 产品需求文档（需求编号、验收标准、被否决清单）
 ├─ docs/ACCESSIBILITY.md      # 读屏人工回归清单
-├─ docs/重构记录.md            # 19 轮改动的动机、做法、踩坑与验证数字
+├─ docs/重构记录.md            # 35 轮改动的动机、做法、踩坑与验证数字
+├─ docs/新学期.md              # 学期结束/新学期换数据的 4 步清单
 ├─ LICENSE                    # MIT
 ├─ SECURITY.md                # 安全设计、残余风险、维护说明
 ├─ README.md                  # 本文件
@@ -792,7 +795,7 @@ git push
 | `npm run test:logic`（Chromium / WebKit） | **52 个用例**：日期/周次/节次/冲突/ICS + 重复判定 + **xlsx 生成（转义、冲突高亮、冻结、列宽、空表）** |
 | `npm run test:ui`（Chromium / WebKit） | 全绿（含只读链接、首次提示、`.ics`、诊断信息） |
 | `npm run test:week`（Chromium / WebKit） | **50 项**：行数上限 14、截断标记、逐节次跨行、堆垛平分、今天/明天/冲突配色、课表内置灰筛选、回到本周、点空格添加、点块编辑+删除、课表内进入编辑/删除模式、Tab/回车可达、撤销 |
-| `npm run test:visual`（Chromium / WebKit） | **8 个视口**（320 / 360 / 横屏 640×360 / 390 / 暗色 390 / 768 / 1440 / 课表）：无横向溢出、图例色不变、首行不超 380px、关提示条回落量 = 提示条高度，截图上传为 CI artifact |
+| `npm run test:visual`（Chromium / WebKit） | **8 个视口**（320 / 360 / 横屏 640×360 / 390 / 暗色 390 / 768 / 1440 / 课表）：无横向溢出、图例色不变、首行不超 380px、关提示条回落量 = 提示条高度；**另加 2 个暗色弹窗**（添加 / 导出）：弹窗内无亮底色块、标题与可交互输入框对比度 ≥ 4.5，截图上传为 CI artifact |
 | pre-commit 钩子 | 故意改坏哈希后提交被拒（exit 1），修复后通过 |
 | 手机首屏（Windows + 微软雅黑实测） | 390px 首行距顶 **229px**（关提示条）/ 296px（带提示条）；360px 250 / 317px；320px 276 / 363px；横屏 640×360 168 / 210px；768px 229 / 283px。**图例在所有端都显示**，约占 21px |
 | 老设备 | 见 2.12「兼容性」：`replaceChildren` polyfill、`inset` 长写、flex gap 兜底 |
@@ -957,7 +960,7 @@ git push
 - 旧版单班数据只迁移到 Z2，不会迁移到其他班级。
 - `*.github.io` 同源 `localStorage` 不能做到路径级隔离。
 - `.cmd` 只是双击入口，真正逻辑在 `scripts/crsecue.ps1`，不含任何绝对路径；换机器直接能用（Python 由脚本自己找）。
-- 本仓库未声明 License；如需开源分发，请补充 `LICENSE`。
+- 本仓库使用 MIT 许可证（见根目录 `LICENSE`）。
 
 ---
 
@@ -982,7 +985,7 @@ git push
 
 ## License
 
-本仓库未声明开源许可证。除非另有书面说明，默认保留所有权利；如需开源分发，请补充 `LICENSE` 文件。
+本仓库使用 [MIT 许可证](LICENSE)。
 
 
 

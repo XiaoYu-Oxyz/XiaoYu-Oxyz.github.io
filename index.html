@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-oZ+VAFPjm8cq4FQAaq5fB3Me9jJqSERX/VZfoZR3jT8='; script-src-elem 'sha256-oZ+VAFPjm8cq4FQAaq5fB3Me9jJqSERX/VZfoZR3jT8='; script-src-attr 'none'; style-src 'sha256-Cv5qnRSGqvUB9fNuwWW1Jg6UWDan0vR23XjFLwmiz+o='; style-src-elem 'sha256-Cv5qnRSGqvUB9fNuwWW1Jg6UWDan0vR23XjFLwmiz+o='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-0uOux32SDZevz8BFqExCKk4bvTMDjoRf+Sr+T1NYwkk='; script-src-elem 'sha256-0uOux32SDZevz8BFqExCKk4bvTMDjoRf+Sr+T1NYwkk='; script-src-attr 'none'; style-src 'sha256-i6h0D/0rIrZcZTbiTeIJGPGA/ru//yXLlgevMUQE9Is='; style-src-elem 'sha256-i6h0D/0rIrZcZTbiTeIJGPGA/ru//yXLlgevMUQE9Is='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>CrseCue</title>
 <style>
@@ -139,6 +139,13 @@
   .recent-filter {
     display: inline-flex; align-items: center; gap: 6px;
     font-size: 13px; color: #57606a; white-space: nowrap; cursor: pointer;
+    /* 触控热区：视觉仍是 18px，padding 把可点区撑到 30px 高、并吃掉标签文字，
+       负 margin 让外框尺寸不变 → 行高与首屏高度一个像素都不动。
+       不用 ::after 覆盖层：它会盖住 <input> 本身，Playwright 的 uncheck() 会报
+       "label intercepts pointer events"，读屏落焦也会落到 label 而不是复选框。
+       44px（WCAG 2.5.5 AAA）要增行高，320px 首屏会从 363px 顶到 389px、
+       超过 PRD G2 的 380px 预算，故取 30px。 */
+    padding: 6px 3px; margin: -6px -3px;
   }
   .recent-filter input {
     width: 18px; height: 18px; margin: 0;
@@ -289,6 +296,8 @@
     text-decoration: underline dotted; cursor: pointer;
   }
   .diag-btn:hover { color: #0969da; }
+  /* 两个反馈入口并排：反馈在左、诊断在右，中间留 10px（老浏览器没有 flex gap 也能分开） */
+  .diag-btn + .diag-btn { margin-left: 10px; }
   /* 「本机数据 / 只读」徽标：把"改动只在这台设备上"显式说出来 */
   .mode-badge {
     display: inline-flex; align-items: center;
@@ -1406,7 +1415,6 @@
     .next-badge { background: #0d2d4d; border-color: #1f6feb66; color: #79c0ff; }
     .tag-today { background: #5c2a2e; color: #ffb3b0; }
     .tag-tomorrow { background: #14351f; color: #7ee2a8; }
-    .tag-conflict { background: #4a3a10; color: #e3b341; }
 
     /* 「下一次」的浅色底规则带两个 :not()，特异性高于本条之前的写法，
        深色下会把白底刷到行上（文字仍是浅色 → 1.12:1 不可读）。这里用同样的选择器纠正。 */
@@ -1573,6 +1581,7 @@
   <section class="week-view" id="weekView" aria-label="周课表"></section>
 
   <p class="diag-row">
+    <button class="diag-btn" id="feedbackBtn" type="button" title="把当前班级和最近一条实验拼成一段话，粘贴到班级群反馈">发现安排有误？复制反馈</button>
     <button class="diag-btn" id="diagBtn" type="button" title="复制浏览器/数据版本等信息，方便反馈问题">遇到问题？复制诊断信息</button>
   </p>
 </main>
@@ -4004,6 +4013,8 @@ function refreshIfDayChanged() {
   if (toDateStr(new Date()) === lastRenderedDay) return false;
   render();
   updateClock();
+  // 「数据 N 天前」也是按日期算的，跨天必须跟着重算（否则页面挂一夜会少算一天）
+  updateDataUpdatedBadge();
   showStatus('ok', '日期已变化，列表已刷新到今天');
   return true;
 }
@@ -5318,10 +5329,24 @@ document.addEventListener('keydown', ev => {
   }
 });
 
-if (DATA_UPDATED_AT) {
-  dataUpdatedEl.textContent = `数据更新至 ${DATA_UPDATED_AT}`;
+/* 只写「数据更新至 2026-11-06」时，没人看得出这是一周前的快照。
+   补一个按本机日期算的相对天数，让页面自己说出"这份安排可能旧了"，
+   而不是等人去跑 validate_data.py 才发现。
+   做成函数：跨天刷新时要重算，否则页面挂一夜，"9 天前"第二天还写着 9。 */
+function updateDataUpdatedBadge() {
+  if (!DATA_UPDATED_AT) return;
+  let updatedLabel = `数据更新至 ${DATA_UPDATED_AT}`;
+  const updatedDate = parseDate(DATA_UPDATED_AT);
+  if (updatedDate && !isNaN(updatedDate.getTime())) {
+    const daysAgo = dayDiff(startOfDay(new Date()), updatedDate);
+    if (daysAgo === 0) updatedLabel += ' · 今天';
+    else if (daysAgo > 0) updatedLabel += ` · ${daysAgo} 天前`;
+  }
+  dataUpdatedEl.textContent = updatedLabel;
+  dataUpdatedEl.title = '部署数据快照的日期；「N 天前」按本机日期计算，换设备可能差一天';
   dataUpdatedEl.hidden = false;
 }
+updateDataUpdatedBadge();
 
 const SEARCH_DEBOUNCE_MS = 60;
 let searchDebounceTimer = 0;
@@ -7632,6 +7657,59 @@ function timezoneLabel() {
   const offset = timezoneOffsetMinutes();
   const abs = Math.abs(offset);
   return (offset >= 0 ? '+' : '-') + pad2(Math.floor(abs / 60)) + ':' + pad2(abs % 60);
+}
+
+/* 纠错回路：页面没有后端、也没有任何外链，学生发现"地点写错了"只能截图发群里。
+   这里把班级、页面链接、最可能是他正在看的那一条实验拼成一段话，一键复制。
+   目标优先取提示条指向的那条（今天/下一节），没有就取当前显示的第一行。
+   它不改数据、不发请求，只是把"截图 + 描述"的成本降到一次点击。 */
+const feedbackBtn = document.getElementById('feedbackBtn');
+if (feedbackBtn) {
+  feedbackBtn.addEventListener('click', () => {
+    let target = null;
+    const cueIdx = cueTextEl && cueTextEl.dataset.idx !== undefined ? Number(cueTextEl.dataset.idx) : null;
+    if (cueIdx !== null && !isNaN(cueIdx) && experiments[cueIdx]) {
+      target = experiments[cueIdx];
+    } else {
+      const firstRow = document.querySelector('#tbody tr:not(.note-row)');
+      const rowIdx = firstRow && firstRow.dataset.idx !== undefined ? Number(firstRow.dataset.idx) : null;
+      if (rowIdx !== null && !isNaN(rowIdx) && experiments[rowIdx]) target = experiments[rowIdx];
+    }
+
+    const cls = selectedClass || '';
+    // file:// 直接双击打开时 location.origin 是 "null"，拼出来的链接是废的；
+    // 那种情况下宁可写一句实话，也不要给群里贴一条打不开的地址。
+    const shareable = location.protocol === 'http:' || location.protocol === 'https:';
+    const pageUrl = shareable
+      ? location.origin + location.pathname + (cls ? `?${CLASS_QUERY_PARAM}=${encodeURIComponent(cls)}` : '')
+      : '（这份页面是本地文件打开的，没有可分享的网址）';
+    const lines = ['【CrseCue · 反馈】'];
+    if (cls) lines.push('班级：' + cls);
+    lines.push('页面：' + pageUrl);
+    if (target) {
+      const d = parseDate(target.date);
+      let when = target.date || '';
+      if (d && !isNaN(d.getTime())) {
+        const wk = weekNoOf(d);
+        when = `${target.date}（第 ${wk} 周 ${WEEK_NAMES[d.getDay()]}）`;
+      }
+      lines.push(`我看到的是：${when} ${target.period || ''} ${target.name || ''}`.replace(/\s+/g, ' ').trim()
+        + (target.place ? ` · ${target.place}` : ''));
+      lines.push('应该改为：（请补充：日期 / 节次 / 地点 / 名称）');
+    } else {
+      lines.push('我看到的是：（请补充：哪一天、第几节、哪条实验）');
+      lines.push('应该改为：（请补充）');
+    }
+    lines.push('页面显示的更新时间：' + (DATA_UPDATED_AT || '未知'));
+
+    const text = lines.join('\n');
+    const ok = () => showStatus('ok', '反馈内容已复制，粘贴到班级群即可');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(ok).catch(() => showCopyFallback(text, '反馈内容'));
+    } else {
+      showCopyFallback(text, '反馈内容');
+    }
+  });
 }
 
 document.getElementById('diagBtn').addEventListener('click', () => {

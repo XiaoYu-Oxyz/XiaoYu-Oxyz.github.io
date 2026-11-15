@@ -172,7 +172,7 @@
 | 纯逻辑 | `npm run test:logic` / `test:logic:webkit` | 52 |
 | UI 冒烟 | `npm run test:ui` / `test:ui:webkit` | 12 段（含只读、横屏、坏链接、跨天） |
 | 课表视图 | `npm run test:week` / `test:week:webkit` | 50 项 |
-| 视觉冒烟 | `npm run test:visual` / `test:visual:webkit` | 8 视口 + 深色对比度断言 |
+| 视觉冒烟 | `npm run test:visual` / `test:visual:webkit` | 8 视口 + 2 个暗色弹窗 + 深色对比度断言 |
 
 CI（`.github/workflows/verify.yml`）在每次 push 上复跑，并强制"构建产物与提交一致"。
 

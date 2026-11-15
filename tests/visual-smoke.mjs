@@ -172,6 +172,97 @@ for (const item of cases) {
   await context.close();
 }
 
+// 深色弹窗守卫：以前的视觉冒烟只拍主页面，弹窗在暗色下有没有白底、标题还看不看得清，
+// 没有人看着。这里打开两个真实入口，断言"弹窗里没有亮底色块"+"文字对比度过 AA"，
+// 截图留在 test-results/visual，改样式时坏了会直接红。
+const darkModalCases = [
+  { name: 'add', open: page => page.click('#addBtn') },
+  { name: 'export', open: page => page.click('#exportBtn') }
+];
+
+for (const item of darkModalCases) {
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    colorScheme: 'dark'
+  });
+  const page = await context.newPage();
+  const pageErrors = [];
+  page.on('pageerror', error => pageErrors.push(error.message));
+  try {
+    await page.goto(appUrl + '?class=Z1');
+    await page.waitForSelector('#tbody tr');
+    await page.click('#actionsToggle');
+    await page.waitForTimeout(150);
+    await item.open(page);
+    await page.waitForSelector('.modal-mask.show .modal', { timeout: 5000 });
+    await page.waitForTimeout(250);
+
+    const audit = await page.evaluate(() => {
+      const lum = c => {
+        const parts = c && c.match(/[\d.]+/g);
+        if (!parts) return null;
+        const f = v => { const x = v / 255; return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4); };
+        const [r, g, b] = parts.slice(0, 3).map(Number).map(f);
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      };
+      const ratio = (fg, bg) => {
+        const a = lum(fg);
+        const b = lum(bg);
+        if (a === null || b === null) return null;
+        return Number(((Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)).toFixed(2));
+      };
+      const bgOf = el => {
+        let node = el;
+        while (node) {
+          const bg = getComputedStyle(node).backgroundColor;
+          if (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') return bg;
+          node = node.parentElement;
+        }
+        return 'rgb(0, 0, 0)';
+      };
+      const mask = document.querySelector('.modal-mask.show');
+      const bright = [];
+      for (const el of mask.querySelectorAll('*')) {
+        const cs = getComputedStyle(el);
+        if (cs.display === 'none' || cs.visibility === 'hidden' || Number(cs.opacity) === 0) continue;
+        const bg = cs.backgroundColor;
+        if (!bg || bg === 'rgba(0, 0, 0, 0)' || bg === 'transparent') continue;
+        const box = el.getBoundingClientRect();
+        const L = lum(bg);
+        if (L !== null && L > 0.5 && box.width >= 8 && box.height >= 8) {
+          bright.push(el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + ' ' + bg);
+        }
+      }
+      const box = mask.querySelector('.modal');
+      const title = mask.querySelector('.modal-head h2') || mask.querySelector('h2');
+      // 只量"可交互"的输入框：WCAG 1.4.3 豁免不可用控件，禁用态的灰字本来就不该按 4.5 要求。
+      const input = [...mask.querySelectorAll(
+        'input:not([type="hidden"]):not([type="radio"]):not([type="checkbox"]), select, textarea'
+      )].find(el => !el.disabled && !el.readOnly && getComputedStyle(el).display !== 'none');
+      const modalBg = box ? getComputedStyle(box).backgroundColor : null;
+      return {
+        bright: bright.slice(0, 5),
+        modalLum: modalBg ? Number(lum(modalBg).toFixed(3)) : null,
+        titleRatio: title ? ratio(getComputedStyle(title).color, bgOf(title)) : null,
+        inputRatio: input ? ratio(getComputedStyle(input).color, bgOf(input)) : null
+      };
+    });
+
+    await page.screenshot({ path: path.join(outDir, `dark-modal-${item.name}.png`), fullPage: false });
+
+    assert.deepEqual(audit.bright, [], `深色弹窗里出现亮底色块：${audit.bright.join(' | ')}`);
+    if (audit.modalLum !== null) assert.ok(audit.modalLum < 0.3, `弹窗底色不够深：亮度 ${audit.modalLum}`);
+    if (audit.titleRatio !== null) assert.ok(audit.titleRatio >= 4.5, `弹窗标题对比度 ${audit.titleRatio} < 4.5`);
+    if (audit.inputRatio !== null) assert.ok(audit.inputRatio >= 4.5, `弹窗输入框对比度 ${audit.inputRatio} < 4.5`);
+    assert.equal(pageErrors.length, 0, `脚本错误：${pageErrors.join(' | ')}`);
+    report.push(`  ✓ dark-modal-${item.name.padEnd(7)} 无亮底色块  标题 ${audit.titleRatio}  输入框 ${audit.inputRatio}`);
+  } catch (error) {
+    failures.push(`dark-modal-${item.name}: ${error.message}`);
+    report.push(`  ✗ dark-modal-${item.name} ${error.message}`);
+  }
+  await context.close();
+}
+
 await browser.close();
 console.log(report.join('\n'));
 console.log(`截图产物：${path.relative(root, outDir)}/`);

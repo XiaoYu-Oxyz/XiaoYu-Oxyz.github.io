@@ -401,6 +401,18 @@ try {
   await page.locator('#copyFallbackDone').click();
   await waitVisible(page.locator('#copyMask'), false);
 
+  // 5b. 纠错回路：剪贴板不可用时同样退化成只读文本框，
+  //     内容必须能直接贴进群里（班级 + 页面 + 具体某一条 + 待补充项）。
+  await page.locator('#feedbackBtn').click();
+  await page.waitForSelector('#copyMask.show');
+  const feedbackText = await page.locator('#copyFallbackText').inputValue();
+  assert.match(feedbackText, /【CrseCue · 反馈】/);
+  assert.match(feedbackText, /班级：Z1/);
+  assert.match(feedbackText, /我看到的是：\d{4}-\d{2}-\d{2}/);
+  assert.match(feedbackText, /应该改为：/);
+  await page.locator('#copyFallbackDone').click();
+  await waitVisible(page.locator('#copyMask'), false);
+
   // 6. 跨标签页：另一个页面修改 Z1 week1，当前页自动同步。
   const secondPage = await page.context().newPage();
   await secondPage.goto(appUrl);
