@@ -29,7 +29,7 @@ powershell -ExecutionPolicy Bypass -File scripts/crsecue.ps1 -Task release -Mess
 | 任务 | 步骤 | 什么时候用 |
 |---|---|---|
 | `build` | 体检数据 → 构建 `index.html` + `calendars/*.ics` → 校验 CSP | 改了 `data/` 或 `index.html`，想先看看结果 |
-| `check` | `build` + Python 单测 42 + 逻辑 52 + UI 冒烟 + 课表 50 + 视觉 8 视口 + 2 弹窗 | 准备提交前，或者怀疑某处被改坏 |
+| `check` | 兼容体检 + `build` + Python 单测 49 + 逻辑 54 + UI 冒烟 + 课表 50 + 视觉 8 视口 | 准备提交前，或者怀疑某处被改坏 |
 | `release` | `check` + `git pull` + `git add` + `commit` + `push` | 确认没问题，发布到 GitHub Pages |
 
 ## 参数
@@ -51,6 +51,6 @@ powershell -ExecutionPolicy Bypass -File scripts/crsecue.ps1 -Task release -Mess
 
 - `.bat` 里写不了"失败即停 + 精确定位到哪一步"，只能靠 `if errorlevel` 层层跳转；
 - 中文注释在 GBK/UTF-8 之间来回转码，容易乱码；
-- 现在多了测试环节（Python 42 + 浏览器 100+ 断言），`.bat` 拼不动。
+- 现在多了测试环节（Python 49 + 浏览器 100+ 断言），`.bat` 拼不动。
 
 PowerShell 版本要求：Windows 10/11 自带的 5.1 即可，无需安装任何东西。

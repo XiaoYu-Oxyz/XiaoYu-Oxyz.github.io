@@ -85,7 +85,8 @@ function Step-Build   {
     Invoke-Step '构建 index.html 与 *.ics' { Invoke-Python $buildArgs }
 }
 function Step-Verify  { Invoke-Step '校验 CSP 哈希与模板' { Invoke-Python @('tools/verify.py') } }
-function Step-PyTests { Invoke-Step 'Python 单元测试（42）' { Invoke-Python @('-m', 'unittest', 'discover', '-s', 'tests', '-p', 'test_*.py') } }
+function Step-Compat  { Invoke-Step '兼容性体检（Chrome 60 / Safari 11.1 / iOS 12）' { Invoke-Python @('tools/compat_lint.py') } }
+function Step-PyTests { Invoke-Step 'Python 单元测试（49）' { Invoke-Python @('-m', 'unittest', 'discover', '-s', 'tests', '-p', 'test_*.py') } }
 
 function Test-NodeReady {
     if (-not (Test-Path (Join-Path $repo 'node_modules'))) {
@@ -105,6 +106,7 @@ Write-Host ("任务：{0}{1}{2}" -f $Task, $(if ($SkipUi) { '（跳过浏览器�
 switch ($Task) {
     'build' {
         Step-Data
+        Step-Compat
         Step-Build
         Step-Verify
         Write-Host "`n构建完成：index.html 已更新。要发布请跑 -Task release（或双击 scripts\上传文件.cmd）。" -ForegroundColor Green
@@ -112,10 +114,11 @@ switch ($Task) {
 
     'check' {
         Step-Data
+        Step-Compat
         Step-Build
         Step-Verify
         Step-PyTests
-        Step-Js 'test:logic'        '逻辑回归（Chromium，52 项）'
+        Step-Js 'test:logic'        '逻辑回归（Chromium，54 项）'
         if (-not $SkipUi) {
             Step-Js 'test:logic:webkit' '逻辑回归（WebKit）'
             Step-Js 'test:ui'           'UI 冒烟（Chromium）'
@@ -130,10 +133,11 @@ switch ($Task) {
 
     'release' {
         Step-Data
+        Step-Compat
         Step-Build
         Step-Verify
         Step-PyTests
-        Step-Js 'test:logic' '逻辑回归（Chromium，52 项）'
+        Step-Js 'test:logic' '逻辑回归（Chromium，54 项）'
         if (-not $SkipUi) {
             Step-Js 'test:ui'      'UI 冒烟（Chromium）'
             Step-Js 'test:ui:webkit' 'UI 冒烟（WebKit）'
