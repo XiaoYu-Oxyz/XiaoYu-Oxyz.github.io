@@ -1315,6 +1315,58 @@ try {
     assert.ok(bar.height <= 110, `状态栏不应撑太高，实际 ${bar.height}px`);
     await statusCtx.close();
   }
+  // 25. 打印分页：表头跨页重复、行不被切断、单行放得下一页、打印时隐藏界面元素
+  //     A4 去掉 12mm 上下边距后可用高 ≈ 1032px（96dpi）
+  {
+    const printCtx = await browser.newContext({ viewport: { width: 703, height: 1032 } });
+    const printPage = await printCtx.newPage();
+    await printPage.clock.install({ time: new Date('2026-11-15T12:00:00') });
+    await printPage.addInitScript(() => {
+      const rows = [];
+      for (let i = 0; i < 90; i += 1) {
+        const d = new Date(Date.UTC(2026, 10, 16 + i));
+        rows.push({
+          date: d.toISOString().slice(0, 10),
+          period: `第${(i % 5) * 2 + 1}-${(i % 5) * 2 + 2}节`,
+          name: '打印测试' + i,
+          place: 'A' + (i % 9 + 1),
+          note: i % 10 === 0 ? '备注一行' : ''
+        });
+      }
+      localStorage.setItem('ghpages:zhizao2402:classdata:v1:Z1', JSON.stringify(rows));
+    });
+    await printPage.goto(`${appUrl}?class=Z1`);
+    await printPage.waitForSelector('tbody tr[data-idx]');
+    await printPage.locator('#recentFilter').uncheck();
+    await printPage.waitForTimeout(300);
+    await printPage.emulateMedia({ media: 'print' });
+    await printPage.waitForTimeout(300);
+    const print = await printPage.evaluate(() => {
+      const rows = Array.from(document.querySelectorAll('tbody tr[data-idx]'));
+      const thead = document.querySelector('thead');
+      const heights = rows.map(r => Math.round(r.getBoundingClientRect().height));
+      const pageContent = 1032;   // A4 297mm - 24mm 边距 ≈ 273mm @96dpi
+      return {
+        rowCount: rows.length,
+        theadDisplay: getComputedStyle(thead).display,
+        theadHeight: Math.round(thead.getBoundingClientRect().height),
+        breakInside: rows.length ? getComputedStyle(rows[0]).breakInside : null,
+        maxRowHeight: Math.max(...heights),
+        pageContent,
+        hidden: ['#cueBar', '.action-panel', '.legend', '.clock', '.diag-row'].map(sel => {
+          const el = document.querySelector(sel);
+          return el ? getComputedStyle(el).display === 'none' : true;
+        })
+      };
+    });
+    assert.ok(print.rowCount >= 80, `前置条件：打印时应渲染足够多的行，实际 ${print.rowCount}`);
+    assert.equal(print.theadDisplay, 'table-header-group', '表头必须是 table-header-group 才会跨页重复');
+    assert.equal(print.breakInside, 'avoid', '数据行必须 break-inside: avoid，不能被页边界切成两半');
+    assert.ok(print.maxRowHeight < print.pageContent - print.theadHeight,
+      `单行高 ${print.maxRowHeight}px 必须小于每页可用高 ${print.pageContent - print.theadHeight}px`);
+    assert.deepEqual(print.hidden, [true, true, true, true, true], '打印时必须隐藏提示条/操作面板/图例/时钟/页脚按钮');
+    await printCtx.close();
+  }
   console.log('UI smoke OK');
 } finally {
   fs.rmSync(fixtureDir, { force: true, recursive: true });
