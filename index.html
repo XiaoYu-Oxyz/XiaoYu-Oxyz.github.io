@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-H+owizonO2a4aDYmIelv6MqXObkQ6XTvI1rLyUDwIlg='; script-src-elem 'sha256-H+owizonO2a4aDYmIelv6MqXObkQ6XTvI1rLyUDwIlg='; script-src-attr 'none'; style-src 'sha256-0gIWusO7BipUh9pUJzSLAlnAWOXU6W4FHC6DCTfgPB8='; style-src-elem 'sha256-0gIWusO7BipUh9pUJzSLAlnAWOXU6W4FHC6DCTfgPB8='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-H+owizonO2a4aDYmIelv6MqXObkQ6XTvI1rLyUDwIlg='; script-src-elem 'sha256-H+owizonO2a4aDYmIelv6MqXObkQ6XTvI1rLyUDwIlg='; script-src-attr 'none'; style-src 'sha256-atY6meFFVanFH/CW/nwnkO2dSWMoK3fFYeU57IqwGe0='; style-src-elem 'sha256-atY6meFFVanFH/CW/nwnkO2dSWMoK3fFYeU57IqwGe0='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>CrseCue</title>
 <style>
@@ -364,7 +364,8 @@
     font-size: 13px; line-height: 1.5;
   }
   .cue-bar.is-today { border-color: var(--c-ffc9c7); background: var(--c-fff3f2); color: var(--c-a40e26); }
-  .cue-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  /* 单行截断：超长实验名/地点不能把提示条撑成十几行（窄屏块里没有这条覆盖时会复原） */
+  .cue-text { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   /* 提示条本身可点：跳到对应那条实验并闪一下 */
   .cue-text.is-jumpable { cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
   .cue-text.is-jumpable:hover { text-decoration-style: solid; }

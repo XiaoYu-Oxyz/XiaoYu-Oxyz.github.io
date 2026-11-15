@@ -1412,6 +1412,23 @@ try {
     });
     await statusPage.waitForTimeout(150);
     assert.ok((await toggleState()).len > 200, '点状态栏本身也应展开');
+
+    // 同一批长文案也不能把「下一节」提示条撑成十几行（单行截断）
+    const cue = await statusPage.evaluate(() => {
+      const bar = document.getElementById('cueBar');
+      const txt = document.getElementById('cueText');
+      if (!bar || bar.hidden) return null;
+      return {
+        barH: Math.round(bar.getBoundingClientRect().height),
+        ws: getComputedStyle(txt).whiteSpace,
+        clipped: txt.scrollWidth > txt.clientWidth + 2
+      };
+    });
+    if (cue) {
+      assert.ok(cue.barH <= 60, `提示条应保持单行，实际 ${cue.barH}px`);
+      assert.equal(cue.ws, 'nowrap', '提示条文字必须单行截断');
+      assert.ok(cue.clipped, '超长文案应被省略号截断');
+    }
     await statusCtx.close();
   }
   console.log('\u00a725 打印分页：表头跨页重复、行不被切断、单行放得下一页、打印时隐藏界面元素');
