@@ -1286,6 +1286,35 @@ try {
       await contrastCtx.close();
     }
   }
+  // 24. 状态栏文案要截断：名称/地点可到 200 字，整段塞进状态栏会撑成大色块
+  {
+    const statusCtx = await browser.newContext({ viewport: { width: 390, height: 900 } });
+    const statusPage = await statusCtx.newPage();
+    await statusPage.goto(`${appUrl}?class=Z2`);
+    await statusPage.waitForSelector('tbody tr[data-idx]');
+    await statusPage.locator('#actionsToggle').click();
+    await statusPage.locator('#addBtn').click();
+    await statusPage.waitForSelector('#modalMask.show');
+    await statusPage.fill('#formPeriod', '第1-2节');
+    await statusPage.fill('#formName', '长'.repeat(180));
+    await statusPage.fill('#formPlace', '地点'.repeat(90));
+    await statusPage.locator('#modalSubmit').click();
+    await statusPage.waitForTimeout(600);
+    const bar = await statusPage.evaluate(() => {
+      const el = document.querySelector('.import-status.show');
+      return {
+        visible: el.textContent.length,
+        title: (el.title || '').length,
+        live: document.getElementById('liveStatus').textContent.length,
+        height: Math.round(el.getBoundingClientRect().height)
+      };
+    });
+    assert.ok(bar.visible <= 81, `状态栏可见文字应截到 80 字以内，实际 ${bar.visible}`);
+    assert.ok(bar.title > bar.visible, '完整文案应保留在 title 里');
+    assert.ok(bar.live > bar.visible, '读屏播报保留全文');
+    assert.ok(bar.height <= 110, `状态栏不应撑太高，实际 ${bar.height}px`);
+    await statusCtx.close();
+  }
   console.log('UI smoke OK');
 } finally {
   fs.rmSync(fixtureDir, { force: true, recursive: true });

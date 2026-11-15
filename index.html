@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-2UWSoHL/hCNd5fRmUSzp+yjjxIYQA81yAHiOIjiFkbQ='; script-src-elem 'sha256-2UWSoHL/hCNd5fRmUSzp+yjjxIYQA81yAHiOIjiFkbQ='; script-src-attr 'none'; style-src 'sha256-ZDV+gltW7eTYxMcbo5Xb0AqhfyEDN74cTgx5Q88UvNs='; style-src-elem 'sha256-ZDV+gltW7eTYxMcbo5Xb0AqhfyEDN74cTgx5Q88UvNs='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-3Phk4agx1xzxUbcaXQVeIMjuyHgQMbqSz6V0XHx8DUU='; script-src-elem 'sha256-3Phk4agx1xzxUbcaXQVeIMjuyHgQMbqSz6V0XHx8DUU='; script-src-attr 'none'; style-src 'sha256-ZDV+gltW7eTYxMcbo5Xb0AqhfyEDN74cTgx5Q88UvNs='; style-src-elem 'sha256-ZDV+gltW7eTYxMcbo5Xb0AqhfyEDN74cTgx5Q88UvNs='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>CrseCue</title>
 <style>
@@ -5693,10 +5693,18 @@ function announce(msg) {
   if (liveStatusEl && msg) liveStatusEl.textContent = msg;
 }
 
+// 状态栏在窄屏只有几行高度：名称/地点都能到 200 字，直接把整段塞进去会撑成大色块。
+// 可见文字截到 80 字（完整内容放 title），读屏仍播报全文。
+const STATUS_TEXT_LIMIT = 80;
+
 function showStatus(type, msg, action) {
   statusEl.className = 'import-status show ' + type;
-  statusEl.textContent = msg;
-  if (liveStatusEl) liveStatusEl.textContent = msg;
+  const text = String(msg == null ? '' : msg);
+  statusEl.textContent = text.length > STATUS_TEXT_LIMIT
+    ? text.slice(0, STATUS_TEXT_LIMIT - 1) + '…'
+    : text;
+  statusEl.title = text;
+  if (liveStatusEl) liveStatusEl.textContent = text;
   if (action && typeof action.onClick === 'function') {
     const btn = document.createElement('button');
     btn.type = 'button';
