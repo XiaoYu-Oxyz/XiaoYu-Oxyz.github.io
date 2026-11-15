@@ -1016,6 +1016,38 @@ try {
       await targetCtx.close();
     }
   }
+  // 20. 周分隔线只表达"换周"：即使换周那行正好是今天/明天，线也必须是中性灰
+  {
+    const sepRows = [
+      { date: '2026-11-09', period: '第1-2节', name: '上周实验', place: 'A1', note: '' },
+      { date: '2026-11-16', period: '第1-2节', name: '今天实验', place: 'A2', note: '' }
+    ];
+    for (const [scheme, expected] of [['light', 'rgb(208, 215, 222)'], ['dark', 'rgb(48, 54, 61)']]) {
+      const sepCtx = await browser.newContext({ viewport: { width: 390, height: 900 }, colorScheme: scheme });
+      const sepPage = await sepCtx.newPage();
+      await sepPage.clock.install({ time: new Date('2026-11-16T12:00:00') });   // 周一，让"今天"正好是换周那行
+      await sepPage.addInitScript(rows => {
+        localStorage.setItem('ghpages:zhizao2402:classdata:v1:Z1', JSON.stringify(rows));
+      }, sepRows);
+      await sepPage.goto(`${appUrl}?class=Z1`);
+      await sepPage.waitForSelector('tbody tr[data-idx]');
+      await sepPage.locator('#recentFilter').uncheck();
+      await sepPage.waitForTimeout(350);
+      const sep = await sepPage.evaluate(() => {
+        const row = Array.from(document.querySelectorAll('tbody tr')).find(r => /今天实验/.test(r.textContent));
+        const cell = row.querySelector('td.cell-mobile');
+        return {
+          isWeekStart: row.classList.contains('week-start'),
+          isToday: row.classList.contains('row-today'),
+          mobile: getComputedStyle(cell, '::before').backgroundColor
+        };
+      });
+      assert.equal(sep.isWeekStart, true, '前置条件：今天那行应同时是换周行');
+      assert.equal(sep.isToday, true, '前置条件：该行应标记为今天');
+      assert.equal(sep.mobile, expected, `${scheme} 下换周线不应跟随今天变红/绿，实际 ${sep.mobile}`);
+      await sepCtx.close();
+    }
+  }
   console.log('UI smoke OK');
 } finally {
   fs.rmSync(fixtureDir, { force: true, recursive: true });

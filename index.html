@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-0uOux32SDZevz8BFqExCKk4bvTMDjoRf+Sr+T1NYwkk='; script-src-elem 'sha256-0uOux32SDZevz8BFqExCKk4bvTMDjoRf+Sr+T1NYwkk='; script-src-attr 'none'; style-src 'sha256-60EkIzNngTJp1eJZ5Uxy/VjaU2ZAID3DaMpruUxmaF0='; style-src-elem 'sha256-60EkIzNngTJp1eJZ5Uxy/VjaU2ZAID3DaMpruUxmaF0='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-0uOux32SDZevz8BFqExCKk4bvTMDjoRf+Sr+T1NYwkk='; script-src-elem 'sha256-0uOux32SDZevz8BFqExCKk4bvTMDjoRf+Sr+T1NYwkk='; script-src-attr 'none'; style-src 'sha256-xwKQP5BkoKAVQXxXugwnMYk2I8ZU79isytWSPoVK6h8='; style-src-elem 'sha256-xwKQP5BkoKAVQXxXugwnMYk2I8ZU79isytWSPoVK6h8='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>CrseCue</title>
 <style>
@@ -402,10 +402,10 @@
   .dot-conflict { background: #ffe6a6; border: 1px solid #b7791f; }
   .dot-next     { background: #eaf3ff; border: 1px solid #0969da; }
 
-  /* 同一周的实验连成一组：换周处画一条横线 */
+  /* 同一周的实验连成一组：换周处画一条横线。
+     分隔线只表达"换周"这一结构信息，不跟着今天/明天变红变绿——
+     状态由行底色和「今天 / 明天」标签表达，两种语义不混用。 */
   tbody tr.week-start > td { border-top: 2px solid #d0d7de; }
-  tbody tr.week-start.row-today > td { border-top-color: #ffc9c7; }
-  tbody tr.week-start.row-tomorrow > td { border-top-color: #c3f0cd; }
 
   /* Windows 高对比度：背景色会被系统抹平，改用边框/符号区分状态 */
   @media (forced-colors: active) {
@@ -1119,8 +1119,7 @@
       transform: translateX(-50%);
       background: #d0d7de; border-radius: 1px;
     }
-    tbody tr.week-start.row-today td.cell-mobile::before { background: #ffc9c7; }
-    tbody tr.week-start.row-tomorrow td.cell-mobile::before { background: #c3f0cd; }
+    /* 分隔线不随今天/明天改色：这条线表达"换周"，红色/绿色表达"今天/明天"，各管一件事 */
     tbody tr {
       position: relative;
       display: flex; align-items: stretch;
@@ -1407,10 +1406,8 @@
     tbody tr.row-conflict.conflict-peer { background: #26200f; border-color: #a97400; }
     tbody tr.row-past.row-conflict { background: #1a1710; border-color: #6b5200; }
     .conflict-link-line { stroke: #8a6100; }
-    /* 周分隔线 */
+    /* 周分隔线：结构性信息，深色下同样不跟随今天/明天改色 */
     tbody tr.week-start td.cell-mobile::before { background: #30363d; }
-    tbody tr.week-start.row-today td.cell-mobile::before { background: #6b1f24; }
-    tbody tr.week-start.row-tomorrow td.cell-mobile::before { background: #1b4721; }
     /* 图例色块与"下一次"徽标：浅色版在深色背景上像四个亮点 */
     .legend .dot-today { background: #5c2a2e; }
     .legend .dot-tomorrow { background: #1b4721; }
@@ -1432,10 +1429,8 @@
     .cue-bar { background: #12212f; border-color: #1f6feb66; color: #79c0ff; }
     .cue-bar.is-today { background: #2a1517; border-color: #6b1f24; color: #ffb3b0; }
 
-    /* 同周分隔线、冲突标记列、跳转高亮、备注展开按钮 */
+    /* 同周分隔线（桌面）、冲突标记列、跳转高亮、备注展开按钮 */
     tbody tr.week-start > td { border-top-color: #30363d; }
-    tbody tr.week-start.row-today > td { border-top-color: #6b1f24; }
-    tbody tr.week-start.row-tomorrow > td { border-top-color: #1b4721; }
     tbody tr.row-conflict td.cell-mark { background: #3b2f12; }
     tbody tr.row-conflict.row-past td.cell-mark { background: #2f2712; }
     tbody tr.conflict-peer td.cell-mark { background: #4a3a10; }
