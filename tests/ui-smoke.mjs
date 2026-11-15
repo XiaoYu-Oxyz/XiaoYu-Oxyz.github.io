@@ -859,6 +859,61 @@ try {
     assert.ok(state.allVisible, `刷新后目标仍应完整可见，实际 scrollY=${state.scrollY}`);
     await locateCtx.close();
   }
+  // 16. 提示条跳转：能看见就只闪不滚，看不全才最小移动（不再跳到屏幕正中）
+  {
+    const cueCtx = await browser.newContext({ viewport: { width: 360, height: 640 }, reducedMotion: 'reduce' });
+    const cuePage = await cueCtx.newPage();
+    await cuePage.clock.install({ time: new Date('2026-11-14T12:00:00') });
+    await cuePage.addInitScript(rows => {
+      localStorage.setItem('ghpages:zhizao2402:classdata:v1:Z1', JSON.stringify(rows));
+    }, locateRows);
+    await cuePage.goto(`${appUrl}?class=Z1`);
+    await cuePage.waitForSelector('tbody tr[data-idx]');
+    await cuePage.waitForTimeout(400);
+
+    const cueGeom = () => cuePage.evaluate(() => {
+      const idx = Number(document.getElementById('cueText').dataset.idx);
+      const rect = document.querySelector(`tr[data-idx="${idx}"]`).getBoundingClientRect();
+      return {
+        scrollY: Math.round(window.scrollY),
+        top: Math.round(rect.top),
+        bottom: Math.round(rect.bottom),
+        height: Math.round(rect.height),
+        innerH: window.innerHeight
+      };
+    });
+    // 用 DOM click：Playwright 的 .click() 会先把提示条滚进视口，把测量搞乱
+    const clickCue = () => cuePage.evaluate(() => document.getElementById('cueText').click());
+
+    // 16.1 目标在折叠下方 → 只把底边贴到视口底，居中会滚得更远
+    await cuePage.evaluate(() => window.scrollTo(0, 0));
+    await cuePage.waitForTimeout(150);
+    const hiddenBefore = await cueGeom();
+    assert.ok(hiddenBefore.bottom > hiddenBefore.innerH, '前置条件：目标应先在折叠下方');
+    await clickCue();
+    await cuePage.waitForTimeout(400);
+    const hiddenAfter = await cueGeom();
+    assert.ok(Math.abs(hiddenAfter.bottom - hiddenAfter.innerH) <= 1,
+      `应把目标底边贴到视口底部，实际底边 ${hiddenAfter.bottom} / 视口 ${hiddenAfter.innerH}`);
+    const centeredScroll = hiddenBefore.top - Math.round((hiddenBefore.innerH - hiddenBefore.height) / 2);
+    assert.ok(hiddenAfter.scrollY < centeredScroll,
+      `滚动量应小于居中所需（${hiddenAfter.scrollY} < ${centeredScroll}）`);
+
+    // 16.2 目标已完整可见 → 一点都不要动
+    await cuePage.evaluate(() => {
+      const idx = Number(document.getElementById('cueText').dataset.idx);
+      const row = document.querySelector('tr[data-idx="' + idx + '"]');
+      window.scrollTo(0, window.scrollY + row.getBoundingClientRect().top - 300);
+    });
+    await cuePage.waitForTimeout(150);
+    const visibleBefore = await cueGeom();
+    assert.ok(visibleBefore.top >= 0 && visibleBefore.bottom <= visibleBefore.innerH, '前置条件：目标应已完整可见');
+    await clickCue();
+    await cuePage.waitForTimeout(400);
+    const visibleAfter = await cueGeom();
+    assert.equal(visibleAfter.scrollY, visibleBefore.scrollY, '目标已可见时点提示条不应滚动');
+    await cueCtx.close();
+  }
   console.log('UI smoke OK');
 } finally {
   fs.rmSync(fixtureDir, { force: true, recursive: true });

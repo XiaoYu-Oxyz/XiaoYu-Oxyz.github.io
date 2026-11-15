@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-sNpFlr5mbkOEeRp1fKsEXFAn2VipeClhZzJORGOZI3k='; script-src-elem 'sha256-sNpFlr5mbkOEeRp1fKsEXFAn2VipeClhZzJORGOZI3k='; script-src-attr 'none'; style-src 'sha256-4E0N+aQMjF5CrooUcn8JHY6Al0CoS8xC918OjUTRcMc='; style-src-elem 'sha256-4E0N+aQMjF5CrooUcn8JHY6Al0CoS8xC918OjUTRcMc='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-yofni+sPLjOSvXh4IzDeNZTfrUnM40JrpYEfamawzHY='; script-src-elem 'sha256-yofni+sPLjOSvXh4IzDeNZTfrUnM40JrpYEfamawzHY='; script-src-attr 'none'; style-src 'sha256-4E0N+aQMjF5CrooUcn8JHY6Al0CoS8xC918OjUTRcMc='; style-src-elem 'sha256-4E0N+aQMjF5CrooUcn8JHY6Al0CoS8xC918OjUTRcMc='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>CrseCue</title>
 <style>
@@ -5173,14 +5173,14 @@ function jumpToCueTarget() {
     }
     const block = weekViewEl && weekViewEl.querySelector(`.wg-item[data-idx="${idx}"]`);
     if (block) {
-      block.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      ensureElementVisible(block, true);
       flashElement(block);
     }
     return;
   }
   const row = tableBodyEl.querySelector(`tr[data-idx="${idx}"]`);
   if (!row) return;
-  row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  ensureElementVisible(row, true);
   flashElement(row);
 }
 
@@ -7861,11 +7861,41 @@ function stickyTopInset() {
   return Math.max(0, rect.bottom);
 }
 
+// ---------------------------------------------------------------------------
+// 可见性：冷启动定位和「点提示条跳转」共用同一套规则 —— 能看见就不动，看不全才最小滚动。
+// ---------------------------------------------------------------------------
+function prefersReducedMotion() {
+  return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+// 返回需要滚动的距离（0 表示已经完整可见，不用动）
+function rangeScrollDelta(top, bottom, safeTop, safeBottom) {
+  if (top >= safeTop - 1 && bottom <= safeBottom + 1) return 0;
+  const available = safeBottom - safeTop;
+  if (bottom - top > available) return top - safeTop;   // 比安全区还高：首端贴顶
+  if (bottom > safeBottom) return bottom - safeBottom;  // 下面看不全：最小上移
+  return top - safeTop;                                 // 上面被挡住：最小下移
+}
+
+function scrollRangeIntoView(top, bottom, smooth) {
+  const delta = rangeScrollDelta(top, bottom, stickyTopInset(), window.innerHeight);
+  if (Math.abs(delta) < 1) return false;
+  window.scrollBy({ top: delta, left: 0, behavior: smooth && !prefersReducedMotion() ? 'smooth' : 'auto' });
+  return true;
+}
+
+// 单个元素：已经完整可见就什么都不做（提示条点击用它，避免"明明看得见还跳到屏幕正中"）
+function ensureElementVisible(el, smooth) {
+  if (!el) return false;
+  const rect = el.getBoundingClientRect();
+  return scrollRangeIntoView(rect.top, rect.bottom, smooth);
+}
+
 function autoLocateNearest() {
   if (autoLocated) return;
-  autoLocated = true;
-  if (document.body.classList.contains('view-week')) return;  // 课表视图整天都看得见
+  if (document.body.classList.contains('view-week')) { autoLocated = true; return; }  // 课表视图整天都看得见
   const rows = Array.prototype.slice.call(tableBodyEl.querySelectorAll('tr[data-idx]'));
+  // 首次渲染可能还没有行（班级数据还在还原）：留个待办，等数据到位再判断一次
   if (!rows.length) return;
 
   const today = startOfDay(new Date());
@@ -7877,36 +7907,32 @@ function autoLocateNearest() {
   let targetDate = dates.find(d => d.getTime() === today.getTime());
   if (!targetDate) {
     targetDate = dates.filter(d => d > today).sort((a, b) => a - b)[0];
-    if (!targetDate) return;  // 全是已结束
+    if (!targetDate) { autoLocated = true; return; }  // 全是已结束
   }
   const group = rows.filter(tr => dateOf(tr).getTime() === targetDate.getTime());
-  if (!group.length) return;
+  if (!group.length) { autoLocated = true; return; }
+  autoLocated = true;
 
-  const safeTop = stickyTopInset();
-  const safeBottom = window.innerHeight;
+  // 那一天的所有条都算目标范围：全部完整可见就不滚（只靠行上的描边和标签标记）
   const rects = group.map(tr => tr.getBoundingClientRect());
-  const groupTop = Math.min.apply(null, rects.map(r => r.top));
-  const groupBottom = Math.max.apply(null, rects.map(r => r.bottom));
-
-  // 已经完整可见：只标记（行自带蓝色描边与标签），不滚动
-  if (groupTop >= safeTop - 1 && groupBottom <= safeBottom + 1) return;
-
-  const available = safeBottom - safeTop;
-  let delta;
-  if (groupBottom - groupTop > available) {
-    delta = groupTop - safeTop;              // 整组比安全区还高：组首贴住安全区顶部
-  } else if (groupBottom > safeBottom) {
-    delta = groupBottom - safeBottom;        // 下面看不全：往下滚最小距离
-  } else {
-    delta = groupTop - safeTop;              // 上面被吸顶表头挡住：往上滚最小距离
-  }
-  if (Math.abs(delta) < 1) return;
-  window.scrollBy(0, delta);
+  scrollRangeIntoView(
+    Math.min.apply(null, rects.map(r => r.top)),
+    Math.max.apply(null, rects.map(r => r.bottom)),
+    false
+  );
 }
 
 // 同步执行（脚本在 </body> 前，早于首次绘制）：不会出现"先看到顶部再跳一下"。
 // 注意别挪到 load / rAF 之后——那样既会闪一下，也会和"打开页面先滚到顶"的脚本抢滚动位置。
 autoLocateNearest();
+// 只在"第一次没行可判断"的情况下补一次（数据稍后才还原时），正常路径不会重复滚动
+if (!autoLocated) {
+  window.addEventListener('load', () => {
+    window.requestAnimationFrame(() => {
+      if (!autoLocated) autoLocateNearest();
+    });
+  }, { once: true });
+}
 
 // 时钟每 30 秒刷一次；顺带检查是否跨天（页面挂一夜也会自己对齐）
 window.setInterval(() => {
