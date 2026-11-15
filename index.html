@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-cjEi+H4jm18r13Ch3MhUnH3rv1+dYt/Xo6bd0wWIREk='; script-src-elem 'sha256-cjEi+H4jm18r13Ch3MhUnH3rv1+dYt/Xo6bd0wWIREk='; script-src-attr 'none'; style-src 'sha256-EvnlolCcrdRkvE4I4qRdldUNtnvf47foWvMSCIfXvMU='; style-src-elem 'sha256-EvnlolCcrdRkvE4I4qRdldUNtnvf47foWvMSCIfXvMU='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-CMp3FxVqr1a/3sUj8RwWMoWu5fQm78w/S7AprAswQOk='; script-src-elem 'sha256-CMp3FxVqr1a/3sUj8RwWMoWu5fQm78w/S7AprAswQOk='; script-src-attr 'none'; style-src 'sha256-EvnlolCcrdRkvE4I4qRdldUNtnvf47foWvMSCIfXvMU='; style-src-elem 'sha256-EvnlolCcrdRkvE4I4qRdldUNtnvf47foWvMSCIfXvMU='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>CrseCue</title>
 <style>
@@ -2217,7 +2217,7 @@ function experimentA11ySummary(e, statusText) {
   const note = String(e.note || '').replace(/\s+/g, ' ').trim();
   const parts = [
     `日期 ${e.date}`,
-    wk === null ? '周次未知' : `周次 第${wk}周`,
+    wk === null ? '周次 学期开始前' : `周次 第${wk}周`,
     `星期 ${weekday}`,
     `节次 ${e.period}`,
     `实验名称 ${e.name}`,
@@ -3741,7 +3741,8 @@ function render() {
     const wk = weekNoOf(e._date);
     const weekTd = document.createElement('td');
     weekTd.headers = 'col-week';
-    appendHighlighted(weekTd, wk === null ? '—' : '第' + wk + '周');
+    // wk 为 null 表示早于「第 1 周周一」（补课、周历设错）：显示「学期前」比「—」好懂
+    appendHighlighted(weekTd, wk === null ? '学期前' : '第' + wk + '周');
     tr.appendChild(weekTd);
 
     const wdTd = document.createElement('td');
@@ -3776,7 +3777,7 @@ function render() {
     const mLine1 = document.createElement('div');
     mLine1.className = 'm-line1';
     const shortDate = e.date.slice(5);
-    const shortWeek = wk === null ? '—' : `${wk}周`;
+    const shortWeek = wk === null ? '学期前' : `${wk}周`;
     const shortWeekday = WEEK_NAMES[e._date.getDay()].replace('星期', '周');
     const shortPeriod = e.period.replace(/^第/, '');
     appendHighlighted(mLine1, `${shortDate} · ${shortWeek} · ${shortWeekday} · ${shortPeriod}`);
