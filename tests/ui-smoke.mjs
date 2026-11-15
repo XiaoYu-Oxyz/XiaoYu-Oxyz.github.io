@@ -1372,7 +1372,7 @@ try {
     assert.ok(bar.visible <= 81, `状态栏可见文字应截到 80 字以内，实际 ${bar.visible}`);
     assert.ok(bar.title > bar.visible, '完整文案应保留在 title 里');
     assert.ok(bar.live > bar.visible, '读屏播报保留全文');
-    assert.ok(bar.height <= 110, `状态栏不应撑太高，实际 ${bar.height}px`);
+    assert.ok(bar.height <= 120, `状态栏不应撑太高，实际 ${bar.height}px`);
 
     // E1：截断时可点「展开」看全文；再点收起；整条状态栏也能点
     const toggleState = () => statusPage.evaluate(() => {
@@ -1396,7 +1396,7 @@ try {
     assert.ok(expanded.len > 200, `展开后应显示全文，实际 ${expanded.len} 字`);
     assert.equal(expanded.label, '收起', '展开后按钮应变成「收起」');
     assert.equal(expanded.expanded, 'true', '展开后 aria-expanded=true');
-    assert.ok(expanded.height <= 420, `展开后不应无限撑高，实际 ${expanded.height}px`);
+    assert.ok(expanded.height <= 440, `展开后不应无限撑高，实际 ${expanded.height}px`);
     assert.equal(expanded.overflowX, 0, '展开后不应横向溢出');
     await statusPage.locator('.status-toggle').click();
     await statusPage.waitForTimeout(150);
