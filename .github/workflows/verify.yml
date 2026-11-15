@@ -39,6 +39,9 @@ jobs:
       - name: Validate source data
         run: python tools/validate_data.py
 
+      - name: Compatibility lint (Chrome 60 / Safari 11.1 / iOS 12)
+        run: python tools/compat_lint.py
+
       - name: Build deployable HTML
         run: python tools/build.py
 

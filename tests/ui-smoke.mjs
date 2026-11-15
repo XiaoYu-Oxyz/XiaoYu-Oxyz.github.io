@@ -1726,6 +1726,29 @@ try {
     await ctx.close();
   }
 
+  // 27. 兼容性：现代内核必须隐藏"浏览器过旧"提示条；<noscript> 兜底存在
+  {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 900 } });
+    const page = await ctx.newPage();
+    await page.goto(appUrl);
+    await page.waitForSelector('tbody tr[data-idx]');
+    const info = await page.evaluate(() => {
+      const banner = document.querySelector('.browser-warning');
+      const noscript = document.querySelector('noscript');
+      return {
+        bannerDisplay: banner ? getComputedStyle(banner).display : null,
+        bannerText: banner ? banner.textContent.trim().length : 0,
+        hasNoscript: !!noscript,
+        supportsCustomProps: CSS.supports('--css: variables')
+      };
+    });
+    assert.equal(info.supportsCustomProps, true, '现代内核应支持 CSS 变量（前置条件）');
+    assert.equal(info.bannerDisplay, 'none', '现代内核必须隐藏过旧浏览器提示条');
+    assert.ok(info.bannerText > 10, '提示条应有可读文案（给不支持变量的浏览器看）');
+    assert.equal(info.hasNoscript, true, '应有 <noscript> 兜底提示');
+    await ctx.close();
+  }
+
   console.log('UI smoke OK');
 } finally {
   fs.rmSync(fixtureDir, { force: true, recursive: true });

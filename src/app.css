@@ -193,6 +193,37 @@
   textarea:focus-visible, input:focus-visible, [tabindex]:focus-visible {
     outline: 2px solid var(--c-0969da); outline-offset: 2px;
   }
+
+  /* 老浏览器（Chrome<86 / Safari<15.4）不认识 :focus-visible：整条规则被丢弃，
+     键盘焦点环会消失。所以先给 :focus 一个基础环，再用 :not(:focus-visible)
+     在支持的浏览器上把"鼠标点出来的焦点"环去掉；老浏览器会丢弃下面那条，基础环保留。 */
+  a:focus, button:focus, select:focus, textarea:focus, input:focus, [tabindex]:focus {
+    outline: 2px solid var(--c-0969da); outline-offset: 2px;
+  }
+  a:focus:not(:focus-visible), button:focus:not(:focus-visible),
+  select:focus:not(:focus-visible), textarea:focus:not(:focus-visible),
+  input:focus:not(:focus-visible), [tabindex]:focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  /* flex gap 不支持时的兜底：只补三个最容易挤在一起的组（其余接受间距塌陷） */
+  @supports not (gap: 1px) {
+    .action-group > * + * { margin-left: 8px; }
+    .head-filters > * + * { margin-left: 12px; }
+    .legend > * + * { margin-left: 12px; }
+    .class-tools > * + * { margin-left: 4px; }
+  }
+
+  /* 老浏览器提示条：默认显示；支持 CSS 变量的现代浏览器把它隐藏。
+     IE 不认 @supports，所以会一直显示——正是我们要的效果。 */
+  .browser-warning {
+    max-width: 980px; margin: 12px auto; padding: 10px 12px;
+    border: 2px solid currentColor; border-radius: 8px;
+    font-size: 13px; line-height: 1.6;
+  }
+  @supports (--css: variables) { .browser-warning { display: none; } }
+  @media print { .browser-warning { display: none !important; } }
+
   .sr-only {
     position: absolute !important; width: 1px; height: 1px;
     padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0);
@@ -596,7 +627,7 @@
 
   .table-wrap { position: relative; overflow: visible; }
   /* 冲突连线：绝对定位在表格容器里，z-index 低于卡片，所以线段只在行距/列距里露出来 */
-  .conflict-link-layer { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+  .conflict-link-layer { position: absolute; top: 0; right: 0; bottom: 0; left: 0; z-index: 0; pointer-events: none; }
   .conflict-link-layer svg { display: block; width: 100%; height: 100%; overflow: visible; }
   .conflict-link-line { stroke: var(--c-b7791f); stroke-width: 2; stroke-linecap: round; fill: none; }
   tbody { position: relative; z-index: 1; }
@@ -606,6 +637,7 @@
   /* 跳转/定位时别被吸顶表头盖住 */
   #tbody tr { scroll-margin-top: 64px; }
   thead th {
+    position: -webkit-sticky;
     position: sticky; top: 0; z-index: 5;
     background: var(--c-f0f3f6); text-align: left; padding: 11px 12px;
     font-weight: 600; color: var(--c-424a53); white-space: nowrap;
@@ -961,7 +993,11 @@
   /* ---------- 导入方式选择 ---------- */
   /* 导入弹窗内容比其它弹窗多（文件信息 + 冲突提示 + 两种方式 + 叠加规则），
      通用上限 640px 会让它每次都要滚一截才看得到规则，这里单独放宽到 728px。 */
-  .import-modal { max-width: 490px; max-height: min(92dvh, 728px); }
+  .import-modal {
+    max-width: 490px;
+    /* 老浏览器不认 dvh/min()：先给纯 px 上限，新语法再压到较矮的那一个 */
+    max-height: 728px; max-height: min(92dvh, 728px);
+  }
   .import-summary {
     font-size: 13px; line-height: 1.8; color: var(--c-424a53);
     background: var(--c-f6f8fa); border: 1px solid var(--c-eaeef2); border-radius: 8px;

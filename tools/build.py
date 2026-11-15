@@ -707,13 +707,13 @@ def main(argv=None):
 
     match = matches[0]
     html = html[: match.start(2)] + safe_json(payload) + html[match.end(2):]
-    encoded = html.encode("utf-8")
 
     # 先校验内存里的产物，通过后才允许写盘：这样"哈希过期/模板坏掉/危险 sink"
     # 永远不会以半成品形式落到 index.html 上。
     verifier = load_verifier()
     # 源码拆开后，CSP 哈希由构建按实际内联内容重算
     html, _, _ = verifier.apply_hashes_to_html(html)
+    encoded = html.encode("utf-8")
     errors = verifier.verify_html(html, DEPLOY.name)
     if errors:
         fail("产物未通过校验，未写入任何文件：\n  " + "\n  ".join(errors))

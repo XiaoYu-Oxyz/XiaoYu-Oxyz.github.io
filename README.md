@@ -243,6 +243,15 @@
 - 导出：导出的 xlsx 仍是固定 7 列，冲突行单元格使用浅琥珀色填充（`FFFFF1C2`），不增加列，旧文件仍可导入。
 - 当前数据（2026-11-06）：Z1 为 3 组 / 6 条，Z2 为 2 组 / 4 条，Z5 为 0 组。
 
+### 2.7.1 浏览器兼容性
+
+底线：**Chrome / Edge 60+ · Safari 11.1+ · iOS 12+**（IE 不支持，会看到"浏览器过旧"提示条）。
+
+- 老引擎缺的只有表现层：`inset` 拆四边、`-webkit-sticky` 前缀、`:focus` 焦点环兜底、flex `gap` 部分兜底；
+- 现代引擎（Chrome 84+/Safari 14.1+）完全不受影响，提示条由 `@supports (--css: variables)` 自动隐藏；
+- 详细退化表与验证方式见 [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md)；
+- `python tools/compat_lint.py` 会拦超出底线的特性（CI 构建 job 会跑）。
+
 ### 2.8.0 源码结构与构建（G1）
 
 ```
