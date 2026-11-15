@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-5qz8xWm+ZpIutHB5m5kdnmu/bu8OveKecXTlrqUQbB0='; script-src-elem 'sha256-5qz8xWm+ZpIutHB5m5kdnmu/bu8OveKecXTlrqUQbB0='; script-src-attr 'none'; style-src 'sha256-4E0N+aQMjF5CrooUcn8JHY6Al0CoS8xC918OjUTRcMc='; style-src-elem 'sha256-4E0N+aQMjF5CrooUcn8JHY6Al0CoS8xC918OjUTRcMc='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-sNpFlr5mbkOEeRp1fKsEXFAn2VipeClhZzJORGOZI3k='; script-src-elem 'sha256-sNpFlr5mbkOEeRp1fKsEXFAn2VipeClhZzJORGOZI3k='; script-src-attr 'none'; style-src 'sha256-4E0N+aQMjF5CrooUcn8JHY6Al0CoS8xC918OjUTRcMc='; style-src-elem 'sha256-4E0N+aQMjF5CrooUcn8JHY6Al0CoS8xC918OjUTRcMc='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>CrseCue</title>
 <style>
@@ -7840,28 +7840,73 @@ if (REQUESTED_CLASS_MISSING) {
 updateClock();
 render();
 
-// 打开页面时定位到今天/下一节：数据有十几周时，默认停在最上面那一周没有意义
+// 冷启动定位到「最近一次实验」（今天有就今天，否则之后最近的一天）：
+//   · 只做一次（刷新/新标签页算一次；切班级、改筛选、跨天刷新都不再自作主张滚动）
+//   · 那天所有条都已完整可见 → 什么都不做，标记靠行上的蓝色描边 +「今天 / N天后」标签
+//   · 看不全 → 用最小距离滚动，让那天所有条完整落在安全区内（顶部扣掉吸顶表头）
+//   · 没有今天及以后的实验、或目标被搜索/只看冲突筛掉 → 不动
 let autoLocated = false;
-function autoLocateToday() {
+
+// 顶部吸顶遮挡：桌面表格的 thead th 是 sticky；卡片布局下表头是视觉隐藏的，返回 0
+function stickyTopInset() {
+  const thead = document.querySelector('thead');
+  const th = thead && thead.querySelector('th');
+  if (!th) return 0;
+  // 卡片布局里 thead 被绝对定位 + clip 成"视觉隐藏"，但里面的 th 仍是 position: sticky，
+  // 直接量它的底边会拿到整页高度级的假值（实测 296px），把安全区吃掉一半。
+  if (getComputedStyle(thead).position === 'absolute') return 0;
+  if (getComputedStyle(th).position !== 'sticky') return 0;
+  const rect = th.getBoundingClientRect();
+  if (rect.height <= 0 || rect.height > 96) return 0;  // 几何异常时不参与计算
+  return Math.max(0, rect.bottom);
+}
+
+function autoLocateNearest() {
   if (autoLocated) return;
   autoLocated = true;
-  if (document.body.classList.contains('view-week')) return;
-  const today = startOfDay(new Date());
+  if (document.body.classList.contains('view-week')) return;  // 课表视图整天都看得见
   const rows = Array.prototype.slice.call(tableBodyEl.querySelectorAll('tr[data-idx]'));
   if (!rows.length) return;
+
+  const today = startOfDay(new Date());
   const dateOf = tr => {
     const entry = experiments[Number(tr.dataset.idx)];
     return entry ? parseDate(entry.date) : new Date(NaN);
   };
-  const target = rows.find(tr => dateOf(tr).getTime() === today.getTime())
-    || rows.find(tr => dateOf(tr) > today);
-  if (!target) return;
-  if (target.getBoundingClientRect().top <= window.innerHeight * 0.6) return;
-  target.scrollIntoView({ block: 'start' });
-  // 只闪一下表示落点，不弹状态栏：小屏上状态栏会把首屏再顶高 42px
-  flashElement(target);
+  const dates = rows.map(dateOf);
+  let targetDate = dates.find(d => d.getTime() === today.getTime());
+  if (!targetDate) {
+    targetDate = dates.filter(d => d > today).sort((a, b) => a - b)[0];
+    if (!targetDate) return;  // 全是已结束
+  }
+  const group = rows.filter(tr => dateOf(tr).getTime() === targetDate.getTime());
+  if (!group.length) return;
+
+  const safeTop = stickyTopInset();
+  const safeBottom = window.innerHeight;
+  const rects = group.map(tr => tr.getBoundingClientRect());
+  const groupTop = Math.min.apply(null, rects.map(r => r.top));
+  const groupBottom = Math.max.apply(null, rects.map(r => r.bottom));
+
+  // 已经完整可见：只标记（行自带蓝色描边与标签），不滚动
+  if (groupTop >= safeTop - 1 && groupBottom <= safeBottom + 1) return;
+
+  const available = safeBottom - safeTop;
+  let delta;
+  if (groupBottom - groupTop > available) {
+    delta = groupTop - safeTop;              // 整组比安全区还高：组首贴住安全区顶部
+  } else if (groupBottom > safeBottom) {
+    delta = groupBottom - safeBottom;        // 下面看不全：往下滚最小距离
+  } else {
+    delta = groupTop - safeTop;              // 上面被吸顶表头挡住：往上滚最小距离
+  }
+  if (Math.abs(delta) < 1) return;
+  window.scrollBy(0, delta);
 }
-autoLocateToday();
+
+// 同步执行（脚本在 </body> 前，早于首次绘制）：不会出现"先看到顶部再跳一下"。
+// 注意别挪到 load / rAF 之后——那样既会闪一下，也会和"打开页面先滚到顶"的脚本抢滚动位置。
+autoLocateNearest();
 
 // 时钟每 30 秒刷一次；顺带检查是否跨天（页面挂一夜也会自己对齐）
 window.setInterval(() => {

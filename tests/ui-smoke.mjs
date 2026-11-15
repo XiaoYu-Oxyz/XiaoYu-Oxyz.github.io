@@ -773,6 +773,92 @@ try {
   }
   await styleCtx.close();
 
+  // 15. 冷启动定位：能看见就不动（只标记），看不全才用最小距离滚到"那天所有条都完整可见"。
+  const locateRows = [];
+  for (let d = 9; d <= 13; d += 1) {
+    locateRows.push({ date: `2026-11-${d}`, period: '第1-2节', name: `本周A${d}`, place: 'P', note: '' });
+    locateRows.push({ date: `2026-11-${d}`, period: '第5-6节', name: `本周B${d}`, place: 'P', note: '' });
+  }
+  locateRows.push({ date: '2026-11-20', period: '第1-2节', name: '目标A', place: 'Q', note: '' });
+  locateRows.push({ date: '2026-11-20', period: '第3-4节', name: '目标B', place: 'Q', note: '' });
+
+  async function openLocated(viewport, data, viewState) {
+    const locateCtx = await browser.newContext({ viewport });
+    const locatePage = await locateCtx.newPage();
+    await locatePage.clock.install({ time: new Date('2026-11-14T12:00:00') });
+    await locatePage.addInitScript(([rows, view]) => {
+      localStorage.setItem('ghpages:zhizao2402:classdata:v1:Z1', JSON.stringify(rows));
+      if (view) localStorage.setItem('ghpages:zhizao2402:view:v1', view);
+    }, [data, viewState]);
+    const read = () => locatePage.evaluate(() => {
+      const rects = Array.from(document.querySelectorAll('tbody tr[data-idx]'))
+        .filter(row => /目标/.test(row.textContent))
+        .map(row => row.getBoundingClientRect());
+      return {
+        scrollY: Math.round(window.scrollY),
+        count: rects.length,
+        allVisible: rects.every(rect => rect.top >= -1 && rect.bottom <= window.innerHeight + 1)
+      };
+    });
+    await locatePage.goto(`${appUrl}?class=Z1`);
+    await locatePage.waitForSelector('tbody tr[data-idx]');
+    await poll(async () => (await locatePage.evaluate(() => document.readyState)) === 'complete', '页面加载完成');
+    await locatePage.waitForTimeout(400);
+    return { locateCtx, locatePage, read };
+  }
+
+  // 15.1 小屏：目标在折叠下方 → 必须滚，而且滚完那一天的所有条都完整可见
+  {
+    const { locateCtx, read } = await openLocated({ width: 360, height: 640 }, locateRows);
+    const state = await read();
+    assert.equal(state.count, 2);
+    assert.ok(state.scrollY > 0, `小屏应滚动到目标，实际 scrollY=${state.scrollY}`);
+    assert.ok(state.allVisible, '滚动后目标日的所有条都应完整可见');
+    await locateCtx.close();
+  }
+
+  // 15.2 大屏：目标本来就完整可见 → 一行都不该滚
+  {
+    const { locateCtx, read } = await openLocated({ width: 360, height: 1600 }, locateRows);
+    const state = await read();
+    assert.ok(state.allVisible);
+    assert.equal(state.scrollY, 0, `目标已可见时不应滚动，实际 scrollY=${state.scrollY}`);
+    await locateCtx.close();
+  }
+
+  // 15.3 桌面表格：吸顶表头以下的区域算安全区，仍然是最小滚动
+  {
+    const { locateCtx, read } = await openLocated({ width: 1440, height: 700 }, locateRows);
+    const state = await read();
+    assert.ok(state.scrollY > 0, '桌面上目标在折叠下方时应滚动');
+    assert.ok(state.allVisible, '滚动后目标应完整落在吸顶表头下方');
+    await locateCtx.close();
+  }
+
+  // 15.4 全是已结束 / 课表视图 → 不动
+  {
+    // 放在本周之内：默认筛选会隐藏本周之前的已结束实验，那样列表是空的、测不到东西
+    const past = [{ date: '2026-11-10', period: '第1-2节', name: '旧实验', place: 'A', note: '' }];
+    const pastRun = await openLocated({ width: 360, height: 640 }, past);
+    assert.equal((await pastRun.read()).scrollY, 0, '没有今天及以后的实验时不应滚动');
+    await pastRun.locateCtx.close();
+
+    const weekRun = await openLocated({ width: 1440, height: 950 }, locateRows, 'week');
+    assert.equal((await weekRun.read()).scrollY, 0, '课表视图不应滚动');
+    await weekRun.locateCtx.close();
+  }
+
+  // 15.5 刷新（浏览器恢复滚动位置）后，目标仍然完整可见
+  {
+    const { locateCtx, locatePage, read } = await openLocated({ width: 360, height: 640 }, locateRows);
+    await locatePage.reload();
+    await locatePage.waitForSelector('tbody tr[data-idx]');
+    await poll(async () => (await locatePage.evaluate(() => document.readyState)) === 'complete', '刷新完成');
+    await locatePage.waitForTimeout(400);
+    const state = await read();
+    assert.ok(state.allVisible, `刷新后目标仍应完整可见，实际 scrollY=${state.scrollY}`);
+    await locateCtx.close();
+  }
   console.log('UI smoke OK');
 } finally {
   fs.rmSync(fixtureDir, { force: true, recursive: true });
