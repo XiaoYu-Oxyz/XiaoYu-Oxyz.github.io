@@ -1,0 +1,651 @@
+{
+  "generatedFrom": "index.html",
+  "tokens": [
+    {
+      "token": "--c-f5f7fa",
+      "value": "#f5f7fa"
+    },
+    {
+      "token": "--c-24292f",
+      "value": "#24292f"
+    },
+    {
+      "token": "--c-0969da",
+      "value": "#0969da"
+    },
+    {
+      "token": "--c-fff",
+      "value": "#fff"
+    },
+    {
+      "token": "--c-rgb-0-0-0-08",
+      "value": "rgba(0,0,0,.08)"
+    },
+    {
+      "token": "--c-d0d7de",
+      "value": "#d0d7de"
+    },
+    {
+      "token": "--c-afb8c1",
+      "value": "#afb8c1"
+    },
+    {
+      "token": "--c-57606a",
+      "value": "#57606a"
+    },
+    {
+      "token": "--c-0757b8",
+      "value": "#0757b8"
+    },
+    {
+      "token": "--c-eaf3ff",
+      "value": "#eaf3ff"
+    },
+    {
+      "token": "--c-b6d6f8",
+      "value": "#b6d6f8"
+    },
+    {
+      "token": "--c-f8fafc",
+      "value": "#f8fafc"
+    },
+    {
+      "token": "--c-d8dee4",
+      "value": "#d8dee4"
+    },
+    {
+      "token": "--c-rgb-36-41-47-05",
+      "value": "rgba(36,41,47,.05)"
+    },
+    {
+      "token": "--c-rgb-9-105-218-35",
+      "value": "rgba(9,105,218,.35)"
+    },
+    {
+      "token": "--c-fff3b0",
+      "value": "#fff3b0"
+    },
+    {
+      "token": "--c-e1e6eb",
+      "value": "#e1e6eb"
+    },
+    {
+      "token": "--c-f6f8fa",
+      "value": "#f6f8fa"
+    },
+    {
+      "token": "--c-6e7781",
+      "value": "#6e7781"
+    },
+    {
+      "token": "--c-b8c0c8",
+      "value": "#b8c0c8"
+    },
+    {
+      "token": "--c-a40e26",
+      "value": "#a40e26"
+    },
+    {
+      "token": "--c-ffcecb",
+      "value": "#ffcecb"
+    },
+    {
+      "token": "--c-fff5f5",
+      "value": "#fff5f5"
+    },
+    {
+      "token": "--c-ffb3ae",
+      "value": "#ffb3ae"
+    },
+    {
+      "token": "--c-f0d38a",
+      "value": "#f0d38a"
+    },
+    {
+      "token": "--c-fff8e6",
+      "value": "#fff8e6"
+    },
+    {
+      "token": "--c-7a4b00",
+      "value": "#7a4b00"
+    },
+    {
+      "token": "--c-f2f8ff",
+      "value": "#f2f8ff"
+    },
+    {
+      "token": "--c-b6d4fb",
+      "value": "#b6d4fb"
+    },
+    {
+      "token": "--c-e3f0ff",
+      "value": "#e3f0ff"
+    },
+    {
+      "token": "--c-ffc9c7",
+      "value": "#ffc9c7"
+    },
+    {
+      "token": "--c-fff3f2",
+      "value": "#fff3f2"
+    },
+    {
+      "token": "--c-8250df",
+      "value": "#8250df"
+    },
+    {
+      "token": "--c-f0f3f6",
+      "value": "#f0f3f6"
+    },
+    {
+      "token": "--c-424a53",
+      "value": "#424a53"
+    },
+    {
+      "token": "--c-8a5306",
+      "value": "#8a5306"
+    },
+    {
+      "token": "--c-cf222e",
+      "value": "#cf222e"
+    },
+    {
+      "token": "--c-eaeef2",
+      "value": "#eaeef2"
+    },
+    {
+      "token": "--c-ffd7d5",
+      "value": "#ffd7d5"
+    },
+    {
+      "token": "--c-d3f5d9",
+      "value": "#d3f5d9"
+    },
+    {
+      "token": "--c-1a7f37",
+      "value": "#1a7f37"
+    },
+    {
+      "token": "--c-ffe6a6",
+      "value": "#ffe6a6"
+    },
+    {
+      "token": "--c-b7791f",
+      "value": "#b7791f"
+    },
+    {
+      "token": "--c-8c959f",
+      "value": "#8c959f"
+    },
+    {
+      "token": "--c-0550ae",
+      "value": "#0550ae"
+    },
+    {
+      "token": "--c-e6f9ea",
+      "value": "#e6f9ea"
+    },
+    {
+      "token": "--c-c3f0cd",
+      "value": "#c3f0cd"
+    },
+    {
+      "token": "--c-fff8e1",
+      "value": "#fff8e1"
+    },
+    {
+      "token": "--c-9a6700",
+      "value": "#9a6700"
+    },
+    {
+      "token": "--c-f0e0a8",
+      "value": "#f0e0a8"
+    },
+    {
+      "token": "--c-ffe9e8",
+      "value": "#ffe9e8"
+    },
+    {
+      "token": "--c-fffdf5",
+      "value": "#fffdf5"
+    },
+    {
+      "token": "--c-e5484d",
+      "value": "#e5484d"
+    },
+    {
+      "token": "--c-2da44e",
+      "value": "#2da44e"
+    },
+    {
+      "token": "--c-rgb-36-41-47-08",
+      "value": "rgba(36,41,47,.08)"
+    },
+    {
+      "token": "--c-f4f6f8",
+      "value": "#f4f6f8"
+    },
+    {
+      "token": "--c-ffdedc",
+      "value": "#ffdedc"
+    },
+    {
+      "token": "--c-d9f5e0",
+      "value": "#d9f5e0"
+    },
+    {
+      "token": "--c-eef1f4",
+      "value": "#eef1f4"
+    },
+    {
+      "token": "--c-e8f2ff",
+      "value": "#e8f2ff"
+    },
+    {
+      "token": "--c-f7f9fb",
+      "value": "#f7f9fb"
+    },
+    {
+      "token": "--c-fbfcfd",
+      "value": "#fbfcfd"
+    },
+    {
+      "token": "--c-f4f9ff",
+      "value": "#f4f9ff"
+    },
+    {
+      "token": "--c-f6e3b8",
+      "value": "#f6e3b8"
+    },
+    {
+      "token": "--c-c49a45",
+      "value": "#c49a45"
+    },
+    {
+      "token": "--c-ffd978",
+      "value": "#ffd978"
+    },
+    {
+      "token": "--c-eddaa5",
+      "value": "#eddaa5"
+    },
+    {
+      "token": "--c-a17a2a",
+      "value": "#a17a2a"
+    },
+    {
+      "token": "--c-c28a12",
+      "value": "#c28a12"
+    },
+    {
+      "token": "--c-ff8182",
+      "value": "#ff8182"
+    },
+    {
+      "token": "--c-ffebe9",
+      "value": "#ffebe9"
+    },
+    {
+      "token": "--c-f7f8fa",
+      "value": "#f7f8fa"
+    },
+    {
+      "token": "--c-fffaf0",
+      "value": "#fffaf0"
+    },
+    {
+      "token": "--c-7a4f01",
+      "value": "#7a4f01"
+    },
+    {
+      "token": "--c-rgb-0-0-0-45",
+      "value": "rgba(0,0,0,.45)"
+    },
+    {
+      "token": "--c-rgb-0-0-0-2",
+      "value": "rgba(0,0,0,.2)"
+    },
+    {
+      "token": "--c-rgb-31-35-40-18",
+      "value": "rgba(31, 35, 40, .18)"
+    },
+    {
+      "token": "--c-dafbe1",
+      "value": "#dafbe1"
+    },
+    {
+      "token": "--c-aceebb",
+      "value": "#aceebb"
+    },
+    {
+      "token": "--c-9ec9f5",
+      "value": "#9ec9f5"
+    },
+    {
+      "token": "--c-000",
+      "value": "#000"
+    },
+    {
+      "token": "--c-ccc",
+      "value": "#ccc"
+    },
+    {
+      "token": "--c-999",
+      "value": "#999"
+    },
+    {
+      "token": "--c-eee",
+      "value": "#eee"
+    },
+    {
+      "token": "--c-d8eaff",
+      "value": "#d8eaff"
+    },
+    {
+      "token": "--c-e6d391",
+      "value": "#e6d391"
+    },
+    {
+      "token": "--c-rgb-154-103-0-28",
+      "value": "rgba(154,103,0,.28)"
+    },
+    {
+      "token": "--c-rgb-255-255-255-75",
+      "value": "rgba(255,255,255,.75)"
+    },
+    {
+      "token": "--c-b08a45",
+      "value": "#b08a45"
+    },
+    {
+      "token": "--c-fdfaf3",
+      "value": "#fdfaf3"
+    },
+    {
+      "token": "--c-fff6e3",
+      "value": "#fff6e3"
+    },
+    {
+      "token": "--c-0d1117",
+      "value": "#0d1117"
+    },
+    {
+      "token": "--c-e6edf3",
+      "value": "#e6edf3"
+    },
+    {
+      "token": "--c-161b22",
+      "value": "#161b22"
+    },
+    {
+      "token": "--c-rgb-0-0-0-55",
+      "value": "rgba(0,0,0,.55)"
+    },
+    {
+      "token": "--c-8b949e",
+      "value": "#8b949e"
+    },
+    {
+      "token": "--c-30363d",
+      "value": "#30363d"
+    },
+    {
+      "token": "--c-adbac7",
+      "value": "#adbac7"
+    },
+    {
+      "token": "--c-484f58",
+      "value": "#484f58"
+    },
+    {
+      "token": "--c-58a6ff",
+      "value": "#58a6ff"
+    },
+    {
+      "token": "--c-1f6feb",
+      "value": "#1f6feb"
+    },
+    {
+      "token": "--c-388bfd",
+      "value": "#388bfd"
+    },
+    {
+      "token": "--c-79c0ff",
+      "value": "#79c0ff"
+    },
+    {
+      "token": "--c-c9d1d9",
+      "value": "#c9d1d9"
+    },
+    {
+      "token": "--c-ff7b72",
+      "value": "#ff7b72"
+    },
+    {
+      "token": "--c-f85149",
+      "value": "#f85149"
+    },
+    {
+      "token": "--c-da3633",
+      "value": "#da3633"
+    },
+    {
+      "token": "--c-14080a",
+      "value": "#14080a"
+    },
+    {
+      "token": "--c-060d18",
+      "value": "#060d18"
+    },
+    {
+      "token": "--c-21262d",
+      "value": "#21262d"
+    },
+    {
+      "token": "--c-6e7681",
+      "value": "#6e7681"
+    },
+    {
+      "token": "--c-6b1f24",
+      "value": "#6b1f24"
+    },
+    {
+      "token": "--c-3d1a1c",
+      "value": "#3d1a1c"
+    },
+    {
+      "token": "--c-2a2110",
+      "value": "#2a2110"
+    },
+    {
+      "token": "--c-4a3a10",
+      "value": "#4a3a10"
+    },
+    {
+      "token": "--c-d4a72c",
+      "value": "#d4a72c"
+    },
+    {
+      "token": "--c-0d2d4d",
+      "value": "#0d2d4d"
+    },
+    {
+      "token": "--c-12181f",
+      "value": "#12181f"
+    },
+    {
+      "token": "--c-1c2128",
+      "value": "#1c2128"
+    },
+    {
+      "token": "--c-ffb3b0",
+      "value": "#ffb3b0"
+    },
+    {
+      "token": "--c-12261a",
+      "value": "#12261a"
+    },
+    {
+      "token": "--c-7ee2a8",
+      "value": "#7ee2a8"
+    },
+    {
+      "token": "--c-0f2d1a",
+      "value": "#0f2d1a"
+    },
+    {
+      "token": "--c-56d364",
+      "value": "#56d364"
+    },
+    {
+      "token": "--c-1b4721",
+      "value": "#1b4721"
+    },
+    {
+      "token": "--c-341a00",
+      "value": "#341a00"
+    },
+    {
+      "token": "--c-e3b341",
+      "value": "#e3b341"
+    },
+    {
+      "token": "--c-5c4400",
+      "value": "#5c4400"
+    },
+    {
+      "token": "--c-ff9492",
+      "value": "#ff9492"
+    },
+    {
+      "token": "--c-6b4b00",
+      "value": "#6b4b00"
+    },
+    {
+      "token": "--c-ffdf5d",
+      "value": "#ffdf5d"
+    },
+    {
+      "token": "--c-f0f6fc",
+      "value": "#f0f6fc"
+    },
+    {
+      "token": "--c-2a1517",
+      "value": "#2a1517"
+    },
+    {
+      "token": "--c-10241a",
+      "value": "#10241a"
+    },
+    {
+      "token": "--c-3fb950",
+      "value": "#3fb950"
+    },
+    {
+      "token": "--c-rgb-255-255-255-12",
+      "value": "rgba(255, 255, 255, .12)"
+    },
+    {
+      "token": "--c-rgb-255-255-255-22",
+      "value": "rgba(255, 255, 255, .22)"
+    },
+    {
+      "token": "--c-1f1a10",
+      "value": "#1f1a10"
+    },
+    {
+      "token": "--c-8a6100",
+      "value": "#8a6100"
+    },
+    {
+      "token": "--c-14351f",
+      "value": "#14351f"
+    },
+    {
+      "token": "--c-26200f",
+      "value": "#26200f"
+    },
+    {
+      "token": "--c-a97400",
+      "value": "#a97400"
+    },
+    {
+      "token": "--c-1a1710",
+      "value": "#1a1710"
+    },
+    {
+      "token": "--c-6b5200",
+      "value": "#6b5200"
+    },
+    {
+      "token": "--c-5c2a2e",
+      "value": "#5c2a2e"
+    },
+    {
+      "token": "--c-1f6feb66",
+      "value": "#1f6feb66"
+    },
+    {
+      "token": "--c-12212f",
+      "value": "#12212f"
+    },
+    {
+      "token": "--c-3b2f12",
+      "value": "#3b2f12"
+    },
+    {
+      "token": "--c-2f2712",
+      "value": "#2f2712"
+    },
+    {
+      "token": "--c-a371f7",
+      "value": "#a371f7"
+    },
+    {
+      "token": "--c-9e6a03",
+      "value": "#9e6a03"
+    }
+  ],
+  "semantic": {
+    "pageBg": {
+      "light": "--c-f5f7fa",
+      "dark": "--c-0d1117"
+    },
+    "textMain": {
+      "light": "--c-24292f",
+      "dark": "--c-e6edf3"
+    },
+    "rowPastBg": {
+      "light": "--c-f6f8fa",
+      "dark": "--c-161b22"
+    },
+    "rowTodayBg": {
+      "light": "--c-ffe9e8",
+      "dark": "--c-3d1a1c"
+    },
+    "rowTomorrowBg": {
+      "light": "--c-e6f9ea",
+      "dark": "--c-12261a"
+    },
+    "rowNextBg": {
+      "light": "--c-f4f9ff",
+      "dark": "--c-0d2d4d"
+    },
+    "conflictBorder": {
+      "light": "--c-b7791f",
+      "dark": "--c-8a6100"
+    },
+    "conflictBg": {
+      "light": "--c-fffaf0",
+      "dark": "--c-1f1a10"
+    },
+    "statusOkBg": {
+      "light": "--c-e6f9ea",
+      "dark": "--c-0f2d1a"
+    },
+    "statusOkText": {
+      "light": "--c-1a7f37",
+      "dark": "--c-56d364"
+    }
+  }
+}

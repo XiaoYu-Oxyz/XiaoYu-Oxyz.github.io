@@ -21,6 +21,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import common  # noqa: E402  （tools/common.py：路径、原子写入）
+import color_audit  # noqa: E402  （tools/color_audit.py：色值 token 体检）
 
 BASE = common.REPO_ROOT
 # index.html 是唯一页面文件；404.html 与构建期生成的 .ics 是附带产物。
@@ -141,6 +142,9 @@ def verify_html(html: str, name: str, check_newlines: bool = True) -> list:
                 err("defaultData legacy experiments must be an array")
         except Exception as exc:  # json.JSONDecodeError and friends
             err("defaultData template is not valid JSON: %s" % exc)
+
+    if name == DEPLOY.name:
+        errors.extend("%s: %s" % (name, item) for item in color_audit.audit(html))
 
     if "const DEFAULT_DATA" not in script or "const DEFAULT_CLASSES" not in script:
         err("default data parser missing")

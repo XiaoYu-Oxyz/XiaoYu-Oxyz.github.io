@@ -1367,6 +1367,135 @@ try {
     assert.deepEqual(print.hidden, [true, true, true, true, true], '打印时必须隐藏提示条/操作面板/图例/时钟/页脚按钮');
     await printCtx.close();
   }
+  // 26. 语义色与 token 表一致：改色必须同时改 tools/palette.json，否则这里会红
+  {
+    const palette = JSON.parse(fs.readFileSync(path.join(root, 'tools', 'palette.json'), 'utf8'));
+    const tokenValue = name => {
+      const item = palette.tokens.find(t => t.token === name);
+      return item ? item.value : null;
+    };
+    const expect = (scheme, name) => tokenValue(palette.semantic[name][scheme]);
+    const rgb = hex => {
+      const v = hex.replace('#', '');
+      const n = v.length === 3 ? v.split('').map(c => c + c).join('') : v.slice(0, 6);
+      return `rgb(${parseInt(n.slice(0, 2), 16)}, ${parseInt(n.slice(2, 4), 16)}, ${parseInt(n.slice(4, 6), 16)})`;
+    };
+    const stateRows = [
+      { date: '2026-11-08', period: '第1-2节', name: '过去实验', place: 'A101', note: '' },
+      { date: '2026-11-15', period: '第3-4节', name: '今天实验', place: 'A102', note: '' },
+      { date: '2026-11-16', period: '第3-4节', name: '明天实验', place: 'A103', note: '' },
+      { date: '2026-11-20', period: '第7-8节', name: '冲突甲', place: 'A105', note: '' },
+      { date: '2026-11-20', period: '第7-8节', name: '冲突乙', place: 'A106', note: '' }
+    ];
+
+    for (const scheme of ['light', 'dark']) {
+      const ctx = await browser.newContext({ viewport: { width: 390, height: 950 }, colorScheme: scheme });
+      const page = await ctx.newPage();
+      await page.clock.install({ time: new Date('2026-11-15T12:00:00') });
+      await page.addInitScript(rows => {
+        localStorage.setItem('ghpages:zhizao2402:classdata:v1:Z1', JSON.stringify(rows));
+      }, stateRows);
+      await page.goto(`${appUrl}?class=Z1`);
+      await page.waitForSelector('tbody tr[data-idx]');
+      await page.locator('#recentFilter').uncheck().catch(() => {});
+      await page.waitForTimeout(300);
+      const actual = await page.evaluate(() => {
+        const rows = Array.from(document.querySelectorAll('tbody tr[data-idx]'));
+        const byName = n => rows.find(r => r.textContent.includes(n));
+        const parse = c => {
+          const m = String(c).match(/rgba?\(([\d.]+), ([\d.]+), ([\d.]+)(?:, ([\d.]+))?\)/);
+          return m ? { r: +m[1], g: +m[2], b: +m[3], a: m[4] === undefined ? 1 : +m[4] } : null;
+        };
+        const blend = (fg, bg) => ({
+          r: fg.r * fg.a + bg.r * (1 - fg.a),
+          g: fg.g * fg.a + bg.g * (1 - fg.a),
+          b: fg.b * fg.a + bg.b * (1 - fg.a),
+          a: 1
+        });
+        // 行内可能有多层（tr / td），取"视觉上真正看到的底色"
+        const effectiveBg = el => {
+          if (!el) return null;
+          let cur = el;
+          const stack = [];
+          while (cur && cur !== document.documentElement) {
+            const c = parse(getComputedStyle(cur).backgroundColor);
+            if (c && c.a > 0) stack.push(c);
+            if (c && c.a >= 0.999) break;
+            cur = cur.parentElement;
+          }
+          let base = { r: 255, g: 255, b: 255, a: 1 };
+          const bodyBg = parse(getComputedStyle(document.body).backgroundColor);
+          if (bodyBg && bodyBg.a > 0.5) base = bodyBg;
+          for (let i = stack.length - 1; i >= 0; i -= 1) base = blend(stack[i], base);
+          return `rgb(${Math.round(base.r)}, ${Math.round(base.g)}, ${Math.round(base.b)})`;
+        };
+        const rowBg = name => {
+          const row = byName(name);
+          if (!row) return null;
+          const cell = row.querySelector('td.cell-mobile') || row.querySelector('td');
+          return effectiveBg(cell || row);
+        };
+        const conflict = byName('冲突甲');
+        return {
+          pageBg: getComputedStyle(document.body).backgroundColor,
+          textMain: getComputedStyle(document.body).color,
+          rowPastBg: rowBg('过去实验'),
+          rowTodayBg: rowBg('今天实验'),
+          rowTomorrowBg: rowBg('明天实验'),
+          conflictBorder: conflict ? getComputedStyle(conflict).borderTopColor : null,
+          conflictBg: rowBg('冲突甲')
+        };
+      });
+      assert.equal(actual.pageBg, rgb(expect(scheme, 'pageBg')), `${scheme} 页面底色应为 token 值`);
+      assert.equal(actual.textMain, rgb(expect(scheme, 'textMain')), `${scheme} 主文字色应为 token 值`);
+      assert.equal(actual.rowPastBg, rgb(expect(scheme, 'rowPastBg')), `${scheme} 已结束行底色应为 token 值`);
+      assert.equal(actual.rowTodayBg, rgb(expect(scheme, 'rowTodayBg')), `${scheme} 今天行底色应为 token 值`);
+      assert.equal(actual.rowTomorrowBg, rgb(expect(scheme, 'rowTomorrowBg')), `${scheme} 明天行底色应为 token 值`);
+      assert.equal(actual.conflictBorder, rgb(expect(scheme, 'conflictBorder')), `${scheme} 冲突描边应为 token 值`);
+      assert.equal(actual.conflictBg, rgb(expect(scheme, 'conflictBg')), `${scheme} 冲突底色应为 token 值`);
+
+      // 下一次（≥2 天）与状态栏单独构造
+      // 最近一次要在 ≥2 天后才不会被「今天/明天」让位抑制
+      await page.evaluate(() => {
+        experiments = [{ date: '2026-11-18', period: '第3-4节', name: '下次实验', place: 'B', note: '' }];
+        recentOnly = false;
+        render();
+      });
+      await page.waitForTimeout(250);
+      const nextBg = await page.evaluate(() => {
+        const row = Array.from(document.querySelectorAll('tbody tr[data-idx]')).find(r => r.textContent.includes('下次实验'));
+        if (!row) return null;
+        const cell = row.querySelector('td.cell-mobile') || row.querySelector('td');
+        const parse = c => {
+          const m = String(c).match(/rgba?\(([\d.]+), ([\d.]+), ([\d.]+)(?:, ([\d.]+))?\)/);
+          return m ? { r: +m[1], g: +m[2], b: +m[3], a: m[4] === undefined ? 1 : +m[4] } : null;
+        };
+        const blend = (fg, bg) => ({ r: fg.r * fg.a + bg.r * (1 - fg.a), g: fg.g * fg.a + bg.g * (1 - fg.a), b: fg.b * fg.a + bg.b * (1 - fg.a), a: 1 });
+        let cur = cell;
+        const stack = [];
+        while (cur && cur !== document.documentElement) {
+          const c = parse(getComputedStyle(cur).backgroundColor);
+          if (c && c.a > 0) stack.push(c);
+          if (c && c.a >= 0.999) break;
+          cur = cur.parentElement;
+        }
+        let base = parse(getComputedStyle(document.body).backgroundColor) || { r: 255, g: 255, b: 255, a: 1 };
+        for (let i = stack.length - 1; i >= 0; i -= 1) base = blend(stack[i], base);
+        return `rgb(${Math.round(base.r)}, ${Math.round(base.g)}, ${Math.round(base.b)})`;
+      });
+      assert.equal(nextBg, rgb(expect(scheme, 'rowNextBg')), `${scheme} 下一次行底色应为 token 值`);
+
+      await page.evaluate(() => showStatus('ok', '测试状态栏'));
+      await page.waitForTimeout(120);
+      const status = await page.evaluate(() => {
+        const el = document.querySelector('.import-status.show');
+        return { bg: getComputedStyle(el).backgroundColor, fg: getComputedStyle(el).color };
+      });
+      assert.equal(status.bg, rgb(expect(scheme, 'statusOkBg')), `${scheme} 成功状态底色应为 token 值`);
+      assert.equal(status.fg, rgb(expect(scheme, 'statusOkText')), `${scheme} 成功状态文字应为 token 值`);
+      await ctx.close();
+    }
+  }
   console.log('UI smoke OK');
 } finally {
   fs.rmSync(fixtureDir, { force: true, recursive: true });
