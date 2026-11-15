@@ -1427,6 +1427,41 @@ try {
       `单行高 ${print.maxRowHeight}px 必须小于每页可用高 ${print.pageContent - print.theadHeight}px`);
     assert.deepEqual(print.hidden, [true, true, true, true, true], '打印时必须隐藏提示条/操作面板/图例/时钟/页脚按钮');
     await printCtx.close();
+
+    // 深色模式打印：必须仍然是白纸黑字（深色块的 body 规则在打印块之后，曾把整页染黑）
+    for (const scheme of ['light', 'dark']) {
+      const colorCtx = await browser.newContext({ viewport: { width: 794, height: 1123 }, colorScheme: scheme });
+      const colorPage = await colorCtx.newPage();
+      await colorPage.clock.install({ time: new Date('2026-11-15T12:00:00') });
+      await colorPage.addInitScript(() => localStorage.setItem('ghpages:zhizao2402:classdata:v1:Z1', JSON.stringify([
+        { date: '2026-11-15', period: '第3-4节', name: '今天实验', place: 'A102', note: '' },
+        { date: '2026-11-20', period: '第7-8节', name: '未来实验', place: 'A103', note: '' }
+      ])));
+      await colorPage.goto(`${appUrl}?class=Z1`);
+      await colorPage.waitForSelector('tbody tr[data-idx]');
+      await colorPage.evaluate(() => { recentOnly = false; render(); });
+      await colorPage.emulateMedia({ media: 'print' });
+      await colorPage.waitForTimeout(250);
+      const colors = await colorPage.evaluate(() => {
+        const g = (sel, prop) => {
+          const el = document.querySelector(sel);
+          return el ? getComputedStyle(el)[prop] : null;
+        };
+        return {
+          bodyBg: g('body', 'backgroundColor'),
+          bodyColor: g('body', 'color'),
+          wrapBg: g('.wrap', 'backgroundColor'),
+          headColor: g('.print-head', 'color'),
+          thColor: g('th', 'color')
+        };
+      });
+      assert.equal(colors.bodyBg, 'rgb(255, 255, 255)', `${scheme} 打印时页面底色必须是白的`);
+      assert.equal(colors.bodyColor, 'rgb(0, 0, 0)', `${scheme} 打印时正文必须是黑的`);
+      assert.equal(colors.wrapBg, 'rgb(255, 255, 255)', `${scheme} 打印时卡片容器底色必须是白的`);
+      assert.equal(colors.headColor, 'rgb(0, 0, 0)', `${scheme} 打印标题必须是黑的`);
+      assert.equal(colors.thColor, 'rgb(0, 0, 0)', `${scheme} 打印表头文字必须是黑的`);
+      await colorCtx.close();
+    }
   }
   console.log('\u00a726 语义色与 token 表一致：改色必须同时改 tools/palette.json，否则这里会红');
   // 26. 语义色与 token 表一致：改色必须同时改 tools/palette.json，否则这里会红

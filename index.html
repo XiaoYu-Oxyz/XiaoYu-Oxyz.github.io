@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-3Phk4agx1xzxUbcaXQVeIMjuyHgQMbqSz6V0XHx8DUU='; script-src-elem 'sha256-3Phk4agx1xzxUbcaXQVeIMjuyHgQMbqSz6V0XHx8DUU='; script-src-attr 'none'; style-src 'sha256-fCagsU5SQUkOeqRdQ0jjWsliZTbGJM/7C2ucO7YhIEw='; style-src-elem 'sha256-fCagsU5SQUkOeqRdQ0jjWsliZTbGJM/7C2ucO7YhIEw='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-3Phk4agx1xzxUbcaXQVeIMjuyHgQMbqSz6V0XHx8DUU='; script-src-elem 'sha256-3Phk4agx1xzxUbcaXQVeIMjuyHgQMbqSz6V0XHx8DUU='; script-src-attr 'none'; style-src 'sha256-8ZA+qHO5vU1vTcAp7iFZabiYCmUMbjkTxVkkL96Y3oE='; style-src-elem 'sha256-8ZA+qHO5vU1vTcAp7iFZabiYCmUMbjkTxVkkL96Y3oE='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>CrseCue</title>
 <style>
@@ -1058,13 +1058,15 @@
   }
   @media print {
     @page { margin: 12mm; }
-    body { background: var(--c-fff); padding: 0 !important; color: var(--c-000); }
+    /* 深色块的 body 规则在本块之后（同特异性），这里必须 !important，
+       否则深色模式下打印是黑底浅字 */
+    body { background: var(--c-fff) !important; padding: 0 !important; color: var(--c-000) !important; }
     .head, .action-panel, .settings-row, .legend, .clock, .diag-row,
     .import-status, .sr-only, .copy-week-outside, .actions-toggle, .class-picker,
     .recent-filter, .recent-count, .data-updated, .saved-tip,
     .cue-bar, .first-run, .week-view, .view-switch { display: none !important; }
-    .wrap { max-width: none; margin: 0; padding: 0 !important; box-shadow: none; border-radius: 0; }
-    .print-head { display: block; margin: 0 0 10px; font-size: 16px; font-weight: 700; }
+    .wrap { max-width: none; margin: 0; padding: 0 !important; background: var(--c-fff) !important; box-shadow: none; border-radius: 0; }
+    .print-head { display: block; margin: 0 0 10px; font-size: 16px; font-weight: 700; color: var(--c-000) !important; }
     .table-wrap { overflow: visible; }
     table {
       display: table !important; width: 100% !important; min-width: 0 !important;
@@ -1096,7 +1098,7 @@
       color: var(--c-000); white-space: pre-wrap;
     }
     th {
-      border: 1px solid var(--c-999); background: var(--c-eee) !important; color: var(--c-000);
+      border: 1px solid var(--c-999); background: var(--c-eee) !important; color: var(--c-000) !important;
       text-align: left; padding: 4px 5px; overflow-wrap: anywhere;
     }
     th:nth-child(2) { width: 13%; }

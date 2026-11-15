@@ -57,6 +57,11 @@ def strip_comments(css: str) -> str:
     return "".join(out)
 
 
+def strip_html_comments(text: str) -> str:
+    """把 <!-- ... --> 替换成等长空白（注释里写旧色值不算违规）。"""
+    return re.sub(r"<!--[\s\S]*?-->", lambda m: " " * len(m.group(0)), text)
+
+
 def root_block(css: str):
     """返回 (block_text, start, end) —— 第一个 :root { … } 的位置。"""
     match = re.search(r":root\s*\{", css)
@@ -127,6 +132,14 @@ def audit(html: str, palette_path: Path = PALETTE) -> list:
     unused = sorted(set(tokens) - refs)
     if unused:
         errors.append("定义了但没人使用的 token：%s" % ", ".join(unused[:8]))
+
+    # 允许一个例外：`<style>` 之外的 HTML/JS 也不许出现颜色字面量（内联 style、脚本里拼色都不行）
+    outside_style = html.replace(style_text(html), "")
+    stray = COLOR_RE.findall(strip_html_comments(outside_style))
+    if stray:
+        unique = sorted({c for c in stray})
+        errors.append("<style> 之外出现 %d 处颜色字面量（%d 种）：%s —— 改用 class + var(--c-…)"
+                      % (len(stray), len(unique), ", ".join(unique[:6])))
 
     if palette_path.exists():
         palette = json.loads(palette_path.read_text(encoding="utf-8"))
