@@ -18,7 +18,10 @@
 <main class="wrap" id="main">
   <header class="head">
     <div class="head-main">
-      <h1>CrseCue</h1>
+      <div class="title-row">
+        <h1>CrseCue</h1>
+        <span class="mode-badge" id="modeBadge" hidden></span>
+      </div>
       <div class="class-picker">
         <label for="classSelect">班级：</label>
         <select id="classSelect" aria-label="选择班级"></select>
@@ -48,7 +51,6 @@
         <span>只看冲突</span>
       </label>
       <span class="recent-count" id="recentCount"></span>
-      <span class="mode-badge" id="modeBadge" hidden></span>
     </div>
     <div class="head-actions">
       <div class="view-switch" role="group" aria-label="视图切换">

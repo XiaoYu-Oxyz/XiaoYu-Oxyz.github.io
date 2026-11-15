@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-H+owizonO2a4aDYmIelv6MqXObkQ6XTvI1rLyUDwIlg='; script-src-elem 'sha256-H+owizonO2a4aDYmIelv6MqXObkQ6XTvI1rLyUDwIlg='; script-src-attr 'none'; style-src 'sha256-Pk1iWZcvYlQ2W99G4nKBz+m8ifNZ1GVGt7LAPbPLd9I='; style-src-elem 'sha256-Pk1iWZcvYlQ2W99G4nKBz+m8ifNZ1GVGt7LAPbPLd9I='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-HudPun7LfvWGQ6Cs08Jm4QMkaL9nIGE/sQMq1G4lCg8='; script-src-elem 'sha256-HudPun7LfvWGQ6Cs08Jm4QMkaL9nIGE/sQMq1G4lCg8='; script-src-attr 'none'; style-src 'sha256-ZXsJTcnEAXjKNAd0ZxT0RwA7mfCDswG5bKIHaciqELE='; style-src-elem 'sha256-ZXsJTcnEAXjKNAd0ZxT0RwA7mfCDswG5bKIHaciqELE='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>CrseCue</title>
 <style>
@@ -250,6 +250,8 @@
     gap: 8px 14px; margin-bottom: 12px;
   }
   .head-main { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-width: 0; }
+  /* 标题 + 状态徽标（只读 / 本机数据）同一行 */
+  .title-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
   .head-filters { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
   .head-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-left: auto; }
   h1 { margin: 0; font-size: 22px; flex: none; }
@@ -637,7 +639,10 @@
   /* 冲突连线：绝对定位在表格容器里，z-index 低于卡片，所以线段只在行距/列距里露出来 */
   .conflict-link-layer { position: absolute; top: 0; right: 0; bottom: 0; left: 0; z-index: 0; pointer-events: none; }
   .conflict-link-layer svg { display: block; width: 100%; height: 100%; overflow: visible; }
-  .conflict-link-line { stroke: var(--c-b7791f); stroke-width: 2; stroke-linecap: round; fill: none; }
+  .conflict-link-line { stroke: var(--row-conflict-border); stroke-width: 2; stroke-linecap: round; fill: none; }
+  /* 连线颜色必须与所在行的边框完全一致（peer / 已结束各用各自语义色） */
+  .conflict-link-line.is-peer { stroke: var(--row-conflict-peer-border); }
+  .conflict-link-line.is-past { stroke: var(--row-conflict-past-border); }
   tbody { position: relative; z-index: 1; }
   table { width: 100%; min-width: 860px; border-collapse: collapse; font-size: 14px; }
   #scheduleTable:focus-visible { outline: 2px solid var(--c-0969da); outline-offset: 3px; }
@@ -1270,7 +1275,8 @@
     }
     /* display:contents 让 h1 / .class-picker 直接成为 grid 项 */
     .head-main { display: contents; }
-    h1 { grid-area: title; align-self: center; font-size: 20px; }
+    .title-row { grid-area: title; align-self: center; }
+    h1 { font-size: 20px; }
     .class-picker { grid-area: picker; gap: 4px; }
     .class-picker select { max-width: 160px; }
     .class-tool { width: 36px; height: 36px; flex: none; }
@@ -1469,13 +1475,13 @@
     tbody tr.note-row { display: none; }
   }
 
-  /* ---------- 窄屏：让「班级：」标签让位，保证 320px 下班级名不被压没 ---------- */
+  /* ---------- 窄屏：「班级：」始终可见（用户要求），靠缩小控件保证 320px 不溢出 ---------- */
   @media (max-width: 400px) {
-    .class-picker > label {
-      position: absolute; width: 1px; height: 1px; margin: -1px;
-      padding: 0; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
-    }
-    .class-picker select { max-width: 96px; }
+    .class-picker { flex-wrap: wrap; row-gap: 4px; }
+    .class-picker > label { flex: none; font-size: 12px; }
+    .class-picker select { max-width: 84px; }
+    .class-tool { width: 32px; height: 32px; }
+    .class-tools { gap: 4px; }
   }
 
   /* ---------- 触屏按压反馈 ---------- */
@@ -1712,7 +1718,6 @@
     tbody tr.row-conflict { background: var(--row-conflict-bg); border-color: var(--c-8a6100); }
     tbody tr.row-conflict.conflict-peer { background: var(--row-conflict-peer-bg); border-color: var(--row-conflict-peer-border); }
     tbody tr.row-past.row-conflict { background: var(--row-conflict-past-bg); border-color: var(--row-conflict-past-border); }
-    .conflict-link-line { stroke: var(--c-8a6100); }
     /* 周分隔线：结构性信息，深色下同样不跟随今天/明天改色 */
     tbody tr.week-start td.cell-mobile::before { background: var(--c-30363d); }
     /* 图例色块与"下一次"徽标：浅色版在深色背景上像四个亮点 */
@@ -1773,7 +1778,10 @@
 <main class="wrap" id="main">
   <header class="head">
     <div class="head-main">
-      <h1>CrseCue</h1>
+      <div class="title-row">
+        <h1>CrseCue</h1>
+        <span class="mode-badge" id="modeBadge" hidden></span>
+      </div>
       <div class="class-picker">
         <label for="classSelect">班级：</label>
         <select id="classSelect" aria-label="选择班级"></select>
@@ -1803,7 +1811,6 @@
         <span>只看冲突</span>
       </label>
       <span class="recent-count" id="recentCount"></span>
-      <span class="mode-badge" id="modeBadge" hidden></span>
     </div>
     <div class="head-actions">
       <div class="view-switch" role="group" aria-label="视图切换">
@@ -4308,8 +4315,14 @@ function drawConflictLinks() {
   const segments = [];
   byGroup.forEach(rows => {
     for (let i = 1; i < rows.length; i += 1) {
-      const pair = nearestCornerPair(rows[i - 1], rows[i], origin);
-      if (pair) segments.push(pair);
+      const a = rows[i - 1];
+      const b = rows[i];
+      const pair = nearestCornerPair(a, b, origin);
+      if (!pair) continue;
+      // 连线颜色跟随这一对行的边框：同名重复是 peer，已结束是 past
+      pair.peer = a.classList.contains('conflict-peer') && b.classList.contains('conflict-peer');
+      pair.past = a.classList.contains('row-past') && b.classList.contains('row-past');
+      segments.push(pair);
     }
   });
 
@@ -4321,9 +4334,9 @@ function drawConflictLinks() {
 
   svg.setAttribute('viewBox', `0 0 ${Math.round(origin.width)} ${Math.round(origin.height)}`);
   const frag = document.createDocumentFragment();
-  segments.forEach(({ pa, pb }) => {
+  segments.forEach(({ pa, pb, peer, past }) => {
     const line = document.createElementNS(SVG_NS, 'line');
-    line.setAttribute('class', 'conflict-link-line');
+    line.setAttribute('class', 'conflict-link-line' + (peer ? ' is-peer' : '') + (past ? ' is-past' : ''));
     line.setAttribute('x1', pa.x.toFixed(1));
     line.setAttribute('y1', pa.y.toFixed(1));
     line.setAttribute('x2', pb.x.toFixed(1));

@@ -2132,8 +2132,14 @@ function drawConflictLinks() {
   const segments = [];
   byGroup.forEach(rows => {
     for (let i = 1; i < rows.length; i += 1) {
-      const pair = nearestCornerPair(rows[i - 1], rows[i], origin);
-      if (pair) segments.push(pair);
+      const a = rows[i - 1];
+      const b = rows[i];
+      const pair = nearestCornerPair(a, b, origin);
+      if (!pair) continue;
+      // 连线颜色跟随这一对行的边框：同名重复是 peer，已结束是 past
+      pair.peer = a.classList.contains('conflict-peer') && b.classList.contains('conflict-peer');
+      pair.past = a.classList.contains('row-past') && b.classList.contains('row-past');
+      segments.push(pair);
     }
   });
 
@@ -2145,9 +2151,9 @@ function drawConflictLinks() {
 
   svg.setAttribute('viewBox', `0 0 ${Math.round(origin.width)} ${Math.round(origin.height)}`);
   const frag = document.createDocumentFragment();
-  segments.forEach(({ pa, pb }) => {
+  segments.forEach(({ pa, pb, peer, past }) => {
     const line = document.createElementNS(SVG_NS, 'line');
-    line.setAttribute('class', 'conflict-link-line');
+    line.setAttribute('class', 'conflict-link-line' + (peer ? ' is-peer' : '') + (past ? ' is-past' : ''));
     line.setAttribute('x1', pa.x.toFixed(1));
     line.setAttribute('y1', pa.y.toFixed(1));
     line.setAttribute('x2', pb.x.toFixed(1));
