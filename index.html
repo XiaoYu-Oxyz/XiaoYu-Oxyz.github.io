@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-2UWSoHL/hCNd5fRmUSzp+yjjxIYQA81yAHiOIjiFkbQ='; script-src-elem 'sha256-2UWSoHL/hCNd5fRmUSzp+yjjxIYQA81yAHiOIjiFkbQ='; script-src-attr 'none'; style-src 'sha256-yoVbAMQ/dMG6sZC+rU8B9tLhFJ5TD4f3syqyr+TJl5s='; style-src-elem 'sha256-yoVbAMQ/dMG6sZC+rU8B9tLhFJ5TD4f3syqyr+TJl5s='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-2UWSoHL/hCNd5fRmUSzp+yjjxIYQA81yAHiOIjiFkbQ='; script-src-elem 'sha256-2UWSoHL/hCNd5fRmUSzp+yjjxIYQA81yAHiOIjiFkbQ='; script-src-attr 'none'; style-src 'sha256-/t2pPSu7N+9sSCleKJR2xljGO5Fhszp7vgz85dAwvHA='; style-src-elem 'sha256-/t2pPSu7N+9sSCleKJR2xljGO5Fhszp7vgz85dAwvHA='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>CrseCue</title>
 <style>
@@ -1449,6 +1449,10 @@
     /* 提示条与首次提示：原来只有浅色版，深色下是一块亮斑 */
     .first-run { background: #12212f; border-color: #1f6feb66; color: #79c0ff; }
     .first-run-close { background: #161b22; border-color: #1f6feb66; color: #79c0ff; }
+    /* 两条常驻警告：存储不可用（黄）与时区不一致（蓝）。CI 跑在 UTC，
+       时区那条每次都会显示——第 40 轮就是它把暗色浅块扫描顶红的。 */
+    .storage-warn { background: #341a00; border-color: #5c4400; color: #e3b341; }
+    .tz-warn { background: #12212f; border-color: #1f6feb66; color: #79c0ff; }
     .cue-bar { background: #12212f; border-color: #1f6feb66; color: #79c0ff; }
     .cue-bar.is-today { background: #2a1517; border-color: #6b1f24; color: #ffb3b0; }
 

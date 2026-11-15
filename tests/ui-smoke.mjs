@@ -1155,10 +1155,12 @@ try {
       ['课表视图', async page => {
         await page.evaluate(() => setView('week', false));
         await page.waitForTimeout(400);
-      }]
+      }],
+      // CI 跑在 UTC：时区提示条常驻，必须也有深色版
+      ['时区提示（UTC）', async () => {}, { timezoneId: 'UTC' }]
     ];
-    for (const [label, setup] of states) {
-      const darkCtx = await browser.newContext({ viewport: { width: 390, height: 900 }, colorScheme: 'dark' });
+    for (const [label, setup, options] of states) {
+      const darkCtx = await browser.newContext({ viewport: { width: 390, height: 900 }, colorScheme: 'dark', ...(options || {}) });
       const darkPage = await darkCtx.newPage();
       await darkPage.goto(`${appUrl}?class=Z2`);
       await darkPage.waitForSelector('tbody tr[data-idx]');
