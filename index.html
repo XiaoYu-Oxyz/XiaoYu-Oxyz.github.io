@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-rOqqb6/5eumWHVSKMHQz889AowtanpFyOaI1w4GqjLk='; script-src-elem 'sha256-rOqqb6/5eumWHVSKMHQz889AowtanpFyOaI1w4GqjLk='; script-src-attr 'none'; style-src 'sha256-Lbp6Vg3A437dxSuhRwskDqosssBC2J70ayFieqoquyA='; style-src-elem 'sha256-Lbp6Vg3A437dxSuhRwskDqosssBC2J70ayFieqoquyA='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-H+owizonO2a4aDYmIelv6MqXObkQ6XTvI1rLyUDwIlg='; script-src-elem 'sha256-H+owizonO2a4aDYmIelv6MqXObkQ6XTvI1rLyUDwIlg='; script-src-attr 'none'; style-src 'sha256-0gIWusO7BipUh9pUJzSLAlnAWOXU6W4FHC6DCTfgPB8='; style-src-elem 'sha256-0gIWusO7BipUh9pUJzSLAlnAWOXU6W4FHC6DCTfgPB8='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>CrseCue</title>
 <style>
@@ -1207,6 +1207,16 @@
     border: 1px solid currentColor; border-radius: 999px; cursor: pointer;
     transition: background .15s;
   }
+  .status-text { white-space: pre-line; }
+  .import-status.is-expanded .status-text { display: block; max-height: 30vh; overflow-y: auto; }
+  .import-status[data-truncated="1"] { cursor: pointer; }
+  .status-toggle {
+    margin-left: 8px; padding: 2px 9px; min-height: 24px;
+    font-family: inherit; font-size: 12px; color: inherit;
+    background: transparent; border: 1px solid currentColor;
+    border-radius: 999px; cursor: pointer;
+  }
+  .status-toggle:hover { text-decoration: underline; }
   .status-action:hover { background: var(--c-fff); }
 
   /* ---------- 手机端：隐藏表头，每行变成紧凑两行 ---------- */
@@ -5932,12 +5942,55 @@ function announce(msg) {
 // 可见文字截到 80 字（完整内容放 title），读屏仍播报全文。
 const STATUS_TEXT_LIMIT = 80;
 
+function setStatusExpanded(expanded) {
+  const span = statusEl.querySelector('.status-text');
+  const toggle = statusEl.querySelector('.status-toggle');
+  if (!span || statusEl.dataset.truncated !== '1') return;
+  span.textContent = expanded ? statusEl.dataset.full : statusEl.dataset.short;
+  statusEl.classList.toggle('is-expanded', expanded);
+  if (toggle) {
+    toggle.textContent = expanded ? '收起' : '展开';
+    toggle.setAttribute('aria-expanded', String(expanded));
+  }
+}
+
+// 整条状态栏都可以点（按钮自己处理点击），只在"确实被截断"时生效
+statusEl.addEventListener('click', event => {
+  if (event.target.closest('button')) return;
+  if (statusEl.dataset.truncated !== '1') return;
+  const toggle = statusEl.querySelector('.status-toggle');
+  const expanded = toggle && toggle.getAttribute('aria-expanded') === 'true';
+  setStatusExpanded(!expanded);
+});
+
 function showStatus(type, msg, action) {
   statusEl.className = 'import-status show ' + type;
   const text = String(msg == null ? '' : msg);
-  statusEl.textContent = text.length > STATUS_TEXT_LIMIT
+  const short = text.length > STATUS_TEXT_LIMIT
     ? text.slice(0, STATUS_TEXT_LIMIT - 1) + '…'
     : text;
+  const truncated = short !== text;
+  statusEl.textContent = '';
+  statusEl.dataset.full = text;
+  statusEl.dataset.short = short;
+  statusEl.dataset.truncated = truncated ? '1' : '0';
+  const span = document.createElement('span');
+  span.className = 'status-text';
+  span.id = 'statusText';
+  span.textContent = short;
+  statusEl.appendChild(span);
+  if (truncated) {
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'status-toggle';
+    toggle.setAttribute('aria-controls', 'statusText');
+    toggle.setAttribute('aria-expanded', 'false');
+    toggle.textContent = '展开';
+    toggle.addEventListener('click', () => {
+      setStatusExpanded(toggle.getAttribute('aria-expanded') !== 'true');
+    });
+    statusEl.appendChild(toggle);
+  }
   statusEl.title = text;
   if (liveStatusEl) liveStatusEl.textContent = text;
   if (action && typeof action.onClick === 'function') {

@@ -1363,7 +1363,7 @@ try {
     const bar = await statusPage.evaluate(() => {
       const el = document.querySelector('.import-status.show');
       return {
-        visible: el.textContent.length,
+        visible: (el.querySelector('.status-text') || el).textContent.length,
         title: (el.title || '').length,
         live: document.getElementById('liveStatus').textContent.length,
         height: Math.round(el.getBoundingClientRect().height)
@@ -1373,6 +1373,45 @@ try {
     assert.ok(bar.title > bar.visible, '完整文案应保留在 title 里');
     assert.ok(bar.live > bar.visible, '读屏播报保留全文');
     assert.ok(bar.height <= 110, `状态栏不应撑太高，实际 ${bar.height}px`);
+
+    // E1：截断时可点「展开」看全文；再点收起；整条状态栏也能点
+    const toggleState = () => statusPage.evaluate(() => {
+      const bar = document.querySelector('.import-status.show');
+      const span = bar.querySelector('.status-text');
+      const toggle = bar.querySelector('.status-toggle');
+      return {
+        len: span.textContent.length,
+        label: toggle.textContent,
+        expanded: toggle.getAttribute('aria-expanded'),
+        height: Math.round(bar.getBoundingClientRect().height),
+        overflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth
+      };
+    });
+    const collapsed = await toggleState();
+    assert.equal(collapsed.label, '展开', '截断时应出现「展开」按钮');
+    assert.equal(collapsed.expanded, 'false', '初始应为收起');
+    await statusPage.locator('.status-toggle').click();
+    await statusPage.waitForTimeout(150);
+    const expanded = await toggleState();
+    assert.ok(expanded.len > 200, `展开后应显示全文，实际 ${expanded.len} 字`);
+    assert.equal(expanded.label, '收起', '展开后按钮应变成「收起」');
+    assert.equal(expanded.expanded, 'true', '展开后 aria-expanded=true');
+    assert.ok(expanded.height <= 420, `展开后不应无限撑高，实际 ${expanded.height}px`);
+    assert.equal(expanded.overflowX, 0, '展开后不应横向溢出');
+    await statusPage.locator('.status-toggle').click();
+    await statusPage.waitForTimeout(150);
+    const recollapsed = await toggleState();
+    assert.ok(recollapsed.len <= 81, '再次点击应收起');
+    assert.equal(recollapsed.label, '展开', '收起后按钮文字应恢复');
+
+    // 点状态栏空白处也能展开
+    await statusPage.evaluate(() => {
+      const bar = document.querySelector('.import-status.show');
+      const r = bar.getBoundingClientRect();
+      bar.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: r.left + 3, clientY: r.top + 2 }));
+    });
+    await statusPage.waitForTimeout(150);
+    assert.ok((await toggleState()).len > 200, '点状态栏本身也应展开');
     await statusCtx.close();
   }
   console.log('\u00a725 打印分页：表头跨页重复、行不被切断、单行放得下一页、打印时隐藏界面元素');
