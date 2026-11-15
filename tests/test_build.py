@@ -160,6 +160,26 @@ class IcsUidStabilityTests(unittest.TestCase):
         z5 = self.uids(self.build(class_id="Z5"))
         self.assertEqual(len(set(z2) & set(z5)), 0)
 
+    def test_ics_declares_vtimezone_and_tzid(self):
+        """订阅端在别的时区也要换算正确：必须带 VTIMEZONE 块，且定时事件用 TZID 引用。"""
+        text = self.build()
+        self.assertIn("BEGIN:VTIMEZONE", text)
+        self.assertIn("TZID:Asia/Shanghai", text)
+        self.assertIn("TZOFFSETFROM:+0800", text)
+        self.assertIn("TZOFFSETTO:+0800", text)
+        self.assertIn("DTSTART;TZID=Asia/Shanghai:", text)
+        # 时区块必须在事件之前（RFC 5545 要求先声明再引用）
+        self.assertLess(text.index("BEGIN:VTIMEZONE"), text.index("BEGIN:VEVENT"))
+
+    def test_timed_events_use_tzid_and_unparsable_events_fall_back_to_all_day(self):
+        timed = self.build(events=[{"date": "2026-11-20", "period": "第1-2节", "name": "定时", "place": "", "note": ""}])
+        self.assertIn("DTSTART;TZID=Asia/Shanghai:20261120T080000", timed)
+        self.assertNotIn("VALUE=DATE", timed)
+
+        all_day = self.build(events=[{"date": "2026-11-20", "period": "待定", "name": "全天", "place": "", "note": ""}])
+        self.assertIn("DTSTART;VALUE=DATE:20261120", all_day)
+        self.assertNotIn("TZID=Asia/Shanghai:20261120", all_day)
+
     def test_uid_is_hash_not_timestamp(self):
         uids = self.uids(self.build())
         for uid in uids:
