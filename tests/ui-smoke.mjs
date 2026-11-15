@@ -817,12 +817,14 @@ try {
     await locateCtx.close();
   }
 
-  // 15.2 大屏：目标本来就完整可见 → 一行都不该滚
+  // 15.2 大屏：目标本来就完整可见 → 一行都不该滚，但要闪一下作为"定位到了"的反馈
   {
-    const { locateCtx, read } = await openLocated({ width: 360, height: 1600 }, locateRows);
+    const { locateCtx, locatePage, read } = await openLocated({ width: 360, height: 1600 }, locateRows);
     const state = await read();
     assert.ok(state.allVisible);
     assert.equal(state.scrollY, 0, `目标已可见时不应滚动，实际 scrollY=${state.scrollY}`);
+    const flashed = await locatePage.evaluate(() => document.querySelectorAll('tbody tr.is-flash').length);
+    assert.ok(flashed >= 1, '目标已可见时也应闪一下（不滚的唯一反馈）');
     await locateCtx.close();
   }
 
@@ -913,6 +915,25 @@ try {
     const visibleAfter = await cueGeom();
     assert.equal(visibleAfter.scrollY, visibleBefore.scrollY, '目标已可见时点提示条不应滚动');
     await cueCtx.close();
+  }
+  // 15.6 只差几像素时不滚（SCROLL_EPSILON = 8）：直接调可见性工具函数，
+  // 避免不同引擎的字体/行高把"差 6px"变成"差 11px"而误判。
+  {
+    const epsilonCtx = await browser.newContext({ viewport: { width: 360, height: 640 } });
+    const epsilonPage = await epsilonCtx.newPage();
+    await epsilonPage.goto(`${appUrl}?class=Z2`);
+    await epsilonPage.waitForSelector('tbody tr[data-idx]');
+    const epsilon = await epsilonPage.evaluate(() => {
+      window.scrollTo(0, 0);
+      const viewport = window.innerHeight;
+      const nearMiss = scrollRangeIntoView(100, viewport + 6, false);   // 差 6px
+      const realMiss = scrollRangeIntoView(100, viewport + 40, false);  // 差 40px
+      return { nearMiss, realMiss, scrollY: Math.round(window.scrollY) };
+    });
+    assert.equal(epsilon.nearMiss, false, '差 6px 时不应滚动');
+    assert.equal(epsilon.realMiss, true, '差 40px 时应滚动');
+    assert.ok(epsilon.scrollY > 0, '差 40px 时确实滚了');
+    await epsilonCtx.close();
   }
   console.log('UI smoke OK');
 } finally {

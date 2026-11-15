@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-yofni+sPLjOSvXh4IzDeNZTfrUnM40JrpYEfamawzHY='; script-src-elem 'sha256-yofni+sPLjOSvXh4IzDeNZTfrUnM40JrpYEfamawzHY='; script-src-attr 'none'; style-src 'sha256-4E0N+aQMjF5CrooUcn8JHY6Al0CoS8xC918OjUTRcMc='; style-src-elem 'sha256-4E0N+aQMjF5CrooUcn8JHY6Al0CoS8xC918OjUTRcMc='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-feZUtUipu6EQ0VZyyNZuTkNj4AozJvVFj6Ofx0PC+fQ='; script-src-elem 'sha256-feZUtUipu6EQ0VZyyNZuTkNj4AozJvVFj6Ofx0PC+fQ='; script-src-attr 'none'; style-src 'sha256-4E0N+aQMjF5CrooUcn8JHY6Al0CoS8xC918OjUTRcMc='; style-src-elem 'sha256-4E0N+aQMjF5CrooUcn8JHY6Al0CoS8xC918OjUTRcMc='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>CrseCue</title>
 <style>
@@ -7877,9 +7877,13 @@ function rangeScrollDelta(top, bottom, safeTop, safeBottom) {
   return top - safeTop;                                 // 上面被挡住：最小下移
 }
 
+// 小于这个距离就不滚了：差 1–2px 本来就算"基本完整可见"，
+// 真滚那 1px 反而像页面抽了一下（实测 560px 高时只差 1px）。
+const SCROLL_EPSILON = 8;
+
 function scrollRangeIntoView(top, bottom, smooth) {
   const delta = rangeScrollDelta(top, bottom, stickyTopInset(), window.innerHeight);
-  if (Math.abs(delta) < 1) return false;
+  if (Math.abs(delta) < SCROLL_EPSILON) return false;
   window.scrollBy({ top: delta, left: 0, behavior: smooth && !prefersReducedMotion() ? 'smooth' : 'auto' });
   return true;
 }
@@ -7913,13 +7917,15 @@ function autoLocateNearest() {
   if (!group.length) { autoLocated = true; return; }
   autoLocated = true;
 
-  // 那一天的所有条都算目标范围：全部完整可见就不滚（只靠行上的描边和标签标记）
+  // 那一天的所有条都算目标范围：全部完整可见就不滚
   const rects = group.map(tr => tr.getBoundingClientRect());
   scrollRangeIntoView(
     Math.min.apply(null, rects.map(r => r.top)),
     Math.max.apply(null, rects.map(r => r.bottom)),
     false
   );
+  // 滚不滚都闪一下：不滚时这就是唯一"定位到了"的反馈（用户选的方案）
+  group.forEach(tr => flashElement(tr));
 }
 
 // 同步执行（脚本在 </body> 前，早于首次绘制）：不会出现"先看到顶部再跳一下"。
