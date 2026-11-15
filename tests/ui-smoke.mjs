@@ -10,7 +10,7 @@ const appUrl = pathToFileURL(path.join(root, 'index.html')).href;
 const browserName = process.argv.includes('--webkit') ? 'webkit' : 'chromium';
 const browserType = browserName === 'webkit' ? webkit : chromium;
 const channel = browserName === 'chromium'
-  ? (process.env.PLAYWRIGHT_CHANNEL || (process.platform === 'win32' ? 'msedge' : undefined))
+  ? (process.env.PLAYWRIGHT_CHANNEL === 'bundled' ? undefined : (process.env.PLAYWRIGHT_CHANNEL || (process.platform === 'win32' ? 'msedge' : undefined)))
   : undefined;
 const browser = await browserType.launch({ headless: true, ...(channel ? { channel } : {}) });
 const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
@@ -154,6 +154,8 @@ try {
   assert.ok(printLayout.tableWidth > printLayout.viewportWidth * 0.8, '打印表格未铺满页面宽度');
   await page.emulateMedia({ media: 'screen' });
 
+  console.log('\u00a71 week1：非星期一被拒绝，合法的周一按班保存。');
+
   // 1. week1：非星期一被拒绝，合法的周一按班保存。
   const initialWeek1 = await page.locator('#week1Input').inputValue();
   assert.equal(initialWeek1, globalWeek1);
@@ -170,6 +172,8 @@ try {
   await waitValue(page.locator('#week1Input'), globalWeek1);
   await page.selectOption('#classSelect', 'Z1');
   await waitValue(page.locator('#week1Input'), '2026-09-07');
+
+  console.log('\u00a72 搜索和浏览器原生清除输入（通过 fill() 模拟清空）。');
 
   // 2. 搜索和浏览器原生清除输入（通过 fill('') 模拟清空）。
   await page.locator('#actionsToggle').click();
@@ -262,6 +266,8 @@ try {
 
   await page.locator('#searchInput').fill('');  await waitText(page.locator('#recentCount'), new RegExp(`显示 25 / 共 ${totalZ1}`));
 
+  console.log('\u00a73 导出格式选择器：初始焦点、Tab 循环、Esc 关闭并回到触发按钮。');
+
   // 3. 导出格式选择器：初始焦点、Tab 循环、Esc 关闭并回到触发按钮。
   await page.locator('#exportBtn').click();
   await page.waitForSelector('#exportMask.show');
@@ -284,6 +290,8 @@ try {
   const download = await downloadPromise;
   assert.match(download.suggestedFilename(), /^Z1-数据-\d{4}-\d{2}-\d{2}\.json$/);
 
+  console.log('\u00a74 导入 JSON，再用“撤销导入”恢复导入前的班级。');
+
   // 4. 导入 JSON，再用“撤销导入”恢复导入前的班级。
   await page.locator('#fileInput').setInputFiles(fixture);
   await page.waitForSelector('#importMask.show');
@@ -299,6 +307,8 @@ try {
   await waitText(page.locator('#recentCount'), new RegExp(`显示 25 / 共 ${totalZ1}`));
   assert.equal(await page.locator('#tbody').innerText().then(t => t.includes('UI冒烟实验')), false);
   assert.equal(await page.locator('#week1Input').inputValue(), '2026-09-07');
+
+  console.log('\u00a74 表格按列关联表头；编辑/删除按钮读出完整实验数据。');
 
   // 4. 表格按列关联表头；编辑/删除按钮读出完整实验数据。
   assert.equal(await page.locator('th#col-date[scope="col"]').count(), 1);
@@ -348,7 +358,9 @@ try {
   await page.locator('#deleteModeBtn').click();
   await waitAttr(page.locator('th.col-mark'), 'aria-hidden', 'true');
 
-  // 3.5 表单校验：错误必须绑到具体字段（aria-invalid + aria-describedby），并聚焦第一个出错项。
+  console.log('\u00a73 5 表单校验：错误必须绑到具体字段（aria-invalid + aria-describedby）');
+
+  // 3. 5 表单校验：错误必须绑到具体字段（aria-invalid + aria-describedby），并聚焦第一个出错项。
   //     只给 live region 播报是不够的——读屏用户回到输入框时就听不到原因了。
   await page.locator('#actionsToggle').click();
   if (!(await page.locator('#addBtn').isVisible())) {
@@ -377,6 +389,8 @@ try {
     await settle(page);
   }
 
+  console.log('\u00a74 班级管理：新建、重命名、删除本机班级；内置班级只提示。');
+
   // 4. 班级管理：新建、重命名、删除本机班级；内置班级只提示。
   await page.locator('#newClassBtn').click();
   await page.waitForSelector('#classMask.show');
@@ -398,6 +412,8 @@ try {
   assert.equal(await page.locator('#classSelect option[value="测试班2"]').count(), 0);
 
   await page.selectOption('#classSelect', 'Z1');
+
+  console.log('\u00a75 复制兜底：强制剪贴板失败，出现只读文本框。');
 
   // 5. 复制兜底：强制剪贴板失败，出现只读文本框。
   await page.evaluate(() => {
@@ -426,6 +442,8 @@ try {
   assert.match(feedbackText, /应该改为：/);
   await page.locator('#copyFallbackDone').click();
   await waitVisible(page.locator('#copyMask'), false);
+
+  console.log('\u00a76 跨标签页：另一个页面修改 Z1 week1，当前页自动同步。');
 
   // 6. 跨标签页：另一个页面修改 Z1 week1，当前页自动同步。
   const secondPage = await page.context().newPage();
@@ -460,6 +478,8 @@ try {
   await switchB.selectOption('#classSelect', 'Z2');
   await waitText(switchA.locator('#importStatus'), /另一个标签页已切换到 Z2/);
   await switchContext.close();
+
+  console.log('\u00a77 手机端只显示“导入/导出”，且无横向滚动。');
 
   // 7. 手机端只显示“导入/导出”，且无横向滚动。
   await page.setViewportSize({ width: 320, height: 844 });
@@ -501,6 +521,8 @@ try {
   assert.ok(toolBox && toolBox.width >= 36 && toolBox.height >= 36, '班级图标热区小于 36px');
 
   assert.deepEqual(pageErrors, []);
+
+  console.log('\u00a78 内置班级：警告后可重命名/删除（本机隐藏），并支持撤销与恢复。');
 
   // 8. 内置班级：警告后可重命名/删除（本机隐藏），并支持撤销与恢复。
   const builtPage = await context.newPage();
@@ -635,6 +657,8 @@ try {
   assert.equal(await freshPage.locator('#firstRunHint').isVisible(), false);
   await freshCtx.close();
 
+  console.log('\u00a79 只读链接 ?mode=ro：不写本机数据，隐藏所有编辑入口，并显示"只读"徽标。');
+
   // 9. 只读链接 ?mode=ro：不写本机数据，隐藏所有编辑入口，并显示"只读"徽标。
   const roPage = await context.newPage();
   await roPage.goto(`${appUrl}?mode=ro`);
@@ -652,6 +676,8 @@ try {
   assert.equal(await roPage.locator('#icsBtn').isVisible(), true);
   assert.equal(await roPage.locator('.action-group-edit').isVisible(), false);
   await roPage.close();
+
+  console.log('\u00a710 横屏（640×360）：两列卡片布局下交互仍然可用。');
 
   // 10. 横屏（640×360）：两列卡片布局下交互仍然可用。
   //     这类问题视觉冒烟看不出来（它只量几何），必须真的点一遍。
@@ -688,6 +714,8 @@ try {
   assert.deepEqual(landErrors, [], '横屏下有脚本错误');
   await landCtx.close();
 
+  console.log('\u00a711 链接里的班级不存在 → 跳 404 说明情况，不要静默换成别的班。');
+
   // 11. 链接里的班级不存在 → 跳 404 说明情况，不要静默换成别的班。
   const badCtx = await browser.newContext({ viewport: { width: 1200, height: 900 } });
   const badPage = await badCtx.newPage();
@@ -696,6 +724,8 @@ try {
   assert.match(await badPage.locator('#errTitle').innerText(), /班级链接失效了/);
   assert.match(await badPage.locator('#errDesc').innerText(), /不存在的班级/);
   await badCtx.close();
+
+  console.log('\u00a712 跨天自动刷新：页面挂一夜后，时钟、"今天/明天"标签、提示条必须一起对齐。');
 
   // 12. 跨天自动刷新：页面挂一夜后，时钟、"今天/明天"标签、提示条必须一起对齐。
   const midnightCtx = await browser.newContext({ viewport: { width: 1200, height: 900 } });
@@ -725,6 +755,8 @@ try {
   assert.match(await midnightPage.locator('#cueText').innerText(), /第3-4节/);
   await midnightCtx.close();
 
+  console.log('\u00a713 冲突（卡片布局）：2px 方角描边 + 同组最短连线，不靠文字表达。');
+
   // 13. 冲突（卡片布局）：2px 方角描边 + 同组最短连线，不靠文字表达。
   const confCtx = await browser.newContext({ viewport: { width: 800, height: 900 } });
   const confPage = await confCtx.newPage();
@@ -751,6 +783,8 @@ try {
   assert.ok(conflict.lines.length >= 1, '冲突组应画出连线');
   assert.ok(conflict.lines.every(n => n <= 40), `连线应是最短线段：${conflict.lines.join(',')}`);
   await confCtx.close();
+
+  console.log('\u00a714 按钮只用"文字色 + 边框色"表达：亮色底纯白、暗色底纯黑，不允许彩色填充。');
 
   // 14. 按钮只用"文字色 + 边框色"表达：亮色底纯白、暗色底纯黑，不允许彩色填充。
   const styleCtx = await browser.newContext({ viewport: { width: 360, height: 792 } });
@@ -799,6 +833,8 @@ try {
   }
   await styleCtx.close();
 
+  console.log('\u00a715 冷启动定位：能看见就不动（只标记），看不全才用最小距离滚到"那天所有条都完整可见"。');
+
   // 15. 冷启动定位：能看见就不动（只标记），看不全才用最小距离滚到"那天所有条都完整可见"。
   const locateRows = [];
   for (let d = 9; d <= 13; d += 1) {
@@ -833,7 +869,9 @@ try {
     return { locateCtx, locatePage, read };
   }
 
-  // 15.1 小屏：目标在折叠下方 → 必须滚，而且滚完那一天的所有条都完整可见
+  console.log('\u00a715 1 小屏：目标在折叠下方 → 必须滚，而且滚完那一天的所有条都完整可见');
+
+  // 15. 1 小屏：目标在折叠下方 → 必须滚，而且滚完那一天的所有条都完整可见
   {
     const { locateCtx, read } = await openLocated({ width: 360, height: 640 }, locateRows);
     const state = await read();
@@ -843,7 +881,9 @@ try {
     await locateCtx.close();
   }
 
-  // 15.2 大屏：目标本来就完整可见 → 一行都不该滚，但要闪一下作为"定位到了"的反馈
+  console.log('\u00a715 2 大屏：目标本来就完整可见 → 一行都不该滚，但要闪一下作为"定位到了"的反馈');
+
+  // 15. 2 大屏：目标本来就完整可见 → 一行都不该滚，但要闪一下作为"定位到了"的反馈
   {
     const { locateCtx, locatePage, read } = await openLocated({ width: 360, height: 1600 }, locateRows);
     const state = await read();
@@ -854,7 +894,9 @@ try {
     await locateCtx.close();
   }
 
-  // 15.3 桌面表格：吸顶表头以下的区域算安全区，仍然是最小滚动
+  console.log('\u00a715 3 桌面表格：吸顶表头以下的区域算安全区，仍然是最小滚动');
+
+  // 15. 3 桌面表格：吸顶表头以下的区域算安全区，仍然是最小滚动
   {
     const { locateCtx, read } = await openLocated({ width: 1440, height: 700 }, locateRows);
     const state = await read();
@@ -863,7 +905,9 @@ try {
     await locateCtx.close();
   }
 
-  // 15.4 全是已结束 / 课表视图 → 不动
+  console.log('\u00a715 4 全是已结束 / 课表视图 → 不动');
+
+  // 15. 4 全是已结束 / 课表视图 → 不动
   {
     // 放在本周之内：默认筛选会隐藏本周之前的已结束实验，那样列表是空的、测不到东西
     const past = [{ date: '2026-11-10', period: '第1-2节', name: '旧实验', place: 'A', note: '' }];
@@ -876,7 +920,9 @@ try {
     await weekRun.locateCtx.close();
   }
 
-  // 15.5 刷新（浏览器恢复滚动位置）后，目标仍然完整可见
+  console.log('\u00a715 5 刷新（浏览器恢复滚动位置）后，目标仍然完整可见');
+
+  // 15. 5 刷新（浏览器恢复滚动位置）后，目标仍然完整可见
   {
     const { locateCtx, locatePage, read } = await openLocated({ width: 360, height: 640 }, locateRows);
     await locatePage.reload();
@@ -887,6 +933,7 @@ try {
     assert.ok(state.allVisible, `刷新后目标仍应完整可见，实际 scrollY=${state.scrollY}`);
     await locateCtx.close();
   }
+  console.log('\u00a716 提示条跳转：能看见就只闪不滚，看不全才最小移动（不再跳到屏幕正中）');
   // 16. 提示条跳转：能看见就只闪不滚，看不全才最小移动（不再跳到屏幕正中）
   {
     const cueCtx = await browser.newContext({ viewport: { width: 360, height: 640 }, reducedMotion: 'reduce' });
@@ -913,7 +960,9 @@ try {
     // 用 DOM click：Playwright 的 .click() 会先把提示条滚进视口，把测量搞乱
     const clickCue = () => cuePage.evaluate(() => document.getElementById('cueText').click());
 
-    // 16.1 目标在折叠下方 → 只把底边贴到视口底，居中会滚得更远
+    console.log('\u00a716 1 目标在折叠下方 → 只把底边贴到视口底，居中会滚得更远');
+
+    // 16. 1 目标在折叠下方 → 只把底边贴到视口底，居中会滚得更远
     await cuePage.evaluate(() => window.scrollTo(0, 0));
     await cuePage.waitForTimeout(150);
     const hiddenBefore = await cueGeom();
@@ -927,7 +976,9 @@ try {
     assert.ok(hiddenAfter.scrollY < centeredScroll,
       `滚动量应小于居中所需（${hiddenAfter.scrollY} < ${centeredScroll}）`);
 
-    // 16.2 目标已完整可见 → 一点都不要动
+    console.log('\u00a716 2 目标已完整可见 → 一点都不要动');
+
+    // 16. 2 目标已完整可见 → 一点都不要动
     await cuePage.evaluate(() => {
       const idx = Number(document.getElementById('cueText').dataset.idx);
       const row = document.querySelector('tr[data-idx="' + idx + '"]');
@@ -942,7 +993,8 @@ try {
     assert.equal(visibleAfter.scrollY, visibleBefore.scrollY, '目标已可见时点提示条不应滚动');
     await cueCtx.close();
   }
-  // 15.6 只差几像素时不滚（SCROLL_EPSILON = 8）：直接调可见性工具函数，
+  console.log('\u00a715 6 只差几像素时不滚（SCROLL_EPSILON = 8）：直接调可见性工具函数，');
+  // 15. 6 只差几像素时不滚（SCROLL_EPSILON = 8）：直接调可见性工具函数，
   // 避免不同引擎的字体/行高把"差 6px"变成"差 11px"而误判。
   {
     const epsilonCtx = await browser.newContext({ viewport: { width: 360, height: 640 } });
@@ -961,6 +1013,7 @@ try {
     assert.ok(epsilon.scrollY > 0, '差 40px 时确实滚了');
     await epsilonCtx.close();
   }
+  console.log('\u00a717 提示条的目标被筛选挡住：点一下要清掉筛选、定位并播报，而不是静默无反应');
   // 17. 提示条的目标被筛选挡住：点一下要清掉筛选、定位并播报，而不是静默无反应
   {
     const filterCtx = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
@@ -986,6 +1039,7 @@ try {
     assert.match(recovered.status, /已清除筛选.*定位到/, `状态栏应说明发生了什么，实际「${recovered.status}」`);
     await filterCtx.close();
   }
+  console.log('\u00a718 操作面板按钮：放不下要换行，不能被压到裁字（361–440px 曾把 8 个按钮挤成一行）');
   // 18. 操作面板按钮：放不下要换行，不能被压到裁字（361–440px 曾把 8 个按钮挤成一行）
   {
     for (const width of [390, 664]) {
@@ -1011,6 +1065,7 @@ try {
       await panelCtx.close();
     }
   }
+  console.log('\u00a719 可点目标不小于 24×24（WCAG 2.2 · 2.5.8）：页脚两个反馈按钮曾只有 20px 高');
   // 19. 可点目标不小于 24×24（WCAG 2.2 · 2.5.8）：页脚两个反馈按钮曾只有 20px 高
   {
     for (const width of [320, 390]) {
@@ -1030,6 +1085,7 @@ try {
       await targetCtx.close();
     }
   }
+  console.log('\u00a720 周分隔线只表达"换周"：即使换周那行正好是今天/明天，线也必须是中性灰');
   // 20. 周分隔线只表达"换周"：即使换周那行正好是今天/明天，线也必须是中性灰
   {
     const sepRows = [
@@ -1062,6 +1118,7 @@ try {
       await sepCtx.close();
     }
   }
+  console.log('\u00a721 「下一次」让位给「今天 / 明天」：最近一次就在今天或明天时，不再叠加蓝框与 N 天后徽标');
   // 21. 「下一次」让位给「今天 / 明天」：最近一次就在今天或明天时，不再叠加蓝框与 N 天后徽标
   {
     const cases = [
@@ -1122,6 +1179,7 @@ try {
       await nextCtx.close();
     }
   }
+  console.log('\u00a722 深色模式不许出现浅色块：任何一种状态下，可见元素的不透明背景亮度都要 ≤0.45');
   // 22. 深色模式不许出现浅色块：任何一种状态下，可见元素的不透明背景亮度都要 ≤0.45
   //     （删除模式里"已标记"的行、状态栏的撤销按钮、导入弹窗的几块浅底都曾整块发白。）
   {
@@ -1195,6 +1253,7 @@ try {
       await darkCtx.close();
     }
   }
+  console.log('\u00a723 文字对比度：所有可见文字按 WCAG 1.4.3 检查（正文 4.5:1、大字 3:1）');
   // 23. 文字对比度：所有可见文字按 WCAG 1.4.3 检查（正文 4.5:1、大字 3:1）
   //     这轮靠它抓出 15 处：深色时钟 1.18、深色表单标签 1.92、浅色已标记行 1.89…
   {
@@ -1286,6 +1345,7 @@ try {
       await contrastCtx.close();
     }
   }
+  console.log('\u00a724 状态栏文案要截断：名称/地点可到 200 字，整段塞进状态栏会撑成大色块');
   // 24. 状态栏文案要截断：名称/地点可到 200 字，整段塞进状态栏会撑成大色块
   {
     const statusCtx = await browser.newContext({ viewport: { width: 390, height: 900 } });
@@ -1315,6 +1375,7 @@ try {
     assert.ok(bar.height <= 110, `状态栏不应撑太高，实际 ${bar.height}px`);
     await statusCtx.close();
   }
+  console.log('\u00a725 打印分页：表头跨页重复、行不被切断、单行放得下一页、打印时隐藏界面元素');
   // 25. 打印分页：表头跨页重复、行不被切断、单行放得下一页、打印时隐藏界面元素
   //     A4 去掉 12mm 上下边距后可用高 ≈ 1032px（96dpi）
   {
@@ -1367,6 +1428,7 @@ try {
     assert.deepEqual(print.hidden, [true, true, true, true, true], '打印时必须隐藏提示条/操作面板/图例/时钟/页脚按钮');
     await printCtx.close();
   }
+  console.log('\u00a726 语义色与 token 表一致：改色必须同时改 tools/palette.json，否则这里会红');
   // 26. 语义色与 token 表一致：改色必须同时改 tools/palette.json，否则这里会红
   {
     const palette = JSON.parse(fs.readFileSync(path.join(root, 'tools', 'palette.json'), 'utf8'));
