@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-feZUtUipu6EQ0VZyyNZuTkNj4AozJvVFj6Ofx0PC+fQ='; script-src-elem 'sha256-feZUtUipu6EQ0VZyyNZuTkNj4AozJvVFj6Ofx0PC+fQ='; script-src-attr 'none'; style-src 'sha256-4E0N+aQMjF5CrooUcn8JHY6Al0CoS8xC918OjUTRcMc='; style-src-elem 'sha256-4E0N+aQMjF5CrooUcn8JHY6Al0CoS8xC918OjUTRcMc='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-cjEi+H4jm18r13Ch3MhUnH3rv1+dYt/Xo6bd0wWIREk='; script-src-elem 'sha256-cjEi+H4jm18r13Ch3MhUnH3rv1+dYt/Xo6bd0wWIREk='; script-src-attr 'none'; style-src 'sha256-EvnlolCcrdRkvE4I4qRdldUNtnvf47foWvMSCIfXvMU='; style-src-elem 'sha256-EvnlolCcrdRkvE4I4qRdldUNtnvf47foWvMSCIfXvMU='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>CrseCue</title>
 <style>
@@ -819,7 +819,9 @@
     display: flex; align-items: center; gap: 7px;
     font-size: 14px; font-weight: 700; color: #24292f;
   }
-  .mode-badge {
+  /* 只给「叠加 / 替换」模式卡里的推荐徽标上绿色。
+     写成裸 .mode-badge 会全局生效，以后新增徽标会被误染成绿色。 */
+  .mode-card .mode-badge {
     font-size: 11px; font-weight: 700; line-height: 1.7;
     color: #1a7f37; background: #dafbe1; border: 1px solid #aceebb;
     border-radius: 999px; padding: 0 7px;
@@ -1421,6 +1423,7 @@
     tbody tr.row-conflict.row-past td.cell-mark { background: #2f2712; }
     tbody tr.conflict-peer td.cell-mark { background: #4a3a10; }
     .is-flash { outline-color: #a371f7; }
+  @media print { .is-flash { outline: none; } }
     .m-note-toggle { color: #58a6ff; }
     .import-dupe { color: #e3b341; }
 
@@ -5159,29 +5162,72 @@ function flashElement(el) {
   window.setTimeout(() => el.classList.remove('is-flash'), 1600);
 }
 
+// 目标被筛选挡住时，先清掉筛选用它一次；返回是否真的清过
+function clearFiltersHidingCue() {
+  let changed = false;
+  if (searchQuery || searchTerms.length || (searchInput && searchInput.value)) {
+    searchQuery = '';
+    searchTerms = [];
+    if (searchInput) searchInput.value = '';
+    changed = true;
+  }
+  if (conflictOnly) {
+    conflictOnly = false;
+    if (conflictFilter) conflictFilter.checked = false;
+    changed = true;
+  }
+  return changed;
+}
+
+function cueTargetLabel(entry) {
+  const weekday = WEEK_NAMES[parseDate(entry.date).getDay()] || '';
+  return `${entry.date.slice(5)} ${weekday} ${entry.period}${entry.name ? ' ' + entry.name : ''}`;
+}
+
 function jumpToCueTarget() {
   const idx = Number(cueTextEl && cueTextEl.dataset.idx);
   if (!Number.isFinite(idx)) return;
   const entry = experiments[idx];
   if (!entry) return;
   const date = parseDate(entry.date);
+  const label = cueTargetLabel(entry);
   if (document.body.classList.contains('view-week')) {
     const weekStart = startOfWeekMonday(date);
     if (weekStart.getTime() !== weekViewStart.getTime()) {
       weekViewStart = weekStart;
       renderWeekView();
     }
-    const block = weekViewEl && weekViewEl.querySelector(`.wg-item[data-idx="${idx}"]`);
-    if (block) {
-      ensureElementVisible(block, true);
-      flashElement(block);
+    let block = weekViewEl && weekViewEl.querySelector(`.wg-item[data-idx="${idx}"]`);
+    if (!block && clearFiltersHidingCue()) {
+      render();
+      block = weekViewEl && weekViewEl.querySelector(`.wg-item[data-idx="${idx}"]`);
     }
+    if (!block) {
+      showStatus('warn', '这条实验当前被筛选隐藏，清除筛选后仍找不到');
+      return;
+    }
+    ensureElementVisible(block, true);
+    flashElement(block);
+    showStatus('ok', `已定位到 ${label}`);
     return;
   }
-  const row = tableBodyEl.querySelector(`tr[data-idx="${idx}"]`);
-  if (!row) return;
+  let row = tableBodyEl.querySelector(`tr[data-idx="${idx}"]`);
+  let cleared = false;
+  if (!row) {
+    // 被搜索 / 只看冲突筛掉：清掉筛选再找一次，而不是点了没反应
+    cleared = clearFiltersHidingCue();
+    if (cleared) {
+      render();
+      row = tableBodyEl.querySelector(`tr[data-idx="${idx}"]`);
+    }
+  }
+  if (!row) {
+    showStatus('warn', '这条实验当前被筛选隐藏，清除筛选后仍找不到');
+    return;
+  }
   ensureElementVisible(row, true);
   flashElement(row);
+  showStatus('ok', cleared ? `已清除筛选，定位到 ${label}` : `已定位到 ${label}`);
 }
 
 if (cueTextEl) {
@@ -6743,7 +6789,8 @@ scheduleTableEl.addEventListener('keydown', ev => {
   else idx += ev.key === 'ArrowDown' ? 1 : -1;
   idx = Math.max(0, Math.min(rows.length - 1, idx));
   rows[idx].focus({ preventScroll: true });
-  rows[idx].scrollIntoView({ block: 'nearest' });
+  // 和提示条跳转、冷启动共用一套最小滚动：吸顶表头算安全区，不再依赖 scroll-margin-top
+  ensureElementVisible(rows[idx], false);
 });
 
 
@@ -7798,7 +7845,6 @@ showFirstRunHint();
   el.textContent = '这台设备无法保存改动（浏览器禁用了本地存储）。刷新后修改会丢失，'
     + '需要保留请用「操作 → 数据 → 导出」备份。';
   el.hidden = false;
-  document.body.classList.add('no-storage');
 })();
 
 // 设备时区不是 UTC+8 时提醒：页面按本地时区算"今天"，.ics 里固定 +08:00
@@ -7924,8 +7970,9 @@ function autoLocateNearest() {
     Math.max.apply(null, rects.map(r => r.bottom)),
     false
   );
-  // 滚不滚都闪一下：不滚时这就是唯一"定位到了"的反馈（用户选的方案）
-  group.forEach(tr => flashElement(tr));
+  // 滚不滚都闪第一行：不滚时这就是唯一"定位到了"的反馈。
+  // 同一天多条时全都闪会在桌面上叠成双线，所以只标首行，其余行保留各自的描边与标签。
+  flashElement(group[0]);
 }
 
 // 同步执行（脚本在 </body> 前，早于首次绘制）：不会出现"先看到顶部再跳一下"。

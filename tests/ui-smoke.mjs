@@ -935,6 +935,31 @@ try {
     assert.ok(epsilon.scrollY > 0, '差 40px 时确实滚了');
     await epsilonCtx.close();
   }
+  // 17. 提示条的目标被筛选挡住：点一下要清掉筛选、定位并播报，而不是静默无反应
+  {
+    const filterCtx = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
+    const filterPage = await filterCtx.newPage();
+    await filterPage.goto(`${appUrl}?class=Z2`);
+    await filterPage.waitForSelector('tbody tr[data-idx]');
+    await filterPage.locator('#actionsToggle').click();
+    await filterPage.fill('#searchInput', 'zzz不存在zzz');
+    await filterPage.waitForTimeout(300);
+    assert.equal(await filterPage.locator('tbody tr[data-idx]').count(), 0, '前置条件：搜索应把列表清空');
+
+    await filterPage.evaluate(() => document.getElementById('cueText').click());
+    await filterPage.waitForTimeout(500);
+    const recovered = await filterPage.evaluate(() => ({
+      rows: document.querySelectorAll('tbody tr[data-idx]').length,
+      search: document.getElementById('searchInput').value,
+      flashed: document.querySelectorAll('tbody tr.is-flash').length,
+      status: document.getElementById('liveStatus').textContent || ''
+    }));
+    assert.ok(recovered.rows > 0, '清掉筛选后应重新出现实验行');
+    assert.equal(recovered.search, '', '搜索词应被清空');
+    assert.equal(recovered.flashed, 1, '跳转后目标行应闪烁');
+    assert.match(recovered.status, /已清除筛选.*定位到/, `状态栏应说明发生了什么，实际「${recovered.status}」`);
+    await filterCtx.close();
+  }
   console.log('UI smoke OK');
 } finally {
   fs.rmSync(fixtureDir, { force: true, recursive: true });
