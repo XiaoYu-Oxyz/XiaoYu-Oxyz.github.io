@@ -441,3 +441,45 @@ import { conflict, light, dark } from './sections-c.mjs';
     await ctx.close();
   }
 
+  // 29. 卡片边框不变式：所有状态同一宽度（1px），同行内容顶必须一致
+  {
+    const ctx = await browser.newContext({ viewport: { width: 700, height: 1100 } });
+    const page = await ctx.newPage();
+    await page.clock.install({ time: new Date('2026-11-15T12:00:00') });
+    await page.addInitScript(() => {
+      localStorage.setItem('ghpages:zhizao2402:classdata:v1:Z1', JSON.stringify([
+        { date: '2026-11-15', period: '第1-2节', name: '今天课', place: 'T1', note: '' },
+        { date: '2026-11-16', period: '第1-2节', name: '明天课', place: 'T2', note: '' },
+        { date: '2026-11-18', period: '第1-2节', name: '下一次课', place: 'T3', note: '' },
+        { date: '2026-11-20', period: '第5-6节', name: '冲突甲', place: 'A104', note: '' },
+        { date: '2026-11-20', period: '第5-6节', name: '冲突乙', place: 'A105', note: '' },
+        { date: '2026-11-10', period: '第1-2节', name: '过去课', place: 'P1', note: '' }
+      ]));
+    });
+    await page.goto(`${appUrl}?class=Z1`);
+    await page.waitForSelector('tbody tr[data-idx]');
+    await page.evaluate(() => { recentOnly = false; render(); });
+    await page.waitForTimeout(500);
+    const rows = await page.evaluate(() => {
+      return [...document.querySelectorAll('tbody tr[data-idx]')].map(r => {
+        const cs = getComputedStyle(r);
+        const td = r.querySelector('td.cell-mobile');
+        return {
+          cls: r.className,
+          top: Math.round(r.getBoundingClientRect().top * 10) / 10,
+          width: cs.borderTopWidth,
+          ring: cs.boxShadow.includes('0px 0px 0px 1px inset'),
+          contentTop: td ? Math.round(td.getBoundingClientRect().top * 10) / 10 : null
+        };
+      });
+    });
+    assert.ok(rows.length >= 5, '前置条件：应有多种状态的卡片');
+    assert.deepEqual([...new Set(rows.map(r => r.width))], ['1px'], '所有状态卡片边框必须同为 1px');
+    assert.equal(rows.filter(r => r.ring).length, 0, '不允许用内阴影加粗任意状态卡片的边框');
+    const byTop = {};
+    rows.forEach(r => { (byTop[r.top] = byTop[r.top] || []).push(r.contentTop); });
+    const bad = Object.entries(byTop).filter(([, v]) => new Set(v).size > 1);
+    assert.deepEqual(bad, [], '同一行卡片的内容顶必须完全一致');
+    assert.ok(rows.some(r => r.cls.includes('row-conflict')), '前置条件：需要冲突卡');
+    await ctx.close();
+  }

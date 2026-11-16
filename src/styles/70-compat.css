@@ -1,22 +1,3 @@
-/* 卡片布局：冲突描边视觉 2px = 1px 边框 + 1px 内阴影。
-   不用 2px 边框是为了不改变盒模型高度——同一行相邻卡片的文字才能横向对齐。
-   放在文件末尾，确保压过各断点/深色块里的 box-shadow。 */
-@media (max-width: 940px) {
-  tbody tr.row-conflict,
-  tbody tr.row-next.row-conflict {
-    border-color: var(--row-conflict-border);
-    box-shadow: inset 0 0 0 1px var(--row-conflict-border);
-  }
-  tbody tr.row-conflict.conflict-peer {
-    border-color: var(--row-conflict-peer-border);
-    box-shadow: inset 0 0 0 1px var(--row-conflict-peer-border);
-  }
-  tbody tr.row-past.row-conflict {
-    border-color: var(--row-conflict-past-border);
-    box-shadow: inset 0 0 0 1px var(--row-conflict-past-border);
-  }
-}
-
 /* flex gap 兜底（老 Safari < 14.1 / Chrome < 84 不支持 gap）：
    水平容器用 margin-left，纵向容器用 margin-top。
    只影响不支持 gap 的浏览器；现代引擎走 @supports 不命中，布局一个像素都不动。

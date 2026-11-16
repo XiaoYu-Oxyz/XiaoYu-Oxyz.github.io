@@ -23,8 +23,8 @@ const { pathToFileURL, fileURLToPath, assert, fs, os, path, root, appUrl, browse
     };
   });
   // 视觉 2px = 1px 边框 + 1px 内阴影；用 2px 边框会让相邻卡片文字错位 1px
-  assert.equal(conflict.borderWidth, '1px', '冲突卡边框应为 1px（视觉 2px 由内阴影补足）');
-  assert.match(conflict.shadow, /inset/, '冲突卡应有内阴影补足视觉厚度');
+  assert.equal(conflict.borderWidth, '1px', '冲突卡边框应为 1px（与普通卡同宽，只换颜色）');
+  assert.doesNotMatch(conflict.shadow, /0px 0px 0px 1px inset/, '不允许用内阴影加粗边框（会让同行卡片错位）');
   assert.equal(conflict.borderStyle, 'solid');
   assert.equal(conflict.radius, '0px', '卡片是方角，描边也跟着方角');
   assert.ok(conflict.lines.length >= 1, '冲突组应画出连线');
