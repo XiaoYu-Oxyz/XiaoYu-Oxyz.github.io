@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-UrWWD3CUrS+hytWDxvenXH1HrvDyT59B4xarV/h/xag='; script-src-elem 'sha256-UrWWD3CUrS+hytWDxvenXH1HrvDyT59B4xarV/h/xag='; script-src-attr 'none'; style-src 'sha256-kIaFWLDGFT/6bUoX4RnYVEWjkakH3IyHgLuc4MTVrBI='; style-src-elem 'sha256-kIaFWLDGFT/6bUoX4RnYVEWjkakH3IyHgLuc4MTVrBI='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-/qTdSt3QZr9RN41CMUWMq8OzOoR2g5xwbkH/8eYxhbM='; script-src-elem 'sha256-/qTdSt3QZr9RN41CMUWMq8OzOoR2g5xwbkH/8eYxhbM='; script-src-attr 'none'; style-src 'sha256-P/I2OMrobasibJSRDSIYPQVX19yuh9MYk9YKJdwFbA8='; style-src-elem 'sha256-P/I2OMrobasibJSRDSIYPQVX19yuh9MYk9YKJdwFbA8='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>CrseCue</title>
 <style>
@@ -1036,8 +1036,16 @@
     border: 1px solid var(--c-f0d38a); border-radius: 8px;
     background: var(--c-fff8e6); color: var(--c-7a4b00); font-size: 13px; line-height: 1.5;
   }
-  .edit-locked .action-panel button,
-  .edit-locked tbody button { opacity: .5; pointer-events: none; }
+  .edit-locked #addBtn,
+  .edit-locked #editModeBtn,
+  .edit-locked #deleteModeBtn,
+  .edit-locked #importBtn,
+  .edit-locked #modalSubmit,
+  .edit-locked #modalDelete,
+  .edit-locked #importConfirm,
+  .edit-locked #classPromptOk,
+  .edit-locked tbody .edit-row-btn,
+  .edit-locked tbody .mark-btn { opacity: .5; pointer-events: none; }
   .verify-modal { max-width: 560px; }
   .import-sign-note.ok {
     border-color: var(--row-tomorrow-border);
@@ -1992,7 +2000,7 @@
   </p>
   <input type="file" id="verifyInput" accept=".json" hidden>
   <input type="file" id="grantInput" accept=".json" hidden>
-  <p class="release-row"><span class="release-info" id="releaseInfo" title="签名发布信息：release 号 · 签名者 · 根公钥指纹前 8 组">release 13 · admin · 99BA 4A96 204A DA13</span></p>
+  <p class="release-row"><span class="release-info" id="releaseInfo" title="签名发布信息：release 号 · 签名者 · 根公钥指纹前 8 组">release 15 · admin · 99BA 4A96 204A DA13</span></p>
 </main>
 
 <!-- 添加实验模态框 -->
@@ -6006,7 +6014,7 @@ if (unlockEditBtnFooter) {
     if (IS_AUTOMATION && !window.__crsecueTestLock) return;
     syncLockUI();
     if (editUnlocked) return;
-    if (ev.target.closest('.action-panel button, tbody button')) {
+    if (ev.target.closest('#addBtn, #editModeBtn, #deleteModeBtn, #importBtn, #modalSubmit, #modalDelete, #importConfirm, #classPromptOk, tbody .edit-row-btn, tbody .mark-btn')) { // compat-allow: 字符串里的 CSS id 选择器，不是 JS 私有字段
       ev.preventDefault();
       ev.stopPropagation();
       showStatus('warn', '编辑已锁定：请先在页脚「解锁编辑」导入管理员授权。');

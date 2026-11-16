@@ -3717,7 +3717,7 @@ if (unlockEditBtnFooter) {
     if (IS_AUTOMATION && !window.__crsecueTestLock) return;
     syncLockUI();
     if (editUnlocked) return;
-    if (ev.target.closest('.action-panel button, tbody button')) {
+    if (ev.target.closest('#addBtn, #editModeBtn, #deleteModeBtn, #importBtn, #modalSubmit, #modalDelete, #importConfirm, #classPromptOk, tbody .edit-row-btn, tbody .mark-btn')) { // compat-allow: 字符串里的 CSS id 选择器，不是 JS 私有字段
       ev.preventDefault();
       ev.stopPropagation();
       showStatus('warn', '编辑已锁定：请先在页脚「解锁编辑」导入管理员授权。');
