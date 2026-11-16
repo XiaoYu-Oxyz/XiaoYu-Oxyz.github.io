@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-5gDKmPJeyjpIPBBjsX1sH9ZkkmBsllvYtvV4222hgf4='; script-src-elem 'sha256-5gDKmPJeyjpIPBBjsX1sH9ZkkmBsllvYtvV4222hgf4='; script-src-attr 'none'; style-src 'sha256-cYjq5nHv09+SahhjzgfjU0W82OS9IZqcnw5YnI7UbMc='; style-src-elem 'sha256-cYjq5nHv09+SahhjzgfjU0W82OS9IZqcnw5YnI7UbMc='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-thc2StrQYUEmkXGU6ZH4XbKid5EcNRx7HGjFUn8R8tU='; script-src-elem 'sha256-thc2StrQYUEmkXGU6ZH4XbKid5EcNRx7HGjFUn8R8tU='; script-src-attr 'none'; style-src 'sha256-cYjq5nHv09+SahhjzgfjU0W82OS9IZqcnw5YnI7UbMc='; style-src-elem 'sha256-cYjq5nHv09+SahhjzgfjU0W82OS9IZqcnw5YnI7UbMc='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>CrseCue</title>
 <style>
@@ -1857,6 +1857,7 @@
       <div class="title-row">
         <h1>CrseCue</h1>
         <span class="mode-badge" id="modeBadge" hidden></span>
+      <span class="mode-badge" id="editLockBadge" hidden>已锁定</span>
       </div>
       <div class="class-picker">
         <label for="classSelect">班级：</label>
@@ -1907,10 +1908,7 @@
     <button class="cue-close" id="cueClose" type="button" aria-label="关闭提示">×</button>
   </div>
 
-  <div class="edit-lock-note" id="editLockNote" role="status" hidden>
-  <span id="editLockText">本机编辑已锁定：需要管理员授权。</span>
-  <button class="ghost-btn" id="unlockEditBtn" type="button">解锁编辑</button>
-</div>
+  
 <div class="action-panel" id="actionPanel" role="group" aria-label="实验操作" hidden>
     <div class="action-search">
       <input class="search-input" id="searchInput" type="search" maxlength="80" autocomplete="off" aria-label="搜索实验名称、地点或备注" placeholder="搜索实验名称 / 地点 / 备注">
@@ -1992,7 +1990,7 @@
   </p>
   <input type="file" id="verifyInput" accept=".json" hidden>
   <input type="file" id="grantInput" accept=".json" hidden>
-  <p class="release-row"><span class="release-info" id="releaseInfo" title="签名发布信息：release 号 · 签名者 · 根公钥指纹前 8 组">release 7 · admin · 99BA 4A96 204A DA13</span></p>
+  <p class="release-row"><span class="release-info" id="releaseInfo" title="签名发布信息：release 号 · 签名者 · 根公钥指纹前 8 组">release 8 · admin · 99BA 4A96 204A DA13</span></p>
 </main>
 
 <!-- 添加实验模态框 -->
@@ -5863,8 +5861,7 @@ async function verifySelectedFile(file) {
 
 /* ---------- 本机编辑授权（edit grant） ---------- */
 const EDIT_GRANT_KEY = 'crsecue:edit-grant:v1';
-const editLockNote = document.getElementById('editLockNote');
-const editLockText = document.getElementById('editLockText');
+const editLockBadge = document.getElementById('editLockBadge');
 const unlockEditBtn = document.getElementById('unlockEditBtn');
 const unlockEditBtnFooter = document.getElementById('unlockEditBtnFooter');
 const grantInput = document.getElementById('grantInput');
@@ -5912,7 +5909,7 @@ async function refreshEditLock() {
   if (!window.__crsecueTestLock && navigator.webdriver) {
     editUnlocked = true;
     document.body.classList.remove('edit-locked');
-    if (editLockNote) editLockNote.hidden = true;
+    if (editLockBadge) editLockBadge.hidden = true;
     return;
   }
   const grant = readEditGrant();
@@ -5932,9 +5929,9 @@ async function refreshEditLock() {
   }
   editUnlocked = unlocked;
   document.body.classList.toggle('edit-locked', !unlocked);
-  if (editLockNote) {
-    editLockNote.hidden = unlocked;
-    if (!unlocked) editLockText.textContent = reason;
+  if (editLockBadge) {
+    editLockBadge.hidden = unlocked;
+    editLockBadge.title = reason;
   }
 }
 
@@ -5950,9 +5947,8 @@ async function applyGrantFile(file) {
   }
 }
 
-if (unlockEditBtn) {
+if (unlockEditBtnFooter) {
   const pickGrant = () => { grantInput.value = ''; grantInput.click(); };
-  unlockEditBtn.addEventListener('click', pickGrant);
   if (unlockEditBtnFooter) unlockEditBtnFooter.addEventListener('click', pickGrant);
   grantInput.addEventListener('change', () => {
     const file = grantInput.files && grantInput.files[0];

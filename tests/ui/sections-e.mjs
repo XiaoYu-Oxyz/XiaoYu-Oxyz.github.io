@@ -589,7 +589,7 @@ import { conflict, light, dark } from './sections-c.mjs';
 
     await page.evaluate(async () => { window.__crsecueTestLock = true; await window.__crsecueRefreshEditLock(); });
     assert.equal(await page.evaluate(() => document.body.classList.contains('edit-locked')), true);
-    assert.equal(await page.locator('#editLockNote').isVisible(), true);
+    assert.equal(await page.locator('#editLockBadge').isVisible(), true);
     await page.locator('#addBtn').dispatchEvent('click');
     await poll(async () => /已锁定/.test(await page.locator('#importStatus').innerText()), '锁定时应提示', 5000);
 
@@ -616,6 +616,6 @@ import { conflict, light, dark } from './sections-c.mjs';
 
     await page.evaluate(async () => { window.__crsecueTestLock = false; await window.__crsecueRefreshEditLock(); });
     assert.equal(await page.evaluate(() => document.body.classList.contains('edit-locked')), false);
-    assert.equal(await page.locator('#editLockNote').isVisible(), false);
+    assert.equal(await page.locator('#editLockBadge').isVisible(), false);
     await ctx.close();
   }
