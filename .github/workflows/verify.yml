@@ -33,6 +33,14 @@ jobs:
           python-version: "3.12"
           cache: pip
 
+      - name: Set up Node (release signature gate)
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "20"
+
+      - name: Release signature gate
+        run: node tools/release.mjs verify
+
       - name: Install build dependency
         run: python -m pip install --disable-pip-version-check -r tools/requirements.txt
 
@@ -50,6 +58,9 @@ jobs:
 
       - name: Verify CSP hashes and template
         run: python tools/verify.py
+
+      - name: Release signature tests
+        run: node tests/release.test.mjs
 
       - name: Unit tests
         run: python -m unittest discover -s tests -p "test_*.py" -v

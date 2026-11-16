@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "issuedAt": "2026-11-16",
+  "signers": [
+    {
+      "id": "admin",
+      "role": "root",
+      "keyId": "root-2026-11",
+      "scope": [
+        "publish"
+      ],
+      "exp": "2027-06-30",
+      "pubkey": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAt1IRHDWd8KMu6vRRV/lJNqvvSRnt+dztFcbTRJa+NhI=\n-----END PUBLIC KEY-----"
+    }
+  ],
+  "revoked": []
+}

@@ -11,7 +11,11 @@
     "test:logic:webkit": "node tests/logic.mjs --webkit",
     "test:visual": "node tests/visual-smoke.mjs",
     "test:visual:webkit": "node tests/visual-smoke.mjs --webkit",
-    "test": "npm run test:logic && npm run test:ui && npm run test:week && npm run test:visual"
+    "test": "npm run test:logic && npm run test:ui && npm run test:week && npm run test:visual",
+    "test:release": "node tests/release.test.mjs",
+    "release:manifest": "node tools/release.mjs manifest",
+    "release:sign": "node tools/release.mjs sign",
+    "release:verify": "node tools/release.mjs verify"
   },
   "devDependencies": {
     "playwright": "1.65.0"

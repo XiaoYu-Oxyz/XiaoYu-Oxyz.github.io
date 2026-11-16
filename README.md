@@ -821,7 +821,18 @@ git push
 
 详见 [SECURITY.md](SECURITY.md)。
 
-### 7.2 残余风险
+### 7.2 发布签名门禁（2026-11 加固）
+
+只靠分支保护不够：账号/token 一旦失守，攻击者仍可能改内容。所以发布链路加一把**离线密码学钥匙**：
+
+- 根密钥离线保管；`keys/roster.json` 由根密钥签名，列出允许的签名者（默认只有 admin）；
+- 每次发布生成 `release/manifest.json`（受保护文件哈希 + 单调计数器 + 前链），由签名者私钥签名；
+- CI 第一步是 `node tools/release.mjs verify`：验根指纹 → 名册签名 → 清单签名 → 计数器/回滚 → 文件哈希，任一失败即拒绝发布；
+- 受托人（如学委）只能用你签发的 scope/有效期签名，**合并仍必须你批准**。
+
+完整方案见 [docs/SECURITY-PLAN.md](docs/SECURITY-PLAN.md)，密钥操作见 [docs/KEY-CEREMONY.md](docs/KEY-CEREMONY.md)，事故处理见 [docs/INCIDENT-RESPONSE.md](docs/INCIDENT-RESPONSE.md)。
+
+### 7.3 残余风险
 
 - GitHub Pages **不能设置** `frame-ancestors`、`X-Frame-Options`、HSTS 等响应头；点击劫持没有可靠防护。为避免预览/iframe 环境误跳 404，项目已移除 JS frame-buster。
 - GitHub Pages 站点和仓库文件默认公开；没有登录、权限或访问控制。需要私密数据时不要使用公开 Pages。

@@ -7,6 +7,9 @@
 | [止损点.md](止损点.md) | 改动值不值得做的判定框架、红线、暂不改清单 |
 | [ACCESSIBILITY.md](ACCESSIBILITY.md) | 无障碍设计与回归清单 |
 | [COMPATIBILITY.md](COMPATIBILITY.md) | 浏览器兼容底线与老设备退化项 |
+| [SECURITY-PLAN.md](SECURITY-PLAN.md) | 发布签名门禁、威胁模型、残余风险与分阶段计划 |
+| [KEY-CEREMONY.md](KEY-CEREMONY.md) | 密钥生成/备份/轮换/撤销与受托人授权操作 |
+| [INCIDENT-RESPONSE.md](INCIDENT-RESPONSE.md) | 私钥泄露、账号被控、线上被改时的事故手册 |
 | [scripts.md](scripts.md) | 本地一键构建/检查/发布 |
 | [新学期.md](新学期.md) | 换学期数据的 4 步清单 |
 

@@ -1,0 +1,63 @@
+name: live-integrity
+
+on:
+  schedule:
+    - cron: "17 3 * * *"   # 每天 03:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sentinel:
+    name: live integrity sentinel
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "20"
+
+      - name: Verify signed manifest in repo
+        run: node tools/release.mjs verify
+
+      - name: Compare live site with signed manifest
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const crypto = require('node:crypto');
+          const manifest = JSON.parse(fs.readFileSync('release/manifest.json', 'utf8'));
+          const base = 'https://xiaoyu-oxyz.github.io/';
+          const targets = Object.keys(manifest.files).filter(rel =>
+            rel === 'index.html' || rel.startsWith('calendars/')
+          );
+          const hash = buf => 'sha256:' + crypto.createHash('sha256').update(buf).digest('hex');
+
+          (async () => {
+            const failures = [];
+            for (const rel of targets) {
+              const res = await fetch(base + rel, { redirect: 'follow' });
+              if (!res.ok) {
+                failures.push(rel + ' HTTP ' + res.status);
+                continue;
+              }
+              const buf = Buffer.from(await res.arrayBuffer());
+              const actual = hash(buf);
+              if (actual !== manifest.files[rel]) {
+                failures.push(rel + ' 哈希不一致：签名=' + manifest.files[rel] + ' 线上=' + actual);
+              }
+            }
+            if (failures.length) {
+              for (const f of failures) console.error('::error::' + f);
+              process.exit(1);
+            }
+            console.log('线上与签名清单一致（release ' + manifest.release + '，检查 ' + targets.length + ' 个文件）');
+          })().catch(error => {
+            console.error('::error::哨兵执行失败：' + error.message);
+            process.exit(1);
+          });
+          NODE

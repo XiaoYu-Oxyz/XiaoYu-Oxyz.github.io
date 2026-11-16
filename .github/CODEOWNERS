@@ -1,0 +1,11 @@
+# 治理关键路径：任何改动都必须由仓库 owner 批准
+# 生效前提：main 开启 Require review from Code Owners
+*                       @XiaoYu-Oxyz
+/.github/               @XiaoYu-Oxyz
+/keys/                  @XiaoYu-Oxyz
+/release/               @XiaoYu-Oxyz
+/tools/                 @XiaoYu-Oxyz
+/data/                  @XiaoYu-Oxyz
+/src/                   @XiaoYu-Oxyz
+/calendars/             @XiaoYu-Oxyz
+/index.html             @XiaoYu-Oxyz
