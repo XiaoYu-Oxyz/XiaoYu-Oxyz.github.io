@@ -683,6 +683,11 @@ migrateLegacyWeek1();
 let week1Start = loadWeek1Start();
 
 function saveClassWeek1Value(id, value) {
+  if (!canEditClass(id)) {
+    showStatus('warn', '该班不在编辑授权范围');
+    syncLockUI(selectedClass);
+    return false;
+  }
   try {
     localStorage.setItem(classWeek1Key(id), value);
     return true;
@@ -758,7 +763,12 @@ function readClassStored(id) {
   }
 }
 
-function saveClassStored(id, list) {
+function saveClassStored(id, list, internal) {
+  if (!internal && !canEditClass(id)) {
+    showStatus('warn', '该班不在编辑授权范围');
+    syncLockUI(selectedClass);
+    return false;
+  }
   try {
     localStorage.setItem(classDataKey(id), JSON.stringify(list));
     // 记下这份本机数据是基于哪个部署版本存的：页面数据更新后就能提示"你这份是旧的"
@@ -801,7 +811,7 @@ function loadClassState(id) {
     const old = oldNew !== null ? oldNew : oldLegacy;
     if (old !== null) {
       const copied = old.map(e => ({ ...e }));
-      const ok = saveClassStored(id, copied);
+      const ok = saveClassStored(id, copied, true);
       if (ok) {
         try { localStorage.removeItem(OLD_SINGLE_STORAGE_KEY); } catch (e) {}
         try { localStorage.removeItem(LEGACY_STORAGE_KEY); } catch (e) {}
@@ -847,6 +857,7 @@ function saveSelectedClass() {
 
 function addExtraClass(id) {
   if (!id || classIds.includes(id)) return;
+  if (!canEditClass(id)) { showStatus('warn', '该班不在编辑授权范围'); return; }
   if (isBuiltClass(id) && !hiddenBuiltClasses.includes(id)) return;
   extraClasses.push(id);
   saveExtraClasses();
@@ -854,6 +865,7 @@ function addExtraClass(id) {
 }
 
 function removeExtraClass(id) {
+  if (!canEditClass(id)) { showStatus('warn', '该班不在编辑授权范围'); return; }
   const next = extraClasses.filter(x => x !== id);
   if (next.length === extraClasses.length) return;
   extraClasses = next;
@@ -1118,6 +1130,7 @@ async function submitClassPrompt() {
     return;
   }
   const name = result.name;
+  if (!assertCanEdit(isRename ? selectedClass : name)) return;
   const hiddenName = hiddenBuiltClasses.some(id => id.toLocaleLowerCase('zh-CN') === name.toLocaleLowerCase('zh-CN'));
 
   if (hiddenName) {
@@ -1201,6 +1214,7 @@ async function submitClassPrompt() {
 function deleteCurrentClass() {
   const id = selectedClass;
   if (!id) return;
+  if (!assertCanEdit(id)) return;
   const local = isLocalClass(id);
   const wasBuilt = isBuiltClass(id) && !local;
   askConfirm({
@@ -3582,6 +3596,24 @@ const grantInput = document.getElementById('grantInput');
 let editUnlocked = false;
 let verifiedGrant = null;
 
+function canEditClass(classId) {
+  const target = classId || selectedClass;
+  if (!target) return false;
+  if (window.__crsecueGrantForTest) return grantAllowsClass(window.__crsecueGrantForTest, target);
+  if (navigator.webdriver && !window.__crsecueTestLock) return true;
+  return grantAllowsClass(verifiedGrant, target);
+}
+
+function assertCanEdit(classId) {
+  if (canEditClass(classId)) return true;
+  showStatus('warn', '该班不在编辑授权范围');
+  syncLockUI(selectedClass);
+  return false;
+}
+
+window.__crsecueCanEditClass = canEditClass;
+window.__crsecueAssertCanEdit = assertCanEdit;
+
 function readEditGrant() {
   try {
     const raw = JSON.parse(localStorage.getItem(EDIT_GRANT_KEY) || 'null');
@@ -5166,6 +5198,7 @@ function undoLastImport() {
     showStatus('warn', '请先完成编辑/删除模式，再撤销导入');
     return;
   }
+  if (!assertCanEdit(snapshot.targetId)) return;
   lastImportUndo = null;
 
   const { targetId, targetNew, beforeList, beforeWeek1Raw, previousSelected } = snapshot;
@@ -5748,6 +5781,7 @@ importConfirmBtn.addEventListener('click', async () => {
   const updatePlace = conflictSelect.value === 'update';
   const { list, skipped, timeMode, fileClass, week1: importedWeek1, periodTimes: importedTimes, verifiedSigner } = pendingImport;
   const targetId = importTargetId();
+  if (!assertCanEdit(targetId)) return;
   const targetNew = !classIds.includes(targetId);
   const targetWasCurrent = targetId === selectedClass;
   const previousSelected = selectedClass;

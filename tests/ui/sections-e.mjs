@@ -544,6 +544,44 @@ import { conflict, light, dark } from './sections-c.mjs';
     });
     assert.equal(labelState.long, 'none', '900px 下应隐藏长文案');
     assert.equal(labelState.short, 'inline', '900px 下应显示短文案');
+
+    // scope 写入层拦截：Z2 不在授权范围
+    await page.evaluate(() => { window.__crsecueGrantForTest = { scope: ['Z1'], exp: '2099-01-01' }; });
+    const scope = await page.evaluate(() => ({
+      z1: window.__crsecueCanEditClass('Z1'),
+      z2: window.__crsecueCanEditClass('Z2')
+    }));
+    assert.equal(scope.z1, true);
+    assert.equal(scope.z2, false, 'Z2 不在授权范围');
+
+    const blocked = await page.evaluate(() => {
+      const key = 'ghpages:zhizao2402:classdata:v1:Z2';
+      const before = localStorage.getItem(key);
+      const ok = saveClassStored('Z2', []);
+      return { ok, changed: localStorage.getItem(key) !== before };
+    });
+    assert.equal(blocked.ok, false, '直接写 Z2 必须被拦');
+    assert.equal(blocked.changed, false, 'Z2 数据不能变');
+
+    // 导入到 Z2：确认时被拒
+    const z2File = { format: 'crsecue-class-backup', version: 2, class: 'Z2', experiments: [{ date: '2026-12-01', period: '第1-2节', name: '越权导入', place: 'X', note: '' }] };
+    await page.locator('#fileInput').setInputFiles({ name: 'Z2.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(z2File)) });
+    await page.waitForSelector('#importMask.show');
+    await page.locator('#importConfirm').click();
+    await poll(async () => /该班不在编辑授权范围/.test(await page.locator('#importStatus').innerText()), '导入到 Z2 应被拒', 8000);
+    await page.locator('#importCancel').click();
+
+    // 撤销导入到未授权班：被拒且数据不回滚
+    const z1File = { format: 'crsecue-class-backup', version: 2, class: 'Z1', experiments: [{ date: '2026-12-02', period: '第1-2节', name: '授权导入', place: 'Y', note: '' }] };
+    const rowsBefore = await page.locator('tbody tr[data-idx]').count();
+    await page.locator('#fileInput').setInputFiles({ name: 'Z1.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(z1File)) });
+    await page.waitForSelector('#importMask.show');
+    await page.locator('#importConfirm').click();
+    await poll(async () => /撤销导入/.test(await page.locator('#importStatus').innerText()), '授权导入应成功', 8000);
+    await page.evaluate(() => { window.__crsecueGrantForTest = { scope: [], exp: '2099-01-01' }; });
+    await page.evaluate(() => { undoLastImport(); });
+    await poll(async () => /该班不在编辑授权范围/.test(await page.locator('#importStatus').innerText()), '未授权班撤销应被拒', 8000);
+    assert.equal(await page.locator('tbody tr[data-idx]').count(), rowsBefore + 1, '撤销被拒后应保持导入后的数据');
     await ctx.close();
   }
 
