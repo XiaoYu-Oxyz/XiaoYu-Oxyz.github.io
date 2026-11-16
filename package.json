@@ -15,7 +15,8 @@
     "test:release": "node tests/release.test.mjs",
     "release:manifest": "node tools/release.mjs manifest",
     "release:sign": "node tools/release.mjs sign",
-    "release:verify": "node tools/release.mjs verify"
+    "release:verify": "node tools/release.mjs verify",
+    "test:sign": "node tests/sign-export.test.mjs"
   },
   "devDependencies": {
     "playwright": "1.65.0"
