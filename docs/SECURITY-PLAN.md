@@ -126,5 +126,5 @@ node tools/release.mjs verify
 | 阶段 | 内容 | 验收 |
 |---|---|---|
 | P0（已完成 2026-11-16） | 签名工具 + 名册 + manifest + CI 门禁 + CODEOWNERS + 负向测试 + 文档 + 每日哨兵 | `node tools/release.mjs verify` 通过；篡改任一受保护文件 CI 红 |
-| P1 | 托管人流程、撤销/轮换演练、Actions OIDC 部署、域名 TXT、每日哨兵、运行时导入验签 | 受托人提交 → 你批准 → 上线；线上被改 30 分钟内告警 |
+| P1 | 托管人流程、撤销/轮换演练（已完成）、Actions OIDC 部署（已完成）、每日哨兵 + 失败自动开 Issue（已完成）、运行时导入验签（已完成）；域名 TXT 因无域名暂缓 | 受托人提交 → 你批准 → 上线；线上被改次日告警（哨兵每日 03:17 UTC） |
 | P2 | 独立验签器、DNS 锚点、Sigstore 可选、硬件密钥 ceremony | 同学可自行验证收到的文件 |

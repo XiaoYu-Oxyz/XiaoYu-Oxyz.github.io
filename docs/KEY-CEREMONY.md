@@ -101,7 +101,21 @@ node tools/release.mjs manifest && node tools/release.mjs sign --key ...   # 让
 - 公钥/名册/清单：随仓库走；
 - 每学期做一次"用备份密钥签一个空 release 再丢掉"的演练，确认备份可用。
 
-## 6. 绝对不要做的事
+## 6. 演练（每学期一次，5 分钟）
+
+```bash
+# 自动演练：受托人签发 / 撤销 / 篡改 / 根密钥轮换 四条路径
+node tests/security-drills.mjs
+```
+
+手工演练（更接近真实）：
+
+1. 生成一把测试受托人密钥（在仓库副本**之外**）；
+2. `roster-add` 登记，签发一版看 CI 是否放行；
+3. `roster-revoke` 撤销，再跑 `verify`，应看到"签名者不在名册"；
+4. 把结果记在 `docs/重构记录.md` 对应轮次里。
+
+## 7. 绝对不要做的事
 
 - ❌ 把私钥贴进 Actions secrets / 环境变量 / 仓库文件；
 - ❌ 在浏览器里保存私钥或"管理员密码"；
