@@ -3575,8 +3575,7 @@ async function verifySelectedFile(file) {
 
 /* ---------- 本机编辑授权（edit grant） ---------- */
 const EDIT_GRANT_KEY = 'crsecue:edit-grant:v1';
-const editLockNote = document.getElementById('editLockNote');
-const editLockText = document.getElementById('editLockText');
+const editLockBadge = document.getElementById('editLockBadge');
 const unlockEditBtn = document.getElementById('unlockEditBtn');
 const unlockEditBtnFooter = document.getElementById('unlockEditBtnFooter');
 const grantInput = document.getElementById('grantInput');
@@ -3624,7 +3623,7 @@ async function refreshEditLock() {
   if (!window.__crsecueTestLock && navigator.webdriver) {
     editUnlocked = true;
     document.body.classList.remove('edit-locked');
-    if (editLockNote) editLockNote.hidden = true;
+    if (editLockBadge) editLockBadge.hidden = true;
     return;
   }
   const grant = readEditGrant();
@@ -3644,9 +3643,9 @@ async function refreshEditLock() {
   }
   editUnlocked = unlocked;
   document.body.classList.toggle('edit-locked', !unlocked);
-  if (editLockNote) {
-    editLockNote.hidden = unlocked;
-    if (!unlocked) editLockText.textContent = reason;
+  if (editLockBadge) {
+    editLockBadge.hidden = unlocked;
+    editLockBadge.title = reason;
   }
 }
 
@@ -3662,9 +3661,8 @@ async function applyGrantFile(file) {
   }
 }
 
-if (unlockEditBtn) {
+if (unlockEditBtnFooter) {
   const pickGrant = () => { grantInput.value = ''; grantInput.click(); };
-  unlockEditBtn.addEventListener('click', pickGrant);
   if (unlockEditBtnFooter) unlockEditBtnFooter.addEventListener('click', pickGrant);
   grantInput.addEventListener('change', () => {
     const file = grantInput.files && grantInput.files[0];

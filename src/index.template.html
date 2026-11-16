@@ -21,6 +21,7 @@
       <div class="title-row">
         <h1>CrseCue</h1>
         <span class="mode-badge" id="modeBadge" hidden></span>
+      <span class="mode-badge" id="editLockBadge" hidden>已锁定</span>
       </div>
       <div class="class-picker">
         <label for="classSelect">班级：</label>
@@ -71,10 +72,7 @@
     <button class="cue-close" id="cueClose" type="button" aria-label="关闭提示">×</button>
   </div>
 
-  <div class="edit-lock-note" id="editLockNote" role="status" hidden>
-  <span id="editLockText">本机编辑已锁定：需要管理员授权。</span>
-  <button class="ghost-btn" id="unlockEditBtn" type="button">解锁编辑</button>
-</div>
+  
 <div class="action-panel" id="actionPanel" role="group" aria-label="实验操作" hidden>
     <div class="action-search">
       <input class="search-input" id="searchInput" type="search" maxlength="80" autocomplete="off" aria-label="搜索实验名称、地点或备注" placeholder="搜索实验名称 / 地点 / 备注">
