@@ -42,6 +42,8 @@ test('keygen + sign + verify 通过', () => {
   const verify = run(['verify', '--pub', pub, '--in', signed]);
   assert.equal(verify.code, 0, verify.out);
   assert.match(verify.out, /签名有效/);
+  const obj = JSON.parse(fs.readFileSync(signed, 'utf8'));
+  assert.equal(Buffer.from(obj._crsecue.sig, 'base64').length, 64, '签名必须是 raw r||s 64 字节（WebCrypto 兼容）');
   fs.rmSync(dir, { recursive: true, force: true });
 });
 

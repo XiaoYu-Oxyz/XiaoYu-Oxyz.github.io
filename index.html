@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-s5V79+Z5sDe12OZjBAN4APlmvTgCm5wf6mOEJuuF/pM='; script-src-elem 'sha256-s5V79+Z5sDe12OZjBAN4APlmvTgCm5wf6mOEJuuF/pM='; script-src-attr 'none'; style-src 'sha256-dTQMtmX69LECdSc3JlJI6caErWyZ4Pqznd37TWYRMhs='; style-src-elem 'sha256-dTQMtmX69LECdSc3JlJI6caErWyZ4Pqznd37TWYRMhs='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Be8YASiGzYu1Z2nXt6zHFuLonk4dSDNwPH5upmbCO4Y='; script-src-elem 'sha256-Be8YASiGzYu1Z2nXt6zHFuLonk4dSDNwPH5upmbCO4Y='; script-src-attr 'none'; style-src 'sha256-dTQMtmX69LECdSc3JlJI6caErWyZ4Pqznd37TWYRMhs='; style-src-elem 'sha256-dTQMtmX69LECdSc3JlJI6caErWyZ4Pqznd37TWYRMhs='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>CrseCue</title>
 <style>
@@ -1978,7 +1978,7 @@
     <button class="diag-btn" id="verifyFileBtn" type="button" title="上传一个 JSON，检查有没有管理员签名；只验签，不导入数据">验证收到的文件</button>
   </p>
   <input type="file" id="verifyInput" accept=".json" hidden>
-  <p class="release-row"><span class="release-info" id="releaseInfo" title="签名发布信息：release 号 · 签名者 · 根公钥指纹前 8 组">release 5 · admin · 99BA 4A96 204A DA13</span></p>
+  <p class="release-row"><span class="release-info" id="releaseInfo" title="签名发布信息：release 号 · 签名者 · 根公钥指纹前 8 组">release 6 · admin · 99BA 4A96 204A DA13</span></p>
 </main>
 
 <!-- 添加实验模态框 -->
@@ -8032,9 +8032,8 @@ fileInput.addEventListener('change', async () => {
     return;
   }
 
-  const oldText = importBtn.textContent;
   importBtn.disabled = true;
-  importBtn.textContent = '正在读取…';
+  importBtn.setAttribute('aria-busy', 'true');
   statusEl.className = 'import-status';
 
   try {
@@ -8045,7 +8044,7 @@ fileInput.addEventListener('change', async () => {
     showStatus('error', '导入失败：' + (err && err.message ? err.message : String(err)));
   } finally {
     importBtn.disabled = deleteMode;
-    importBtn.textContent = oldText;
+    importBtn.removeAttribute('aria-busy');
   }
 });
 

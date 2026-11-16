@@ -5758,9 +5758,8 @@ fileInput.addEventListener('change', async () => {
     return;
   }
 
-  const oldText = importBtn.textContent;
   importBtn.disabled = true;
-  importBtn.textContent = '正在读取…';
+  importBtn.setAttribute('aria-busy', 'true');
   statusEl.className = 'import-status';
 
   try {
@@ -5771,7 +5770,7 @@ fileInput.addEventListener('change', async () => {
     showStatus('error', '导入失败：' + (err && err.message ? err.message : String(err)));
   } finally {
     importBtn.disabled = deleteMode;
-    importBtn.textContent = oldText;
+    importBtn.removeAttribute('aria-busy');
   }
 });
 

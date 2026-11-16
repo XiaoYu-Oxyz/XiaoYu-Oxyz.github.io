@@ -7,8 +7,10 @@
  * P-256 从 Chrome 37 / Safari 11 就支持。
  *
  * 文件格式：在原班级备份 JSON 上增加一个顶层字段：
- *   "_crsecue": { "v": 1, "signer": "admin", "keyId": "...", "alg": "ES256", "sig": "<base64 DER>" }
- * 签名对象 = 去掉 "_crsecue" 后、按 canonical JSON（key 排序）序列化的字节。
+ *   "_crsecue": { "v": 1, "signer": "admin", "keyId": "...", "alg": "ES256", "sig": "<base64 raw r||s，64 字节>" }
+ * 签名对象 = 去掉 "_crsecue" 后、按 canonical JSON（key 排序）序列化的字节；
+ * 签名格式用 WebCrypto 原生的 raw r||s（IEEE P1363，64 字节），不要用 DER——
+ * 浏览器 crypto.subtle.verify 不认 DER。
  *
  * 用法：
  *   node tools/sign-export.mjs keygen --out <私钥路径> --pub keys/data-admin.pub --keyid data-admin-2026-11
@@ -38,11 +40,11 @@ function payloadOnly(obj) {
 }
 
 function signBytes(privateKey, obj) {
-  return ecSign('sha256', Buffer.from(canon(obj), 'utf8'), { key: privateKey, dsaEncoding: 'der' }).toString('base64');
+  return ecSign('sha256', Buffer.from(canon(obj), 'utf8'), { key: privateKey, dsaEncoding: 'ieee-p1363' }).toString('base64');
 }
 
 function verifyBytes(pubPem, obj, signature) {
-  return ecVerify('sha256', Buffer.from(canon(obj), 'utf8'), { key: createPublicKey(pubPem), dsaEncoding: 'der' }, Buffer.from(signature, 'base64'));
+  return ecVerify('sha256', Buffer.from(canon(obj), 'utf8'), { key: createPublicKey(pubPem), dsaEncoding: 'ieee-p1363' }, Buffer.from(signature, 'base64'));
 }
 
 function cmdKeygen(argv) {

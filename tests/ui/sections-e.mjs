@@ -532,6 +532,18 @@ import { conflict, light, dark } from './sections-c.mjs';
     });
     await poll(async () => /签名/.test(await page.locator('#importStatus').innerText()), '伪造签名应被拒绝', 8000);
     assert.match(await page.locator('#importStatus').innerText(), /签名无效|签名校验失败/);
+    // 旧 bug：失败时用 textContent 还原，把长短两个 label span 一起冲掉
+    assert.equal(await page.locator('#importBtn .label-long').count(), 1, '导入失败后仍应保留长文案 span');
+    assert.equal(await page.locator('#importBtn .label-short').count(), 1, '导入失败后仍应保留短文案 span');
+    const labelState = await page.evaluate(() => {
+      const btn = document.getElementById('importBtn');
+      return {
+        long: getComputedStyle(btn.querySelector('.label-long')).display,
+        short: getComputedStyle(btn.querySelector('.label-short')).display
+      };
+    });
+    assert.equal(labelState.long, 'none', '900px 下应隐藏长文案');
+    assert.equal(labelState.short, 'inline', '900px 下应显示短文案');
     await ctx.close();
   }
 
