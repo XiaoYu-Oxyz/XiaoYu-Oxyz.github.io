@@ -15,16 +15,21 @@ import { light, dark } from './sections-c.mjs';
 
     await filterPage.evaluate(() => document.getElementById('cueText').click());
     await filterPage.waitForTimeout(500);
-    const recovered = await filterPage.evaluate(() => ({
-      rows: document.querySelectorAll('tbody tr[data-idx]').length,
-      search: document.getElementById('searchInput').value,
-      flashed: document.querySelectorAll('tbody tr.is-flash').length,
-      status: document.getElementById('liveStatus').textContent || ''
-    }));
+    const recovered = await filterPage.evaluate(() => {
+      const bar = document.querySelector('.import-status.show');
+      return {
+        rows: document.querySelectorAll('tbody tr[data-idx]').length,
+        search: document.getElementById('searchInput').value,
+        flashed: document.querySelectorAll('tbody tr.is-flash').length,
+        live: document.getElementById('liveStatus').textContent || '',
+        visibleStatus: bar ? bar.textContent.trim() : ''
+      };
+    });
     assert.ok(recovered.rows > 0, '清掉筛选后应重新出现实验行');
     assert.equal(recovered.search, '', '搜索词应被清空');
     assert.equal(recovered.flashed, 1, '跳转后目标行应闪烁');
-    assert.match(recovered.status, /已清除筛选.*定位到/, `状态栏应说明发生了什么，实际「${recovered.status}」`);
+    assert.match(recovered.live, /已清除筛选/, `读屏应播报筛选被清掉，实际「${recovered.live}」`);
+    assert.equal(recovered.visibleStatus, '', '可见状态栏不应再出现“已定位到”之类提醒');
     await filterCtx.close();
   }
   console.log('\u00a718 操作面板按钮：放不下要换行，不能被压到裁字（361–440px 曾把 8 个按钮挤成一行）');

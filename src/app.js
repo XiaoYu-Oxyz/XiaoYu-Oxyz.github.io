@@ -3376,7 +3376,6 @@ function jumpToCueTarget() {
   const entry = experiments[idx];
   if (!entry) return;
   const date = parseDate(entry.date);
-  const label = cueTargetLabel(entry);
   if (document.body.classList.contains('view-week')) {
     const weekStart = startOfWeekMonday(date);
     if (weekStart.getTime() !== weekViewStart.getTime()) {
@@ -3384,9 +3383,13 @@ function jumpToCueTarget() {
       renderWeekView();
     }
     let block = weekViewEl && weekViewEl.querySelector(`.wg-item[data-idx="${idx}"]`);
-    if (!block && clearFiltersHidingCue()) {
-      render();
-      block = weekViewEl && weekViewEl.querySelector(`.wg-item[data-idx="${idx}"]`);
+    let cleared = false;
+    if (!block) {
+      cleared = clearFiltersHidingCue();
+      if (cleared) {
+        render();
+        block = weekViewEl && weekViewEl.querySelector(`.wg-item[data-idx="${idx}"]`);
+      }
     }
     if (!block) {
       showStatus('warn', '这条实验当前被筛选隐藏，清除筛选后仍找不到');
@@ -3394,7 +3397,8 @@ function jumpToCueTarget() {
     }
     ensureElementVisible(block, true);
     flashElement(block);
-    showStatus('ok', `已定位到 ${label}`);
+    // 可见状态栏不再报"已定位到"；只有"顺手清了筛选"这种状态变化才播报给读屏
+    if (cleared) announce('已清除筛选');
     return;
   }
   let row = tableBodyEl.querySelector(`tr[data-idx="${idx}"]`);
@@ -3413,7 +3417,8 @@ function jumpToCueTarget() {
   }
   ensureElementVisible(row, true);
   flashElement(row);
-  showStatus('ok', cleared ? `已清除筛选，定位到 ${label}` : `已定位到 ${label}`);
+  // 可见状态栏不再报"已定位到"；只有"顺手清了筛选"这种状态变化才播报给读屏
+  if (cleared) announce('已清除筛选');
 }
 
 if (cueTextEl) {
