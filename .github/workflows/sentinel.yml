@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 jobs:
   sentinel:
@@ -61,3 +62,17 @@ jobs:
             process.exit(1);
           });
           NODE
+
+      - name: Open or update alert issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TITLE="线上完整性哨兵失败 $(date -u +%F)"
+          BODY="哨兵在 $(date -u +%FT%TZ) 检测到线上文件与签名清单不一致。请立即按 docs/INCIDENT-RESPONSE.md 处理：${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          EXISTING=$(gh issue list --state open --search "线上完整性哨兵失败 in:title" --json number --jq '.[0].number // empty')
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --body "$BODY"
+          else
+            gh issue create --title "$TITLE" --body "$BODY"
+          fi

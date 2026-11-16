@@ -62,6 +62,9 @@ jobs:
       - name: Release signature tests
         run: node tests/release.test.mjs
 
+      - name: Security drills (delegation + rotation)
+        run: node tests/security-drills.mjs
+
       - name: Unit tests
         run: python -m unittest discover -s tests -p "test_*.py" -v
 
