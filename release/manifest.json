@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "release": 12,
-  "issuedAt": "2026-11-16T13:08:36.965Z",
+  "release": 13,
+  "issuedAt": "2026-11-16T14:39:41.195Z",
   "signer": "admin",
   "files": {
     "calendars/Z1.ics": "sha256:40fbb026e87b0895b940d98e35a3d95f16c00563a415e96db4c627c6255da09f",
@@ -11,26 +11,26 @@
     "data/Z2.xlsx": "sha256:61cdc63d98ade58d088143e8bdb61b5095d623496edeab5c7804a5a20cede585",
     "data/Z5.xlsx": "sha256:1f9a74fb208ef414480a0f851ea7d6b331996220651c045408d25b0e87c7d25a",
     "data/设置.json": "sha256:b58886cfdcaccd0804c03c745fb713167510189c97f9d2896cb0966a7d0994fc",
-    "index.html": "sha256:e18f67da743688211e147ecf490678854837dab48dd4914292344a2c886617a9",
+    "index.html": "sha256:068aae0e90b50c432d0570f7127e25433e124055ca790efae9fc46ab69dccd53",
     "keys/FINGERPRINT": "sha256:bb61169bfc12a9afff5659843d44735e606267c7bccba9bf81bf6cd2e057f5c5",
     "keys/data-admin.pub": "sha256:1ea782a4dcc97f9736d31b5b9c6c15b16dff95bcaf006df710afc57a166d21e4",
     "keys/root.pub": "sha256:766117972d579f774776339defa2d0a3f91025fe1834105c4240158d9c2a5771",
     "keys/roster.json": "sha256:75c71320a88f9e7550cddd53945f3c52611af72f9e14cc66f6ce5b1ec488da6f",
-    "src/app.js": "sha256:936dfc844f6bd21581d4d07dc01452883fe7f8a9ac5fa1cc2909688ad5b0cf14",
-    "src/index.template.html": "sha256:72a6888430da6573fff0cf11884a12590f99e7c7d0a246d0528e2369d8861b3b",
+    "src/app.js": "sha256:52b5960f7094ad2fa1cad583c6f7a75c7d47aef0f24f9f41e316ab57f87fc5a8",
+    "src/index.template.html": "sha256:dcde755664caf350e64bad8132472775bc7d41e5657d4156183af26e3da3d907",
     "src/styles/00-tokens.css": "sha256:7f2e02f415baa83e780c0c61c7f7ae6c51cd129e7713e7662056c0a9e82a2d9c",
     "src/styles/10-base.css": "sha256:85d2ec96d410b2e8c601b8cb64a08e3871a501dab92e678f5e56ecd524bccd6e",
     "src/styles/20-week.css": "sha256:7f61d431a88d021a26271e32009246cd2d80fd3b1eb6315d552aa48b96ff207a",
     "src/styles/30-list-states.css": "sha256:be49f31fa93d41c4b288092142db5de3bdef38637e8fb91e988d9698be0a9e75",
     "src/styles/40-modals.css": "sha256:9b809eae60d112fdf3c4b2a0da126b336164ef12acd412d31c32965cd53155c2",
-    "src/styles/50-mobile.css": "sha256:4a89456405a833933bb083f82202fb288b701d7359391c32a4c1bda5bff66cbc",
+    "src/styles/50-mobile.css": "sha256:08f0ad0e8a8d930f5d3a89933da28961c461a9a0a5497749204ee4751b3f79e1",
     "src/styles/60-dark.css": "sha256:835761ced05f340cbe0a50412e14a570bf696e16e7552177895830d75f8a3fde",
     "src/styles/70-compat.css": "sha256:8341640d12668a685b43e613d6cccd022a1c49b3281f5a278efa0a0a7bacc603",
     "tools/build.py": "sha256:22c00feb3a1048dbceba9fc44657a23df6f9c324b3ddd05c5ab840d349bb6724",
     "tools/common.py": "sha256:d0db2208722c8b463fe4ecca64f5e2cf2d8d2b3a239a4de7f065f524b4b3b2c9",
-    "tools/release.mjs": "sha256:3725be5328b9e0c9617a7b00c89698c3a4b56dee5f09f0dec5d33dd7eb1e4cad",
+    "tools/release.mjs": "sha256:86339eee72efb986e3cc2e9addf13a752812065895f32a5e51d270ead7723707",
     "tools/verify.py": "sha256:9542f993ad4cf88cc653cc33c5f3b4f1a80f7f77eb4fb353e3509a3425f88205"
   },
-  "treeHash": "sha256:25dd450a33ddef8bf031824b2fbd5141d1abbff9deb7361ca14cfd90fe3d2568",
-  "prev": "sha256:c4dca6c714987a8903e35c155e18af5240175868cda68a4d43f695b4c53df3f8"
+  "treeHash": "sha256:7b05d45e64cf3a8bbd6432dd6a595f55c4f7cdaf024faf301d1c65536427af42",
+  "prev": "sha256:f0451927551b4e86573fbf7b1007412064f7fa01dc729745e3467f71988eaa53"
 }

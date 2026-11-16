@@ -567,8 +567,9 @@ import { conflict, light, dark } from './sections-c.mjs';
     const z2File = { format: 'crsecue-class-backup', version: 2, class: 'Z2', experiments: [{ date: '2026-12-01', period: '第1-2节', name: '越权导入', place: 'X', note: '' }] };
     await page.locator('#fileInput').setInputFiles({ name: 'Z2.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(z2File)) });
     await page.waitForSelector('#importMask.show');
-    await page.locator('#importConfirm').click();
-    await poll(async () => /该班不在编辑授权范围/.test(await page.locator('#importStatus').innerText()), '导入到 Z2 应被拒', 8000);
+    assert.equal(await page.locator('#importConfirm').isDisabled(), true, '未授权班的确认按钮应禁用');
+    assert.match(await page.locator('#importScopeHint').innerText(), /将写入 Z2/);
+    assert.match(await page.locator('#importScopeHint').innerText(), /不在编辑授权范围/);
     await page.locator('#importCancel').click();
 
     // 撤销导入到未授权班：被拒且数据不回滚
@@ -656,4 +657,54 @@ import { conflict, light, dark } from './sections-c.mjs';
     assert.equal(await page.evaluate(() => document.body.classList.contains('edit-locked')), false);
     assert.equal(await page.locator('#editLockBadge').isVisible(), false);
     await ctx.close();
+  }
+
+  // 33. 未签名导入确认（默认取消）、验证弹窗 Esc、320px 页脚不溢出
+  {
+    const ctx = await browser.newContext({ viewport: { width: 900, height: 800 } });
+    const page = await ctx.newPage();
+    await page.goto(appUrl);
+    await page.waitForSelector('tbody tr');
+    await page.evaluate(() => {
+      window.__crsecueGrantForTest = { scope: ['Z1'], exp: '2099-01-01' };
+      window.__crsecueTestUnsignedConfirm = true;
+    });
+
+    const unsigned = { format: 'crsecue-class-backup', version: 2, class: 'Z1',
+      experiments: [{ date: '2026-12-03', period: '第1-2节', name: '未签名测试', place: 'A1', note: '' }] };
+    await page.locator('#fileInput').setInputFiles({ name: 'Z1.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(unsigned)) });
+    await page.waitForSelector('#importMask.show');
+    await page.locator('#importConfirm').click();
+    await page.waitForSelector('#confirmMask.show');
+    assert.match(await page.locator('#confirmTitle').innerText(), /未签名/);
+    await page.locator('#confirmCancel').click();
+    assert.equal(await page.locator('#importMask').evaluate(el => el.classList.contains('show')), true, '取消后应留在导入弹窗');
+    await page.locator('#importCancel').click();
+    await waitVisible(page.locator('#importMask'), false);
+
+    await page.locator('#verifyFileBtn').click();
+    await page.waitForSelector('#verifyMask.show');
+    await page.keyboard.press('Escape');
+    await waitVisible(page.locator('#verifyMask'), false);
+
+    await page.evaluate(() => { window.__crsecueTestUnsignedConfirm = false; window.__crsecueGrantForTest = null; });
+    await ctx.close();
+
+    const small = await browser.newContext({ viewport: { width: 320, height: 800 } });
+    const p2 = await small.newPage();
+    await p2.goto(appUrl);
+    await p2.waitForSelector('tbody tr');
+    const layout = await p2.evaluate(() => {
+      const row = document.querySelector('.diag-row');
+      const buttons = [...row.querySelectorAll('.diag-btn')];
+      return {
+        wrap: getComputedStyle(row).flexWrap,
+        overflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        visible: buttons.length === 4 && buttons.every(b => b.getBoundingClientRect().height > 0)
+      };
+    });
+    assert.equal(layout.wrap, 'wrap');
+    assert.equal(layout.overflowX, 0);
+    assert.equal(layout.visible, true);
+    await small.close();
   }

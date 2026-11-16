@@ -221,6 +221,8 @@
     .class-picker select { max-width: 84px; }
     .class-tool { width: 32px; height: 32px; }
     .class-tools { gap: 4px; }
+    .diag-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-start; text-align: left; }
+    .diag-btn + .diag-btn { margin-left: 0; }
   }
 
   /* ---------- 触屏按压反馈 ---------- */

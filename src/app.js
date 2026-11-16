@@ -89,6 +89,7 @@ const FIRST_VISIT = (() => {
   }
 })();
 if (READ_ONLY) document.body.classList.add('readonly');
+const IS_AUTOMATION = navigator.webdriver === true;
 const MIGRATION_CLASS = 'Z2';
 const DATE_CACHE_LIMIT = 4096;
 // 日期字符串在 render/search/import 中反复解析；缓存 timestamp，返回克隆避免调用方改缓存。
@@ -3134,9 +3135,11 @@ async function verifyImportSignature(obj, trustedKeys) {
   return meta.signer || key.signer || key.id;
 }
 
-// 供测试与调试使用：不是安全边界，真正的边界是签名本身。
-window.__crsecueVerifyImport = verifyImportSignature;
-window.__crsecueCanonical = canonicalJson;
+// 供自动化测试使用；生产浏览器不定义这些钩子。
+if (IS_AUTOMATION) {
+  window.__crsecueVerifyImport = verifyImportSignature;
+  window.__crsecueCanonical = canonicalJson;
+}
 
 async function importJsonFile(file) {
   if (!file || typeof file.size !== 'number') throw new Error('无法读取文件');
@@ -3169,6 +3172,7 @@ async function importJsonFile(file) {
   }
 
   const verifiedSigner = await verifyImportSignature(obj);
+  const signatureIssuedAt = obj._crsecue && obj._crsecue.issuedAt ? String(obj._crsecue.issuedAt).slice(0, 10) : '';
   if (obj._crsecue) delete obj._crsecue;
 
   let fileClass = classIdFromFileName(file.name);
@@ -3247,6 +3251,7 @@ async function importJsonFile(file) {
     week1,
     periodTimes: sanitizePeriodTimes(obj.periodTimes),
     verifiedSigner: verifiedSigner || '',
+    signedAt: signatureIssuedAt,
     unsigned: !verifiedSigner
   };
 }
@@ -3581,7 +3586,8 @@ async function verifySelectedFile(file) {
       return;
     }
     const meta = obj._crsecue || {};
-    setVerifyResult('ok', `签名有效：${signer}（${meta.keyId || '未知 keyId'}，实验 ${obj.experiments.length} 条）`);
+    const issued = meta.issuedAt ? `，签发 ${String(meta.issuedAt).slice(0, 10)}` : '';
+    setVerifyResult('ok', `签名有效：${signer}（${meta.keyId || '未知 keyId'}${issued}，实验 ${obj.experiments.length} 条）`);
   } catch (error) {
     setVerifyResult('error', error && error.message ? error.message : String(error));
   }
@@ -3599,8 +3605,8 @@ let verifiedGrant = null;
 function canEditClass(classId) {
   const target = classId || selectedClass;
   if (!target) return false;
-  if (window.__crsecueGrantForTest) return grantAllowsClass(window.__crsecueGrantForTest, target);
-  if (navigator.webdriver && !window.__crsecueTestLock) return true;
+  if (IS_AUTOMATION && window.__crsecueGrantForTest) return grantAllowsClass(window.__crsecueGrantForTest, target);
+  if (IS_AUTOMATION && !window.__crsecueTestLock) return true;
   return grantAllowsClass(verifiedGrant, target);
 }
 
@@ -3611,8 +3617,10 @@ function assertCanEdit(classId) {
   return false;
 }
 
-window.__crsecueCanEditClass = canEditClass;
-window.__crsecueAssertCanEdit = assertCanEdit;
+if (IS_AUTOMATION) {
+  window.__crsecueCanEditClass = canEditClass;
+  window.__crsecueAssertCanEdit = assertCanEdit;
+}
 
 function readEditGrant() {
   try {
@@ -3667,7 +3675,7 @@ function syncLockUI(classId) {
 async function refreshEditLock() {
   // 自动化测试（Playwright 会设置 navigator.webdriver）默认解锁；
   // 测试可用 __crsecueTestLock 强制回到锁定态来验证 UI。
-  if (!window.__crsecueTestLock && navigator.webdriver) {
+  if (!window.__crsecueTestLock && IS_AUTOMATION) {
     editUnlocked = true;
     document.body.classList.remove('edit-locked');
     if (editLockBadge) editLockBadge.hidden = true;
@@ -3706,7 +3714,7 @@ if (unlockEditBtnFooter) {
     if (file) applyGrantFile(file);
   });
   document.addEventListener('click', ev => {
-    if (navigator.webdriver && !window.__crsecueTestLock) return;
+    if (IS_AUTOMATION && !window.__crsecueTestLock) return;
     syncLockUI();
     if (editUnlocked) return;
     if (ev.target.closest('.action-panel button, tbody button')) {
@@ -3715,15 +3723,19 @@ if (unlockEditBtnFooter) {
       showStatus('warn', '编辑已锁定：请先在页脚「解锁编辑」导入管理员授权。');
     }
   }, true);
-  window.__crsecueVerifyGrant = verifyEditGrant;
-  window.__crsecueRefreshEditLock = refreshEditLock;
-  window.__crsecueGrantAllowsClass = grantAllowsClass;
+  if (IS_AUTOMATION) {
+    window.__crsecueVerifyGrant = verifyEditGrant;
+    window.__crsecueRefreshEditLock = refreshEditLock;
+    window.__crsecueGrantAllowsClass = grantAllowsClass;
+  }
   document.addEventListener('change', ev => {
     if (!ev.target || ev.target.id !== 'classSelect') return;
     syncLockUI(ev.target.value);
     setTimeout(() => { refreshEditLock(); }, 0);
   });
   refreshEditLock();
+  setInterval(() => { refreshEditLock(); }, 60000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshEditLock(); });
 }
 
 if (verifyFileBtn) {
@@ -3736,6 +3748,19 @@ if (verifyFileBtn) {
   verifyClose.addEventListener('click', closeVerifyModal);
   verifyDone.addEventListener('click', closeVerifyModal);
   verifyMask.addEventListener('click', ev => { if (ev.target === verifyMask) closeVerifyModal(); });
+
+  document.addEventListener('keydown', ev => {
+    if (!verifyMask.classList.contains('show')) return;
+    if (ev.key === 'Escape') { ev.preventDefault(); closeVerifyModal(); return; }
+    if (ev.key !== 'Tab') return;
+    const focusables = [...verifyMask.querySelectorAll('button, a[href], input, select, textarea')]
+      .filter(el => !el.disabled && el.offsetParent !== null);
+    if (!focusables.length) return;
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    if (ev.shiftKey && document.activeElement === first) { ev.preventDefault(); last.focus(); }
+    else if (!ev.shiftKey && document.activeElement === last) { ev.preventDefault(); first.focus(); }
+  });
 }
 
 const cueCloseBtn = document.getElementById('cueClose');
@@ -5371,6 +5396,7 @@ const importMask       = document.getElementById('importMask');
 const importClose      = document.getElementById('importClose');
 const importCancelBtn  = document.getElementById('importCancel');
 const importSignNote = document.getElementById('importSignNote');
+const importScopeHint = document.getElementById('importScopeHint');
 const importConfirmBtn = document.getElementById('importConfirm');
 const importSummary    = document.getElementById('importSummary');
 const importConflict   = document.getElementById('importConflict');
@@ -5421,6 +5447,17 @@ function getImportTargetData() {
   const id = importTargetId();
   if (id === selectedClass) return experiments;
   return loadClassState(id).list;
+}
+
+function updateImportScopeHint() {
+  if (!pendingImport || !importScopeHint) return;
+  const targetId = importTargetId();
+  const allowed = canEditClass(targetId);
+  importScopeHint.hidden = false;
+  importScopeHint.textContent = `将写入 ${targetId}` + (allowed ? '（在编辑授权范围内）' : ' · 该班不在编辑授权范围，无法确认导入');
+  importScopeHint.classList.toggle('ok', allowed);
+  importScopeHint.classList.toggle('error', !allowed);
+  if (importConfirmBtn) importConfirmBtn.disabled = !allowed;
 }
 
 function renderImportSummary() {
@@ -5575,7 +5612,7 @@ function syncImportTargetUI() {
   const target = selectedImportTarget();
   document.querySelectorAll('.target-card').forEach(card => {
     card.classList.toggle('selected', card.dataset.target === target);
-  });
+  });  updateImportScopeHint();
 }
 
 function selectedImportMode() {
@@ -5662,7 +5699,7 @@ function renderImportPreview() {
     `清空 ${targetId} 现有 ${targetData.length} 条记录，改用导入的 ${pendingImport.list.length} 条。`;
 
   conflictCountEl.textContent = String(preview.conflicts.length);
-  conflictBox.hidden = !(selectedImportMode() === 'merge' && preview.conflicts.length > 0);
+  conflictBox.hidden = !(selectedImportMode() === 'merge' && preview.conflicts.length > 0);  updateImportScopeHint();
 }
 
 function syncImportModeCards() {
@@ -5707,7 +5744,7 @@ function openImportModal(data) {
   if (data.verifiedSigner) {
     importSignNote.hidden = false;
     importSignNote.classList.add('ok');
-    importSignNote.textContent = `数据包签名已校验：${data.verifiedSigner}`;
+    importSignNote.textContent = `数据包签名已校验：${data.verifiedSigner}` + (data.signedAt ? `（签发 ${data.signedAt}）` : '');
   } else if (data.source === 'json') {
     importSignNote.hidden = false;
     importSignNote.classList.remove('ok');
@@ -5759,6 +5796,17 @@ importMask.addEventListener('click', (e) => {
 
 importConfirmBtn.addEventListener('click', async () => {
   if (!pendingImport) return;
+
+  if (pendingImport.unsigned && pendingImport.source === 'json' &&
+      !(IS_AUTOMATION && !window.__crsecueTestUnsignedConfirm)) {
+    const ok = await askConfirm({
+      title: '未签名文件',
+      message: '该文件没有管理员签名，无法确认来源，可能被改过。',
+      detail: `将导入 ${pendingImport.list.length} 条到本机，只影响你自己的浏览器。`,
+      okText: '仍然导入'
+    });
+    if (!ok) return;
+  }
 
   const mode = selectedImportMode();
   if (mode === 'replace' && pendingImport.exportScope === 'filtered') {

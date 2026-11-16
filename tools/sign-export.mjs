@@ -74,9 +74,10 @@ function cmdSign(argv) {
   }
   const payload = payloadOnly(obj);
   const sig = signBytes(createPrivateKey(fs.readFileSync(keyPath, 'utf8')), payload);
-  const signed = { ...payload, _crsecue: { v: 1, signer, keyId, alg: 'ES256', sig } };
+  const issuedAt = new Date().toISOString().slice(0, 10);
+  const signed = { ...payload, _crsecue: { v: 1, signer, keyId, alg: 'ES256', sig, issuedAt } };
   fs.writeFileSync(outPath, JSON.stringify(signed, null, 2) + '\n', 'utf8');
-  console.log('已签名：' + outPath + '（signer=' + signer + '，keyId=' + keyId + '）');
+  console.log('已签名：' + outPath + '（signer=' + signer + '，keyId=' + keyId + '，签发 ' + issuedAt + '）');
 }
 
 function cmdVerify(argv) {
@@ -101,7 +102,7 @@ function cmdVerify(argv) {
     process.exitCode = 1;
     return;
   }
-  console.log('OK: 签名有效（signer=' + meta.signer + '，keyId=' + meta.keyId + '，实验 ' + payload.experiments.length + ' 条）');
+  console.log('OK: 签名有效（signer=' + meta.signer + '，keyId=' + meta.keyId + '，实验 ' + payload.experiments.length + ' 条' + (meta.issuedAt ? '，签发 ' + meta.issuedAt : '') + '）');
 }
 
 function main(argv) {

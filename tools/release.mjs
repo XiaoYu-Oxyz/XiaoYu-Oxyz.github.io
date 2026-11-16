@@ -274,11 +274,19 @@ function cmdKeygen(argv) {
   const pubPem = publicKey.export({ type: 'spki', format: 'pem' });
   fs.mkdirSync(path.dirname(out), { recursive: true });
   fs.writeFileSync(out, privPem, { mode: 0o600 });
-  fs.mkdirSync(path.join(ROOT, 'keys'), { recursive: true });
-  fs.writeFileSync(path.join(ROOT, ROOT_PUB), pubPem, 'utf8');
-  fs.writeFileSync(path.join(ROOT, FINGERPRINT), fingerprintOf(pubPem) + '\n', 'utf8');
-  console.log('私钥已写到仓库外：' + out + '（mode 600）');
-  console.log('根公钥指纹：' + fingerprintOf(pubPem));
+  const pubArg = argOf(argv, '--pub');
+  if (pubArg) {
+    fs.mkdirSync(path.dirname(pubArg), { recursive: true });
+    fs.writeFileSync(pubArg, pubPem, 'utf8');
+    console.log('私钥已写到仓库外：' + out + '（mode 600）');
+    console.log('公钥已写到：' + pubArg + '（未覆盖 keys/root.pub）');
+  } else {
+    fs.mkdirSync(path.join(ROOT, 'keys'), { recursive: true });
+    fs.writeFileSync(path.join(ROOT, ROOT_PUB), pubPem, 'utf8');
+    fs.writeFileSync(path.join(ROOT, FINGERPRINT), fingerprintOf(pubPem) + '\n', 'utf8');
+    console.log('私钥已写到仓库外：' + out + '（mode 600）');
+    console.log('根公钥指纹：' + fingerprintOf(pubPem));
+  }
   console.log('keyId：' + keyId + '（写进 roster 时使用）');
 }
 

@@ -39,15 +39,7 @@ function setup(dir) {
 function newKey(dir, name) {
   const key = path.join(dir, name + '.pem');
   const pub = path.join(dir, name + '.pub');
-  // release.mjs 的 keygen 总是写 keys/root.pub；先备份根公钥，生成后再还原
-  const rootPubPath = path.join(dir, 'keys', 'root.pub');
-  const fpPath = path.join(dir, 'keys', 'FINGERPRINT');
-  const savedPub = fs.readFileSync(rootPubPath, 'utf8');
-  const savedFp = fs.readFileSync(fpPath, 'utf8');
-  assert.equal(run(dir, ['keygen', '--out', key, '--keyid', 'delegate-' + name]).code, 0);
-  fs.copyFileSync(rootPubPath, pub);
-  fs.writeFileSync(rootPubPath, savedPub);
-  fs.writeFileSync(fpPath, savedFp);
+  assert.equal(run(dir, ['keygen', '--out', key, '--keyid', 'delegate-' + name, '--pub', pub]).code, 0);
   return { key, pub };
 }
 
@@ -104,7 +96,7 @@ test('根密钥轮换：新根钥重签 roster + 新发布 → 验签通过', ()
   const dir = makeRepo();
   const oldRoot = setup(dir);
   const nextRoot = path.join(dir, 'root-2.pem');
-  assert.equal(run(dir, ['keygen', '--out', nextRoot, '--keyid', 'root-2', '--pub', path.join(dir, 'root-2.pub')]).code, 0);
+  assert.equal(run(dir, ['keygen', '--out', nextRoot, '--keyid', 'root-2']).code, 0);
   // 新根钥覆盖 keys/root.pub + FINGERPRINT，并重签 roster
   assert.equal(run(dir, ['roster-init', '--keyid', 'root-2', '--exp', '2099-01-01', '--key', nextRoot]).code, 0);
   fs.writeFileSync(path.join(dir, 'data', 'a.txt'), 'data-v2');
