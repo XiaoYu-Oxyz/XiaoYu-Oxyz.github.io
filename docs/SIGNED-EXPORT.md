@@ -46,7 +46,7 @@ node tools/sign-export.mjs sign \
 生成的文件在原 JSON 上多一个字段：
 
 ```json
-"_crsecue": { "v": 1, "signer": "admin", "keyId": "data-admin-2026-11", "alg": "ES256", "sig": "<base64 DER>" }
+"_crsecue": { "v": 1, "signer": "admin", "keyId": "data-admin-2026-11", "alg": "ES256", "sig": "<base64 raw r||s，64 字节>" }
 ```
 
 签名对象 = 去掉 `_crsecue` 后的 **canonical JSON**（key 排序），所以字段顺序变化不影响验签。
@@ -122,4 +122,15 @@ OK: 签名有效（signer=admin，keyId=data-admin-2026-11，实验 12 条）
 - 用的是页面内置公钥，不联网；老浏览器没有 `crypto.subtle` 时签名文件会显示"不支持验签"。
 
 适合场景：同学收到别人转发的 JSON，先在这里验一下，再决定要不要导入。
+
+
+
+## 9. 签名格式：raw r||s（不是 DER）
+
+浏览器 `crypto.subtle.verify` 只认 WebCrypto 原生的 **raw r||s（IEEE P1363，64 字节）**，
+不认 OpenSSL 默认的 DER。第一版用了 DER，导致 CLI 验签通过、页面验签失败——现已统一：
+
+- `tools/sign-export.mjs` 的 sign/verify 都用 `dsaEncoding: 'ieee-p1363'`；
+- 页面直接用 `crypto.subtle.verify`，无需转换；
+- `tests/sign-export.test.mjs` 断言签名解码后正好 64 字节。
 

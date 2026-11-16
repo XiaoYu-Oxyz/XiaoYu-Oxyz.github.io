@@ -3,5 +3,5 @@
   "signer": "admin",
   "keyId": "root-2026-11",
   "alg": "ed25519",
-  "sig": "s3PTwnwdeJtjVyADXdyzQhDVMdCsg0kgwkAc10DHpxZ86C6uCD54OSDwDKKpbpZY/yNlabIBeZhUEbG5rLx0AQ=="
+  "sig": "/QyHeDoomp/7kOcEF7Lan4o+gtNIDPMsOa0gfIsxWGwhZa1I8zRwC6fOsRcrlXTSQro3jyQ0/pKyQzpH6bz0Bg=="
 }
