@@ -579,3 +579,43 @@ import { conflict, light, dark } from './sections-c.mjs';
     await waitVisible(page.locator('#verifyMask'), false);
     await ctx.close();
   }
+
+  // 32. 编辑授权：默认锁定、grant 验签（有效/伪造/过期）、解锁后恢复
+  {
+    const ctx = await browser.newContext({ viewport: { width: 900, height: 800 } });
+    const page = await ctx.newPage();
+    await page.goto(appUrl);
+    await page.waitForSelector('tbody tr');
+
+    await page.evaluate(async () => { window.__crsecueTestLock = true; await window.__crsecueRefreshEditLock(); });
+    assert.equal(await page.evaluate(() => document.body.classList.contains('edit-locked')), true);
+    assert.equal(await page.locator('#editLockNote').isVisible(), true);
+    await page.locator('#addBtn').dispatchEvent('click');
+    await poll(async () => /已锁定/.test(await page.locator('#importStatus').innerText()), '锁定时应提示', 5000);
+
+    const grantCheck = await page.evaluate(async () => {
+      const pair = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify']);
+      const spki = new Uint8Array(await crypto.subtle.exportKey('spki', pair.publicKey));
+      const pem = '-----BEGIN PUBLIC KEY-----\n' + btoa(String.fromCharCode(...spki)).match(/.{1,64}/g).join('\n') + '\n-----END PUBLIC KEY-----\n';
+      const body = { v: 1, kind: 'edit-grant', sub: '测试', scope: ['Z1'], exp: '2099-01-01', keyId: 'test', alg: 'ES256' };
+      const sig = new Uint8Array(await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, pair.privateKey, new TextEncoder().encode(window.__crsecueCanonical(body))));
+      const grant = { ...body, sig: btoa(String.fromCharCode(...sig)) };
+      const keys = [{ id: 'test', pem }];
+      const good = await window.__crsecueVerifyGrant(grant, keys);
+      const forged = { ...grant, scope: ['Z1', 'Z2'] };
+      let forgedError = '';
+      try { await window.__crsecueVerifyGrant(forged, keys); } catch (e) { forgedError = e.message; }
+      const expired = { ...grant, exp: '2000-01-01' };
+      let expiredError = '';
+      try { await window.__crsecueVerifyGrant(expired, keys); } catch (e) { expiredError = e.message; }
+      return { good, forgedError, expiredError };
+    });
+    assert.equal(grantCheck.good, '测试');
+    assert.match(grantCheck.forgedError, /签名无效/);
+    assert.match(grantCheck.expiredError, /过期/);
+
+    await page.evaluate(async () => { window.__crsecueTestLock = false; await window.__crsecueRefreshEditLock(); });
+    assert.equal(await page.evaluate(() => document.body.classList.contains('edit-locked')), false);
+    assert.equal(await page.locator('#editLockNote').isVisible(), false);
+    await ctx.close();
+  }
