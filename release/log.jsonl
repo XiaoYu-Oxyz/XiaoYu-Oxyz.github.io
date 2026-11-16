@@ -1,2 +1,3 @@
 {"n":1,"prev":null,"manifestSha":"sha256:7cf823248c2705165d6215eadb95999ded83e85ac94ecc57461bd43de7bc8502","signer":"admin","issuedAt":"2026-11-16T04:59:17.450Z"}
 {"n":2,"prev":"sha256:7cf823248c2705165d6215eadb95999ded83e85ac94ecc57461bd43de7bc8502","manifestSha":"sha256:a68c05eaf0b052b6e8e242144aedc40f07ca791eeed34115cb0f3617bae10cf5","signer":"admin","issuedAt":"2026-11-16T07:46:27.035Z"}
+{"n":3,"prev":"sha256:a68c05eaf0b052b6e8e242144aedc40f07ca791eeed34115cb0f3617bae10cf5","manifestSha":"sha256:29f6799a89dd40019de482b54929003724786f36db2771572966b8e334c849ad","signer":"admin","issuedAt":"2026-11-16T08:26:37.274Z"}

@@ -483,3 +483,54 @@ import { conflict, light, dark } from './sections-c.mjs';
     assert.ok(rows.some(r => r.cls.includes('row-conflict')), '前置条件：需要冲突卡');
     await ctx.close();
   }
+
+  // 30. 导入验签：P-256 签名有效才接受；篡改/伪造签名一律拒绝
+  {
+    const ctx = await browser.newContext({ viewport: { width: 900, height: 800 } });
+    const page = await ctx.newPage();
+    await page.goto(appUrl);
+    await page.waitForSelector('tbody tr');
+
+    const embedded = await page.evaluate(() => {
+      const raw = JSON.parse(document.getElementById('defaultData').content.textContent);
+      return (raw.dataKeys || []).map(k => k.id);
+    });
+    assert.ok(embedded.some(id => /data-admin/.test(id)), '构建应把管理员数据公钥注入页面');
+
+    const cryptoCheck = await page.evaluate(async () => {
+      const pair = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify']);
+      const spki = new Uint8Array(await crypto.subtle.exportKey('spki', pair.publicKey));
+      const pem = '-----BEGIN PUBLIC KEY-----\n'
+        + btoa(String.fromCharCode(...spki)).match(/.{1,64}/g).join('\n')
+        + '\n-----END PUBLIC KEY-----\n';
+      const payload = {
+        format: 'crsecue-class-backup', version: 2, class: 'Z1',
+        experiments: [{ date: '2026-11-20', period: '第5-6节', name: '签名测试', place: 'A101', note: '' }]
+      };
+      const data = new TextEncoder().encode(window.__crsecueCanonical(payload));
+      const sig = new Uint8Array(await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, pair.privateKey, data));
+      const obj = { ...payload, _crsecue: { v: 1, signer: 'admin', keyId: 'test-key', alg: 'ES256', sig: btoa(String.fromCharCode(...sig)) } };
+      const keys = [{ id: 'test-key', pem }];
+      const good = await window.__crsecueVerifyImport(obj, keys);
+      const tampered = JSON.parse(JSON.stringify(obj));
+      tampered.experiments[0].name = '被改过';
+      let badMessage = '';
+      try { await window.__crsecueVerifyImport(tampered, keys); } catch (error) { badMessage = error.message; }
+      return { good, badMessage };
+    });
+    assert.equal(cryptoCheck.good, 'admin', '有效签名应返回签名者');
+    assert.match(cryptoCheck.badMessage, /签名无效/, '篡改后的数据必须验签失败');
+
+    await page.locator('#fileInput').setInputFiles({
+      name: 'Z1.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify({
+        format: 'crsecue-class-backup', version: 2, class: 'Z1',
+        experiments: [{ date: '2026-11-20', period: '第5-6节', name: '伪造签名', place: 'A101', note: '' }],
+        _crsecue: { v: 1, signer: 'admin', keyId: 'data-admin.pub', alg: 'ES256', sig: 'AAAA' }
+      }))
+    });
+    await poll(async () => /签名/.test(await page.locator('#importStatus').innerText()), '伪造签名应被拒绝', 8000);
+    assert.match(await page.locator('#importStatus').innerText(), /签名无效|签名校验失败/);
+    await ctx.close();
+  }

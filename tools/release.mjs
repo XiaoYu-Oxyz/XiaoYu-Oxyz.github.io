@@ -44,6 +44,7 @@ const INCLUDE_FILES = [
   'tools/common.py',
   'tools/release.mjs',
   'keys/root.pub',
+  'keys/data-admin.pub',
   'keys/roster.json',
   'keys/FINGERPRINT'
 ];
