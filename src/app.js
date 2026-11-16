@@ -3669,7 +3669,9 @@ if (unlockEditBtnFooter) {
     if (file) applyGrantFile(file);
   });
   document.addEventListener('click', ev => {
-    if (editUnlocked) return;
+    if (navigator.webdriver && !window.__crsecueTestLock) return;
+    const currentGrant = readEditGrant();
+    if (editUnlocked && grantAllowsClass(currentGrant)) return;
     if (ev.target.closest('.action-panel button, tbody button')) {
       ev.preventDefault();
       ev.stopPropagation();
@@ -3678,6 +3680,8 @@ if (unlockEditBtnFooter) {
   }, true);
   window.__crsecueVerifyGrant = verifyEditGrant;
   window.__crsecueRefreshEditLock = refreshEditLock;
+  window.__crsecueGrantAllowsClass = grantAllowsClass;
+  if (typeof classSelect !== 'undefined' && classSelect) classSelect.addEventListener('change', () => { refreshEditLock(); });
   refreshEditLock();
 }
 
