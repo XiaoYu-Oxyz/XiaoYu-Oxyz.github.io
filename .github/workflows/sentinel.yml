@@ -36,7 +36,11 @@ jobs:
           const targets = Object.keys(manifest.files).filter(rel =>
             rel === 'index.html' || rel.startsWith('calendars/')
           );
-          const hash = buf => 'sha256:' + crypto.createHash('sha256').update(buf).digest('hex');
+          // 与 tools/release.mjs 的哈希保持一致：文本文件先 CRLF→LF 再算，
+          // 否则 Git 仓库里的 CRLF（.ics 是 CRLF）会让线上永远"不一致"。
+          const hash = buf => 'sha256:' + crypto.createHash('sha256')
+            .update(Buffer.from(buf.toString('utf8').replace(/\r\n/g, '\n'), 'utf8'))
+            .digest('hex');
 
           (async () => {
             const failures = [];
