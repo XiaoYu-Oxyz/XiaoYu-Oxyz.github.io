@@ -147,7 +147,9 @@
   <p class="diag-row">
     <button class="diag-btn" id="feedbackBtn" type="button" title="把当前班级和最近一条实验拼成一段话，粘贴到班级群反馈">发现安排有误？复制反馈</button>
     <button class="diag-btn" id="diagBtn" type="button" title="复制浏览器/数据版本等信息，方便反馈问题">遇到问题？复制诊断信息</button>
+    <button class="diag-btn" id="verifyFileBtn" type="button" title="上传一个 JSON，检查有没有管理员签名；只验签，不导入数据">验证收到的文件</button>
   </p>
+  <input type="file" id="verifyInput" accept=".json" hidden>
   <p class="release-row"><span class="release-info" id="releaseInfo" title="签名发布信息：release 号 · 签名者 · 根公钥指纹前 8 组"><!--__CRSECUE_RELEASE__--></span></p>
 </main>
 
@@ -298,6 +300,25 @@
     <div class="modal-foot">
       <button class="ghost-btn" id="importCancel" type="button">取消</button>
       <button class="add-btn"   id="importConfirm" type="button">确认导入</button>
+    </div>
+  </div>
+</div>
+
+<!-- 独立验证：只验签，不导入 -->
+<div class="modal-mask" id="verifyMask">
+  <div class="modal verify-modal" role="dialog" aria-modal="true" aria-labelledby="verifyTitle">
+    <div class="modal-head">
+      <h2 id="verifyTitle">验证收到的文件</h2>
+      <button class="modal-close" id="verifyClose" type="button" aria-label="关闭">×</button>
+    </div>
+    <div class="modal-body">
+      <p class="mode-note" id="verifyFile">选择一个 .json 文件，只验签，不会导入任何数据。</p>
+      <div class="import-sign-note" id="verifyResult" role="status" hidden></div>
+      <p class="mode-note">验证只使用页面内置的管理员公钥，不联网；未签名文件无法确认来源。</p>
+    </div>
+    <div class="modal-foot">
+      <button class="ghost-btn" id="verifyPick" type="button">选择文件</button>
+      <button class="add-btn" id="verifyDone" type="button">关闭</button>
     </div>
   </div>
 </div>

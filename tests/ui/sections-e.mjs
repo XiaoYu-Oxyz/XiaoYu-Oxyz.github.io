@@ -534,3 +534,36 @@ import { conflict, light, dark } from './sections-c.mjs';
     assert.match(await page.locator('#importStatus').innerText(), /签名无效|签名校验失败/);
     await ctx.close();
   }
+
+  // 31. 独立验证入口：只验签，不导入任何数据
+  {
+    const ctx = await browser.newContext({ viewport: { width: 900, height: 800 } });
+    const page = await ctx.newPage();
+    await page.goto(appUrl);
+    await page.waitForSelector('tbody tr');
+    const before = await page.locator('tbody tr[data-idx]').count();
+
+    await page.locator('#verifyFileBtn').click();
+    await page.waitForSelector('#verifyMask.show');
+
+    const unsigned = {
+      format: 'crsecue-class-backup', version: 2, class: 'Z1',
+      experiments: [{ date: '2026-11-20', period: '第5-6节', name: '验证入口测试', place: 'A101', note: '' }]
+    };
+    await page.locator('#verifyInput').setInputFiles({
+      name: 'Z1.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(unsigned))
+    });
+    await poll(async () => /未签名/.test(await page.locator('#verifyResult').innerText()), '应提示未签名', 8000);
+
+    const forged = { ...unsigned, _crsecue: { v: 1, signer: 'admin', keyId: 'data-admin.pub', alg: 'ES256', sig: 'AAAA' } };
+    await page.locator('#verifyInput').setInputFiles({
+      name: 'Z1.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(forged))
+    });
+    await poll(async () => /签名无效|签名校验失败/.test(await page.locator('#verifyResult').innerText()), '应拒绝伪造签名', 8000);
+
+    const after = await page.locator('tbody tr[data-idx]').count();
+    assert.equal(after, before, '验证入口不应导入数据');
+    await page.locator('#verifyDone').click();
+    await waitVisible(page.locator('#verifyMask'), false);
+    await ctx.close();
+  }

@@ -3512,6 +3512,79 @@ if (cueTextEl) {
   });
 }
 
+/* ---------- 独立验证入口：只验签，不导入 ---------- */
+const verifyFileBtn = document.getElementById('verifyFileBtn');
+const verifyInput = document.getElementById('verifyInput');
+const verifyMask = document.getElementById('verifyMask');
+const verifyClose = document.getElementById('verifyClose');
+const verifyDone = document.getElementById('verifyDone');
+const verifyPick = document.getElementById('verifyPick');
+const verifyResult = document.getElementById('verifyResult');
+const verifyFileText = document.getElementById('verifyFile');
+
+function setVerifyResult(kind, text) {
+  verifyResult.hidden = !text;
+  verifyResult.classList.toggle('ok', kind === 'ok');
+  verifyResult.classList.toggle('error', kind === 'error');
+  verifyResult.textContent = text;
+}
+
+function openVerifyModal() {
+  setVerifyResult('', '');
+  verifyFileText.textContent = '选择一个 .json 文件，只验签，不会导入任何数据。';
+  rememberModalFocus(verifyMask, verifyFileBtn);
+  verifyMask.classList.add('show');
+  setTimeout(() => { try { verifyPick.focus(); } catch (e) {} }, 0);
+}
+
+function closeVerifyModal() {
+  verifyMask.classList.remove('show');
+  restoreModalFocus(verifyMask);
+  verifyInput.value = '';
+}
+
+async function verifySelectedFile(file) {
+  verifyFileText.textContent = file.name;
+  if (file.size > XLSX_LIMITS.fileBytes) {
+    setVerifyResult('error', '文件过大');
+    return;
+  }
+  let obj;
+  try {
+    obj = JSON.parse(await file.text());
+  } catch (e) {
+    setVerifyResult('error', '不是有效的 JSON 文件');
+    return;
+  }
+  if (!obj || typeof obj !== 'object' || !Array.isArray(obj.experiments)) {
+    setVerifyResult('error', '不是 CrseCue 班级备份 JSON（缺少 experiments）');
+    return;
+  }
+  try {
+    const signer = await verifyImportSignature(obj);
+    if (!signer) {
+      setVerifyResult('', '未签名：无法确认来源，只代表发送者本机数据。');
+      return;
+    }
+    const meta = obj._crsecue || {};
+    setVerifyResult('ok', `签名有效：${signer}（${meta.keyId || '未知 keyId'}，实验 ${obj.experiments.length} 条）`);
+  } catch (error) {
+    setVerifyResult('error', error && error.message ? error.message : String(error));
+  }
+}
+
+if (verifyFileBtn) {
+  verifyFileBtn.addEventListener('click', openVerifyModal);
+  verifyPick.addEventListener('click', () => { verifyInput.value = ''; verifyInput.click(); });
+  verifyInput.addEventListener('change', () => {
+    const file = verifyInput.files && verifyInput.files[0];
+    if (file) verifySelectedFile(file);
+  });
+  verifyClose.addEventListener('click', closeVerifyModal);
+  verifyDone.addEventListener('click', closeVerifyModal);
+  verifyMask.addEventListener('click', ev => { if (ev.target === verifyMask) closeVerifyModal(); });
+}
+
 const cueCloseBtn = document.getElementById('cueClose');
 if (cueCloseBtn) {
   cueCloseBtn.addEventListener('click', () => {
