@@ -774,10 +774,13 @@ try {
       borderWidth: cs ? cs.borderTopWidth : null,
       borderStyle: cs ? cs.borderTopStyle : null,
       radius: cs ? cs.borderTopLeftRadius : null,
+      shadow: cs ? cs.boxShadow : null,
       lines: lines.map(n => Number(n.toFixed(1)))
     };
   });
-  assert.equal(conflict.borderWidth, '2px', '冲突卡应有 2px 描边');
+  // 视觉 2px = 1px 边框 + 1px 内阴影；用 2px 边框会让相邻卡片文字错位 1px
+  assert.equal(conflict.borderWidth, '1px', '冲突卡边框应为 1px（视觉 2px 由内阴影补足）');
+  assert.match(conflict.shadow, /inset/, '冲突卡应有内阴影补足视觉厚度');
   assert.equal(conflict.borderStyle, 'solid');
   assert.equal(conflict.radius, '0px', '卡片是方角，描边也跟着方角');
   assert.ok(conflict.lines.length >= 1, '冲突组应画出连线');
@@ -1746,6 +1749,41 @@ try {
     assert.equal(info.bannerDisplay, 'none', '现代内核必须隐藏过旧浏览器提示条');
     assert.ok(info.bannerText > 10, '提示条应有可读文案（给不支持变量的浏览器看）');
     assert.equal(info.hasNoscript, true, '应有 <noscript> 兜底提示');
+    await ctx.close();
+  }
+
+  // 28. 两列布局下，同一行的普通卡与冲突卡必须横向对齐（边框厚度不能吃掉 1px）
+  {
+    const ctx = await browser.newContext({ viewport: { width: 700, height: 900 } });
+    const page = await ctx.newPage();
+    await page.clock.install({ time: new Date('2026-11-15T12:00:00') });
+    await page.addInitScript(() => {
+      localStorage.setItem('ghpages:zhizao2402:classdata:v1:Z1', JSON.stringify([
+        { date: '2026-11-16', period: '第1-2节', name: '普通实验', place: 'A101', note: '' },
+        { date: '2026-11-20', period: '第5-6节', name: '冲突甲', place: 'A104', note: '' },
+        { date: '2026-11-20', period: '第5-6节', name: '冲突乙', place: 'A105', note: '' }
+      ]));
+    });
+    await page.goto(`${appUrl}?class=Z1`);
+    await page.waitForSelector('tbody tr[data-idx]');
+    await page.evaluate(() => { recentOnly = false; render(); });
+    await page.waitForTimeout(500);
+    const geom = await page.evaluate(() => {
+      return [...document.querySelectorAll('tbody tr[data-idx]')].map(r => {
+        const td = r.querySelector('td.cell-mobile');
+        return {
+          conflict: r.classList.contains('row-conflict'),
+          top: Math.round(r.getBoundingClientRect().top * 10) / 10,
+          contentTop: td ? Math.round(td.getBoundingClientRect().top * 10) / 10 : null
+        };
+      });
+    });
+    const normal = geom.find(g => !g.conflict);
+    const conflicts = geom.filter(g => g.conflict);
+    assert.ok(normal && conflicts.length, '前置条件：需要普通卡与冲突卡');
+    const sideBySide = conflicts.find(c => c.top === normal.top);
+    assert.ok(sideBySide, '前置条件：普通卡与冲突卡应落在同一网格行');
+    assert.equal(sideBySide.contentTop, normal.contentTop, '同一行两张卡的文字必须横向对齐');
     await ctx.close();
   }
 
