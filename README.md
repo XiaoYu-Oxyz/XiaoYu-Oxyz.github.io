@@ -19,6 +19,8 @@
 | [SECURITY.md](SECURITY.md) | 改了 `index.html` 的 `<style>`/`<script>` 后，怎么做哈希维护 |
 | [docs/scripts.md](docs/scripts.md) | 想一键构建/检查/发布（替代原先两个 .bat） |
 | [docs/新学期.md](docs/新学期.md) | **学期结束/新学期第一次换数据**，按这份清单走（4 步 + 自查） |
+| [docs/止损点.md](docs/止损点.md) | 判断「这个改动值不值得做」的止损框架与红线 |
+| [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) | 浏览器兼容底线（Chrome 60 / Safari 11.1 / iOS 12）与老设备退化项 |
 
 三句话版本：**README 教你怎么用，PRD 说清做什么与不做什么，重构记录解释为什么这么做。**
 

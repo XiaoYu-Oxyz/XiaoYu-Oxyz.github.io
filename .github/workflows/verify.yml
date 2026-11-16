@@ -39,6 +39,9 @@ jobs:
       - name: Validate source data
         run: python tools/validate_data.py
 
+      - name: Docs link check
+        run: python tools/check_docs_links.py
+
       - name: Compatibility lint (Chrome 60 / Safari 11.1 / iOS 12)
         run: python tools/compat_lint.py
 

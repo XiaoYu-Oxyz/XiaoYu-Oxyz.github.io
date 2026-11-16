@@ -85,6 +85,7 @@ function Step-Build   {
     Invoke-Step '构建 index.html 与 *.ics' { Invoke-Python $buildArgs }
 }
 function Step-Verify  { Invoke-Step '校验 CSP 哈希与模板' { Invoke-Python @('tools/verify.py') } }
+function Step-Docs    { Invoke-Step '文档链接体检' { Invoke-Python @('tools/check_docs_links.py') } }
 function Step-Compat  { Invoke-Step '兼容性体检（Chrome 60 / Safari 11.1 / iOS 12）' { Invoke-Python @('tools/compat_lint.py') } }
 function Step-PyTests { Invoke-Step 'Python 单元测试（49）' { Invoke-Python @('-m', 'unittest', 'discover', '-s', 'tests', '-p', 'test_*.py') } }
 
@@ -106,6 +107,7 @@ Write-Host ("任务：{0}{1}{2}" -f $Task, $(if ($SkipUi) { '（跳过浏览器�
 switch ($Task) {
     'build' {
         Step-Data
+        Step-Docs
         Step-Compat
         Step-Build
         Step-Verify
@@ -114,6 +116,7 @@ switch ($Task) {
 
     'check' {
         Step-Data
+        Step-Docs
         Step-Compat
         Step-Build
         Step-Verify
@@ -133,6 +136,7 @@ switch ($Task) {
 
     'release' {
         Step-Data
+        Step-Docs
         Step-Compat
         Step-Build
         Step-Verify

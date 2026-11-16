@@ -53,7 +53,7 @@
 | G4 单文件可离线 | `index.html` 单文件双击可开 | 是（`file://` 自测通过） |
 | G5 数据可自助维护 | 不改代码即可更新数据 | `data/*.xlsx` + `tools/build.py` |
 | G6 打印可直接贴到教室门口 | A4 一页多行、不切行 | `break-inside: avoid` + 表头跨页重复 |
-| G7 读屏可用 | NVDA/VoiceOver 清单通过 | 清单见 [docs/ACCESSIBILITY.md](docs/ACCESSIBILITY.md)（人工复核仍需真机） |
+| G7 读屏可用 | NVDA/VoiceOver 清单通过 | 清单见 [docs/ACCESSIBILITY.md](ACCESSIBILITY.md)（人工复核仍需真机） |
 
 ### 2.2 非目标（明确不做）
 
@@ -433,7 +433,7 @@
 | [README](../README.md) | 使用说明、构建/部署、FAQ、已知限制 |
 | [docs/重构记录.md](重构记录.md) | 35 轮改动的动机、做法、踩坑与验证数字 |
 | [docs/新学期.md](新学期.md) | 学期结束/新学期换数据的 4 步清单 + 学生侧排查 |
-| [docs/ACCESSIBILITY.md](docs/ACCESSIBILITY.md) | 读屏回归清单（NVDA/VoiceOver/JAWS） |
+| [docs/ACCESSIBILITY.md](ACCESSIBILITY.md) | 读屏回归清单（NVDA/VoiceOver/JAWS） |
 | [SECURITY.md](../SECURITY.md) | CSP、Trusted Types、哈希维护、残余风险 |
 | [docs/scripts.md](scripts.md) | 一键构建 / 检查 / 发布（替代原先两个 `.bat`） |
 | `tools/build.py` | 数据 → `index.html` 的构建器（写盘前先校验） |
