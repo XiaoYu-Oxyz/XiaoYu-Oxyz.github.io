@@ -53,6 +53,7 @@ STYLES_DIR = SRC_DIR / "styles"
 APP_JS = SRC_DIR / "app.js"
 CSS_SLOT = "/*__CRSECUE_CSS__*/"
 JS_SLOT = "/*__CRSECUE_JS__*/"
+RELEASE_SLOT = "<!--__CRSECUE_RELEASE__-->"
 ICS_SUFFIX = ".ics"
 
 TEMPLATE_RE = re.compile(r'(<template id="defaultData">)([\s\S]*?)(</template>)')
@@ -660,6 +661,26 @@ def resolve_updated_at(settings):
     return fallback
 
 
+
+def release_badge(override=None):
+    """页脚发布信息：release 号 + 签名者 + 根指纹短码（数据全部来自仓库内已签名的文件）。"""
+    fp_file = BASE / "keys" / "FINGERPRINT"
+    fingerprint = fp_file.read_text(encoding="utf-8").strip() if fp_file.exists() else ""
+    short = " ".join(fingerprint.split()[:4]) if fingerprint else "未固定"
+    release = override
+    signer = None
+    manifest = BASE / "release" / "manifest.json"
+    if release is None and manifest.exists():
+        try:
+            data = json.loads(manifest.read_text(encoding="utf-8"))
+            release = data.get("release")
+            signer = data.get("signer")
+        except (ValueError, OSError):
+            release = None
+    text = ("release %s · %s · %s" % (release, signer or "admin", short)) if release else ("未签名构建 · %s" % short)
+    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
     settings = read_settings()
@@ -700,10 +721,16 @@ def main(argv=None):
     html = PAGE_TEMPLATE.read_bytes().decode("utf-8-sig").replace("\r\n", "\n")
     css = "".join(f.read_bytes().decode("utf-8").replace("\r\n", "\n") for f in css_files)
     js = APP_JS.read_bytes().decode("utf-8").replace("\r\n", "\n")
-    if html.count(CSS_SLOT) != 1 or html.count(JS_SLOT) != 1:
-        fail("src/index.template.html 里必须各有一个 %s / %s 占位" % (CSS_SLOT, JS_SLOT))
+    release_hint = None
+    if "--release" in argv:
+        index = argv.index("--release")
+        if index + 1 < len(argv):
+            release_hint = argv[index + 1]
+    if html.count(CSS_SLOT) != 1 or html.count(JS_SLOT) != 1 or html.count(RELEASE_SLOT) != 1:
+        fail("src/index.template.html 里必须各有一个 %s / %s / %s 占位" % (CSS_SLOT, JS_SLOT, RELEASE_SLOT))
     html = html.replace(CSS_SLOT, css)
     html = html.replace(JS_SLOT, js)
+    html = html.replace(RELEASE_SLOT, release_badge(release_hint))
     matches = list(TEMPLATE_RE.finditer(html))
     if len(matches) != 1:
         fail('源文件中必须恰好有一个 <template id="defaultData">...</template>')

@@ -29,18 +29,20 @@ node tools/release.mjs roster-init \
 ## 2. 每次发布（你自己改数据时）
 
 ```bash
-# 1) 改完 data/ 或 src/ 后重新构建
-python tools/build.py
+# 0) 先算这一版的 release 号：日志最后一条 +1（第一次是 1）
+# 1) 按这个号构建（页脚会显示它；不带 --release 时读当前 manifest 的号，用于 CI 复现）
+python tools/build.py --release 2
 python tools/verify.py
 
-# 2) 生成清单（release 自动 +1）
-node tools/release.mjs manifest
+# 2) 生成清单（必须用同一个号，否则清单里的 index.html 哈希对不上）
+node tools/release.mjs manifest --release 2
 
 # 3) 用私钥签名（同时写入 release/log.jsonl）
 node tools/release.mjs sign --key C:\Users\<你>\.crsecue\root-ed25519.pem
 
-# 4) 本地自检
+# 4) 本地自检 + 复现校验
 node tools/release.mjs verify
+python tools/build.py --check
 ```
 
 然后把 `data/`、`src/`、`index.html`、`calendars/`、`release/` 一起提交并推送。
