@@ -104,6 +104,11 @@ const DEFAULT_DATA = (() => {
   }
 })();
 
+const DATA_SIGNING_KEYS = (() => {
+  const list = DEFAULT_DATA && Array.isArray(DEFAULT_DATA.dataKeys) ? DEFAULT_DATA.dataKeys : [];
+  return list.filter(item => item && typeof item.id === 'string' && typeof item.pem === 'string' && /BEGIN PUBLIC KEY/.test(item.pem));
+})();
+
 const WEEK1_DEFAULT = (() => {
   const s = DEFAULT_DATA && typeof DEFAULT_DATA.week1 === 'string' ? DEFAULT_DATA.week1 : '';
   if (isValidDateStr(s)) return parseDate(s);
@@ -3047,6 +3052,78 @@ async function importXlsx(file) {
   };
 }
 
+/* ---------- 数据包签名验证（ECDSA P-256 / WebCrypto） ----------
+   签名对象与 tools/sign-export.mjs 完全一致：去掉 _crsecue 后的 canonical JSON。
+   验签失败一律阻止导入（fail-closed）；未签名文件允许导入，但 UI 会提示来源未认证。 */
+function canonicalJson(value) {
+  if (value === null) return 'null';
+  if (typeof value === 'number') {
+    if (!Number.isInteger(value)) throw new Error('canonical JSON 只允许整数');
+    return String(value);
+  }
+  if (typeof value === 'string') return JSON.stringify(value);
+  if (typeof value === 'boolean') return value ? 'true' : 'false';
+  if (Array.isArray(value)) return '[' + value.map(canonicalJson).join(',') + ']';
+  if (typeof value === 'object') {
+    const keys = Object.keys(value).sort();
+    return '{' + keys.map(k => JSON.stringify(k) + ':' + canonicalJson(value[k])).join(',') + '}';
+  }
+  throw new Error('canonical JSON 不支持的类型：' + typeof value);
+}
+
+function base64ToBytes(text) {
+  const binary = atob(String(text).replace(/\s+/g, ''));
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+function pemToBytes(pem) {
+  const body = String(pem)
+    .replace(/-----BEGIN PUBLIC KEY-----/g, '')
+    .replace(/-----END PUBLIC KEY-----/g, '')
+    .replace(/\s+/g, '');
+  return base64ToBytes(body);
+}
+
+async function verifyImportSignature(obj, trustedKeys) {
+  const meta = obj && obj._crsecue;
+  if (!meta) return '';                       // 未签名：交给调用方提示
+  if (typeof meta !== 'object' || meta.v !== 1 || meta.alg !== 'ES256' || typeof meta.sig !== 'string') {
+    throw new Error('签名格式不支持，已阻止导入');
+  }
+  const keys = Array.isArray(trustedKeys) ? trustedKeys : DATA_SIGNING_KEYS;
+  const key = keys.find(item => item && item.id === meta.keyId);
+  if (!key) throw new Error('签名者公钥未内置，已阻止导入');
+  if (!window.crypto || !crypto.subtle) throw new Error('当前浏览器不支持验签，已阻止导入');
+  const payload = Object.assign({}, obj);
+  delete payload._crsecue;
+  let ok = false;
+  try {
+    const cryptoKey = await crypto.subtle.importKey(
+      'spki',
+      pemToBytes(key.pem),
+      { name: 'ECDSA', namedCurve: 'P-256' },
+      false,
+      ['verify']
+    );
+    ok = await crypto.subtle.verify(
+      { name: 'ECDSA', hash: 'SHA-256' },
+      cryptoKey,
+      base64ToBytes(meta.sig),
+      new TextEncoder().encode(canonicalJson(payload))
+    );
+  } catch (err) {
+    throw new Error('签名校验失败，已阻止导入');
+  }
+  if (!ok) throw new Error('签名无效：文件可能被改过，已阻止导入');
+  return meta.signer || key.signer || key.id;
+}
+
+// 供测试与调试使用：不是安全边界，真正的边界是签名本身。
+window.__crsecueVerifyImport = verifyImportSignature;
+window.__crsecueCanonical = canonicalJson;
+
 async function importJsonFile(file) {
   if (!file || typeof file.size !== 'number') throw new Error('无法读取文件');
   if (file.size > XLSX_LIMITS.fileBytes) {
@@ -3076,6 +3153,9 @@ async function importJsonFile(file) {
   if (version !== 1 && version !== 2) {
     throw new Error(`不支持的 JSON 备份版本：${obj.version}`);
   }
+
+  const verifiedSigner = await verifyImportSignature(obj);
+  if (obj._crsecue) delete obj._crsecue;
 
   let fileClass = classIdFromFileName(file.name);
   const metaClass = cleanText(obj.class, 160).trim();
@@ -3151,7 +3231,9 @@ async function importJsonFile(file) {
     fileClass,
     exportScope,
     week1,
-    periodTimes: sanitizePeriodTimes(obj.periodTimes)
+    periodTimes: sanitizePeriodTimes(obj.periodTimes),
+    verifiedSigner: verifiedSigner || '',
+    unsigned: !verifiedSigner
   };
 }
 
@@ -5452,7 +5534,7 @@ importConfirmBtn.addEventListener('click', async () => {
   }
 
   const updatePlace = conflictSelect.value === 'update';
-  const { list, skipped, timeMode, fileClass, week1: importedWeek1, periodTimes: importedTimes } = pendingImport;
+  const { list, skipped, timeMode, fileClass, week1: importedWeek1, periodTimes: importedTimes, verifiedSigner } = pendingImport;
   const targetId = importTargetId();
   const targetNew = !classIds.includes(targetId);
   const targetWasCurrent = targetId === selectedClass;
@@ -5544,6 +5626,7 @@ importConfirmBtn.addEventListener('click', async () => {
     lines.push(`· 已切换到班级 ${targetId}`);
   }
   if (week1Applied) lines.push(`· 已应用班级 week1：${importedWeek1}`);
+  if (verifiedSigner) lines.push(`· 数据包签名已校验：${verifiedSigner}`);
   if (targetNew) lines.push(`· ${targetId} 是本机新建班级；导出该班 xlsx 放进 data/ 并 build 后才会成为部署默认`);
   if (fileClass !== targetId) lines.push(`· 文件名班级 ${fileClass} 未采用，已导入到 ${targetId}`);
 

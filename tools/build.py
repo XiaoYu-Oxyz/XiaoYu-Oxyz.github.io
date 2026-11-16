@@ -681,6 +681,21 @@ def release_badge(override=None):
     return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
+def read_data_keys():
+    """把 keys/data-*.pub 注入页面，供导入时 WebCrypto 验签。"""
+    keys_dir = BASE / "keys"
+    result = []
+    if not keys_dir.exists():
+        return result
+    for path in sorted(keys_dir.glob("data-*.pub")):
+        pem = path.read_text(encoding="utf-8").strip()
+        if "BEGIN PUBLIC KEY" not in pem:
+            continue
+        signer = "admin" if "admin" in path.name else path.stem
+        result.append({"id": path.name, "signer": signer, "pem": pem})
+    return result
+
+
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
     settings = read_settings()
@@ -710,6 +725,7 @@ def main(argv=None):
         "updatedAt": updated_at,
         "reminderMinutes": REMINDER_MINUTES,
         "classes": classes,
+        "dataKeys": read_data_keys(),
     }
 
     for required in (PAGE_TEMPLATE, APP_JS):
