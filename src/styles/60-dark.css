@@ -123,7 +123,8 @@
     .export-count { color: var(--c-8b949e); }
     .saved-tip { color: var(--c-56d364); }
     /* 页脚两个反馈入口：浅色 #57606a 在深色底 2.71:1 */
-    .diag-btn { color: var(--c-adbac7); }
+    .release-row { color: var(--c-8b949e); }
+.diag-btn { color: var(--c-adbac7); }
     .diag-btn:hover { color: var(--c-58a6ff); }
     /* 导出方式卡里的说明文字（#57606a on #000 = 3.29） */
     .export-choice span { color: var(--c-adbac7); }

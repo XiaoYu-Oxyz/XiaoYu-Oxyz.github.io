@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-hyADu5oE1BsVPNEo/J8KtOndqKi0fuzUZVrS2WyUdNY='; script-src-elem 'sha256-hyADu5oE1BsVPNEo/J8KtOndqKi0fuzUZVrS2WyUdNY='; script-src-attr 'none'; style-src 'sha256-sk+0rQE754+FZSEKHh2FxKPIFi6dSoAlBLr02UuTKeA='; style-src-elem 'sha256-sk+0rQE754+FZSEKHh2FxKPIFi6dSoAlBLr02UuTKeA='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-hyADu5oE1BsVPNEo/J8KtOndqKi0fuzUZVrS2WyUdNY='; script-src-elem 'sha256-hyADu5oE1BsVPNEo/J8KtOndqKi0fuzUZVrS2WyUdNY='; script-src-attr 'none'; style-src 'sha256-u4sYltRDCAew1a6SV9N5ZWmVN3zyr2cOOzcO4GuTmU8='; style-src-elem 'sha256-u4sYltRDCAew1a6SV9N5ZWmVN3zyr2cOOzcO4GuTmU8='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>CrseCue</title>
 <style>
@@ -500,6 +500,8 @@
   }
   /* 诊断信息：纯静态页面没有后端日志，反馈问题时最缺环境信息 */
   .diag-row { margin: 14px 0 0; text-align: right; }
+.release-row { margin: 8px 0 0; text-align: right; font-size: 12px; line-height: 1.5; color: var(--c-57606a); }
+.release-info { white-space: normal; }
   .diag-btn {
     /* 竖向留 4px：让按钮高度到 24px（WCAG 2.2 · 2.5.8 的最小指针目标），
        横向仍是 4px，320px 下两个按钮并排不会挤爆 */
@@ -1127,7 +1129,7 @@
     /* 深色块的 body 规则在本块之后（同特异性），这里必须 !important，
        否则深色模式下打印是黑底浅字 */
     body { background: var(--c-fff) !important; padding: 0 !important; color: var(--c-000) !important; }
-    .head, .action-panel, .settings-row, .legend, .clock, .diag-row,
+    .head, .action-panel, .settings-row, .legend, .clock, .diag-row, .release-row,
     .import-status, .sr-only, .copy-week-outside, .actions-toggle, .class-picker,
     .recent-filter, .recent-count, .data-updated, .saved-tip,
     .cue-bar, .first-run, .week-view, .view-switch { display: none !important; }
@@ -1304,6 +1306,7 @@
     .legend i { width: 9px; height: 9px; }
     .table-wrap { order: 8; min-width: 0; }
     .diag-row { order: 9; }
+.release-row { order: 10; }
     .actions-toggle { padding: 7px 11px; font-size: 12.5px; min-height: 44px; }
     .copy-week-outside { padding: 7px 6px; font-size: 11.5px; min-height: 44px; }
     /* 触控目标 ≥44px（WCAG 2.5.5）：面板按钮默认收起，不占首屏 */
@@ -1665,7 +1668,8 @@
     .export-count { color: var(--c-8b949e); }
     .saved-tip { color: var(--c-56d364); }
     /* 页脚两个反馈入口：浅色 #57606a 在深色底 2.71:1 */
-    .diag-btn { color: var(--c-adbac7); }
+    .release-row { color: var(--c-8b949e); }
+.diag-btn { color: var(--c-adbac7); }
     .diag-btn:hover { color: var(--c-58a6ff); }
     /* 导出方式卡里的说明文字（#57606a on #000 = 3.29） */
     .export-choice span { color: var(--c-adbac7); }
@@ -1953,6 +1957,7 @@
     <button class="diag-btn" id="feedbackBtn" type="button" title="把当前班级和最近一条实验拼成一段话，粘贴到班级群反馈">发现安排有误？复制反馈</button>
     <button class="diag-btn" id="diagBtn" type="button" title="复制浏览器/数据版本等信息，方便反馈问题">遇到问题？复制诊断信息</button>
   </p>
+  <p class="release-row"><span class="release-info" id="releaseInfo" title="签名发布信息：release 号 · 签名者 · 根公钥指纹前 8 组">release 2 · admin · 99BA 4A96 204A DA13</span></p>
 </main>
 
 <!-- 添加实验模态框 -->

@@ -78,6 +78,8 @@
   }
   /* 诊断信息：纯静态页面没有后端日志，反馈问题时最缺环境信息 */
   .diag-row { margin: 14px 0 0; text-align: right; }
+.release-row { margin: 8px 0 0; text-align: right; font-size: 12px; line-height: 1.5; color: var(--c-57606a); }
+.release-info { white-space: normal; }
   .diag-btn {
     /* 竖向留 4px：让按钮高度到 24px（WCAG 2.2 · 2.5.8 的最小指针目标），
        横向仍是 4px，320px 下两个按钮并排不会挤爆 */

@@ -829,6 +829,7 @@ git push
 - 每次发布生成 `release/manifest.json`（受保护文件哈希 + 单调计数器 + 前链），由签名者私钥签名；
 - CI 第一步是 `node tools/release.mjs verify`：验根指纹 → 名册签名 → 清单签名 → 计数器/回滚 → 文件哈希，任一失败即拒绝发布；
 - 受托人（如学委）只能用你签发的 scope/有效期签名，**合并仍必须你批准**。
+- 页脚显示 **release 号 · 签名者 · 根公钥指纹前 8 组**（例如 `release 2 · admin · 99BA 4A96 204A DA13`），同学可据此核对是否为官方发布。
 
 完整方案见 [docs/SECURITY-PLAN.md](docs/SECURITY-PLAN.md)，密钥操作见 [docs/KEY-CEREMONY.md](docs/KEY-CEREMONY.md)，事故处理见 [docs/INCIDENT-RESPONSE.md](docs/INCIDENT-RESPONSE.md)。
 
