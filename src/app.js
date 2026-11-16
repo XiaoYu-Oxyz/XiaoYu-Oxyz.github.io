@@ -3672,6 +3672,11 @@ if (unlockEditBtnFooter) {
     if (navigator.webdriver && !window.__crsecueTestLock) return;
     const currentGrant = readEditGrant();
     if (editUnlocked && grantAllowsClass(currentGrant)) return;
+    if (editUnlocked && currentGrant && !grantAllowsClass(currentGrant)) {
+      editUnlocked = false;
+      document.body.classList.add('edit-locked');
+      if (editLockBadge) editLockBadge.hidden = false;
+    }
     if (ev.target.closest('.action-panel button, tbody button')) {
       ev.preventDefault();
       ev.stopPropagation();
@@ -3681,7 +3686,7 @@ if (unlockEditBtnFooter) {
   window.__crsecueVerifyGrant = verifyEditGrant;
   window.__crsecueRefreshEditLock = refreshEditLock;
   window.__crsecueGrantAllowsClass = grantAllowsClass;
-  if (typeof classSelect !== 'undefined' && classSelect) classSelect.addEventListener('change', () => { refreshEditLock(); });
+  document.addEventListener('change', ev => { if (ev.target && ev.target.id === 'classSelect') refreshEditLock(); });
   refreshEditLock();
 }
 
