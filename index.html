@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Zd5ywBzYqvf0bgamAAEfJDic80M7mj81vsZeKzIAzS8='; script-src-elem 'sha256-Zd5ywBzYqvf0bgamAAEfJDic80M7mj81vsZeKzIAzS8='; script-src-attr 'none'; style-src 'sha256-usJNXN8KKPbMmz1vEJk3J88fuDwoDHvOUZAShvwcLGI='; style-src-elem 'sha256-usJNXN8KKPbMmz1vEJk3J88fuDwoDHvOUZAShvwcLGI='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-s5V79+Z5sDe12OZjBAN4APlmvTgCm5wf6mOEJuuF/pM='; script-src-elem 'sha256-s5V79+Z5sDe12OZjBAN4APlmvTgCm5wf6mOEJuuF/pM='; script-src-attr 'none'; style-src 'sha256-dTQMtmX69LECdSc3JlJI6caErWyZ4Pqznd37TWYRMhs='; style-src-elem 'sha256-dTQMtmX69LECdSc3JlJI6caErWyZ4Pqznd37TWYRMhs='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>CrseCue</title>
 <style>
@@ -1025,6 +1025,12 @@
     border: 1px solid var(--c-f0d38a); border-radius: 8px;
     background: var(--c-fff8e6); color: var(--c-7a4b00); font-size: 12.5px; line-height: 1.6;
   }
+  .import-sign-note.error {
+    border-color: var(--c-ffb3b0);
+    background: var(--c-ffebe9);
+    color: var(--c-a40e26);
+  }
+  .verify-modal { max-width: 560px; }
   .import-sign-note.ok {
     border-color: var(--row-tomorrow-border);
     background: var(--row-tomorrow-bg);
@@ -1727,6 +1733,7 @@
     /* 导入弹窗的几块浅底：摘要、同名提示、选中的方式卡、推荐徽标 */
     .import-summary { background: var(--c-0d1117); border-color: var(--c-30363d); color: var(--c-c9d1d9); }
     .import-sign-note { background: var(--c-161b22); border-color: var(--c-9a6700); color: var(--c-e3b341); }
+    .import-sign-note.error { border-color: var(--c-6b1f24); background: var(--c-3d1a1c); color: var(--c-ff9492); }
     .import-sign-note.ok { border-color: var(--row-tomorrow-border); background: var(--row-tomorrow-bg); color: var(--row-tomorrow-text); }
     .import-summary b { color: var(--c-58a6ff); }
     .form-conflict, .import-conflict { background: var(--c-1f1a10); border-left-color: var(--c-8a6100); color: var(--c-d4a72c); }
@@ -1968,8 +1975,10 @@
   <p class="diag-row">
     <button class="diag-btn" id="feedbackBtn" type="button" title="把当前班级和最近一条实验拼成一段话，粘贴到班级群反馈">发现安排有误？复制反馈</button>
     <button class="diag-btn" id="diagBtn" type="button" title="复制浏览器/数据版本等信息，方便反馈问题">遇到问题？复制诊断信息</button>
+    <button class="diag-btn" id="verifyFileBtn" type="button" title="上传一个 JSON，检查有没有管理员签名；只验签，不导入数据">验证收到的文件</button>
   </p>
-  <p class="release-row"><span class="release-info" id="releaseInfo" title="签名发布信息：release 号 · 签名者 · 根公钥指纹前 8 组">release 4 · admin · 99BA 4A96 204A DA13</span></p>
+  <input type="file" id="verifyInput" accept=".json" hidden>
+  <p class="release-row"><span class="release-info" id="releaseInfo" title="签名发布信息：release 号 · 签名者 · 根公钥指纹前 8 组">release 5 · admin · 99BA 4A96 204A DA13</span></p>
 </main>
 
 <!-- 添加实验模态框 -->
@@ -2119,6 +2128,25 @@
     <div class="modal-foot">
       <button class="ghost-btn" id="importCancel" type="button">取消</button>
       <button class="add-btn"   id="importConfirm" type="button">确认导入</button>
+    </div>
+  </div>
+</div>
+
+<!-- 独立验证：只验签，不导入 -->
+<div class="modal-mask" id="verifyMask">
+  <div class="modal verify-modal" role="dialog" aria-modal="true" aria-labelledby="verifyTitle">
+    <div class="modal-head">
+      <h2 id="verifyTitle">验证收到的文件</h2>
+      <button class="modal-close" id="verifyClose" type="button" aria-label="关闭">×</button>
+    </div>
+    <div class="modal-body">
+      <p class="mode-note" id="verifyFile">选择一个 .json 文件，只验签，不会导入任何数据。</p>
+      <div class="import-sign-note" id="verifyResult" role="status" hidden></div>
+      <p class="mode-note">验证只使用页面内置的管理员公钥，不联网；未签名文件无法确认来源。</p>
+    </div>
+    <div class="modal-foot">
+      <button class="ghost-btn" id="verifyPick" type="button">选择文件</button>
+      <button class="add-btn" id="verifyDone" type="button">关闭</button>
     </div>
   </div>
 </div>
@@ -5756,6 +5784,79 @@ if (cueTextEl) {
     event.preventDefault();
     jumpToCueTarget();
   });
+}
+
+/* ---------- 独立验证入口：只验签，不导入 ---------- */
+const verifyFileBtn = document.getElementById('verifyFileBtn');
+const verifyInput = document.getElementById('verifyInput');
+const verifyMask = document.getElementById('verifyMask');
+const verifyClose = document.getElementById('verifyClose');
+const verifyDone = document.getElementById('verifyDone');
+const verifyPick = document.getElementById('verifyPick');
+const verifyResult = document.getElementById('verifyResult');
+const verifyFileText = document.getElementById('verifyFile');
+
+function setVerifyResult(kind, text) {
+  verifyResult.hidden = !text;
+  verifyResult.classList.toggle('ok', kind === 'ok');
+  verifyResult.classList.toggle('error', kind === 'error');
+  verifyResult.textContent = text;
+}
+
+function openVerifyModal() {
+  setVerifyResult('', '');
+  verifyFileText.textContent = '选择一个 .json 文件，只验签，不会导入任何数据。';
+  rememberModalFocus(verifyMask, verifyFileBtn);
+  verifyMask.classList.add('show');
+  setTimeout(() => { try { verifyPick.focus(); } catch (e) {} }, 0);
+}
+
+function closeVerifyModal() {
+  verifyMask.classList.remove('show');
+  restoreModalFocus(verifyMask);
+  verifyInput.value = '';
+}
+
+async function verifySelectedFile(file) {
+  verifyFileText.textContent = file.name;
+  if (file.size > XLSX_LIMITS.fileBytes) {
+    setVerifyResult('error', '文件过大');
+    return;
+  }
+  let obj;
+  try {
+    obj = JSON.parse(await file.text());
+  } catch (e) {
+    setVerifyResult('error', '不是有效的 JSON 文件');
+    return;
+  }
+  if (!obj || typeof obj !== 'object' || !Array.isArray(obj.experiments)) {
+    setVerifyResult('error', '不是 CrseCue 班级备份 JSON（缺少 experiments）');
+    return;
+  }
+  try {
+    const signer = await verifyImportSignature(obj);
+    if (!signer) {
+      setVerifyResult('', '未签名：无法确认来源，只代表发送者本机数据。');
+      return;
+    }
+    const meta = obj._crsecue || {};
+    setVerifyResult('ok', `签名有效：${signer}（${meta.keyId || '未知 keyId'}，实验 ${obj.experiments.length} 条）`);
+  } catch (error) {
+    setVerifyResult('error', error && error.message ? error.message : String(error));
+  }
+}
+
+if (verifyFileBtn) {
+  verifyFileBtn.addEventListener('click', openVerifyModal);
+  verifyPick.addEventListener('click', () => { verifyInput.value = ''; verifyInput.click(); });
+  verifyInput.addEventListener('change', () => {
+    const file = verifyInput.files && verifyInput.files[0];
+    if (file) verifySelectedFile(file);
+  });
+  verifyClose.addEventListener('click', closeVerifyModal);
+  verifyDone.addEventListener('click', closeVerifyModal);
+  verifyMask.addEventListener('click', ev => { if (ev.target === verifyMask) closeVerifyModal(); });
 }
 
 const cueCloseBtn = document.getElementById('cueClose');

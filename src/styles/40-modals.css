@@ -132,6 +132,12 @@
     border: 1px solid var(--c-f0d38a); border-radius: 8px;
     background: var(--c-fff8e6); color: var(--c-7a4b00); font-size: 12.5px; line-height: 1.6;
   }
+  .import-sign-note.error {
+    border-color: var(--c-ffb3b0);
+    background: var(--c-ffebe9);
+    color: var(--c-a40e26);
+  }
+  .verify-modal { max-width: 560px; }
   .import-sign-note.ok {
     border-color: var(--row-tomorrow-border);
     background: var(--row-tomorrow-bg);
