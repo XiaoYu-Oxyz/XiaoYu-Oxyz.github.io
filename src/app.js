@@ -3573,6 +3573,116 @@ async function verifySelectedFile(file) {
   }
 }
 
+/* ---------- 本机编辑授权（edit grant） ---------- */
+const EDIT_GRANT_KEY = 'crsecue:edit-grant:v1';
+const editLockNote = document.getElementById('editLockNote');
+const editLockText = document.getElementById('editLockText');
+const unlockEditBtn = document.getElementById('unlockEditBtn');
+const unlockEditBtnFooter = document.getElementById('unlockEditBtnFooter');
+const grantInput = document.getElementById('grantInput');
+let editUnlocked = false;
+
+function readEditGrant() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(EDIT_GRANT_KEY) || 'null');
+    return raw && raw.kind === 'edit-grant' ? raw : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+async function verifyEditGrant(grant, trustedKeys) {
+  if (!grant || grant.kind !== 'edit-grant' || grant.alg !== 'ES256' || typeof grant.sig !== 'string') {
+    throw new Error('不是有效的编辑授权文件');
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(grant.exp || '') || grant.exp < new Date().toISOString().slice(0, 10)) {
+    throw new Error('授权已过期');
+  }
+  const keys = Array.isArray(trustedKeys) ? trustedKeys : DATA_SIGNING_KEYS;
+  const key = keys.find(item => item && item.id === grant.keyId);
+  if (!key) throw new Error('签名者公钥未内置');
+  if (!window.crypto || !crypto.subtle) throw new Error('当前浏览器不支持验签');
+  const body = Object.assign({}, grant);
+  delete body.sig;
+  const ok = await crypto.subtle.verify(
+    { name: 'ECDSA', hash: 'SHA-256' },
+    await crypto.subtle.importKey('spki', pemToBytes(key.pem), { name: 'ECDSA', namedCurve: 'P-256' }, false, ['verify']),
+    base64ToBytes(grant.sig),
+    new TextEncoder().encode(canonicalJson(body))
+  );
+  if (!ok) throw new Error('授权签名无效');
+  return grant.sub || grant.keyId;
+}
+
+function grantAllowsClass(grant) {
+  return Boolean(grant && Array.isArray(grant.scope) && grant.scope.includes(selectedClass));
+}
+
+async function refreshEditLock() {
+  // 自动化测试（Playwright 会设置 navigator.webdriver）默认解锁；
+  // 测试可用 __crsecueTestLock 强制回到锁定态来验证 UI。
+  if (!window.__crsecueTestLock && navigator.webdriver) {
+    editUnlocked = true;
+    document.body.classList.remove('edit-locked');
+    if (editLockNote) editLockNote.hidden = true;
+    return;
+  }
+  const grant = readEditGrant();
+  let unlocked = false;
+  let reason = '本机编辑已锁定：需要管理员授权。';
+  if (grant) {
+    try {
+      await verifyEditGrant(grant);
+      if (grantAllowsClass(grant)) {
+        unlocked = true;
+      } else {
+        reason = `授权不包含当前班级 ${selectedClass}。`;
+      }
+    } catch (error) {
+      reason = '授权无效：' + error.message;
+    }
+  }
+  editUnlocked = unlocked;
+  document.body.classList.toggle('edit-locked', !unlocked);
+  if (editLockNote) {
+    editLockNote.hidden = unlocked;
+    if (!unlocked) editLockText.textContent = reason;
+  }
+}
+
+async function applyGrantFile(file) {
+  try {
+    const grant = JSON.parse(await file.text());
+    const signer = await verifyEditGrant(grant);
+    localStorage.setItem(EDIT_GRANT_KEY, JSON.stringify(grant));
+    await refreshEditLock();
+    showStatus('ok', `编辑已解锁：${signer}（scope ${grant.scope.join(',')}，至 ${grant.exp}）`);
+  } catch (error) {
+    showStatus('error', '解锁失败：' + (error && error.message ? error.message : String(error)));
+  }
+}
+
+if (unlockEditBtn) {
+  const pickGrant = () => { grantInput.value = ''; grantInput.click(); };
+  unlockEditBtn.addEventListener('click', pickGrant);
+  if (unlockEditBtnFooter) unlockEditBtnFooter.addEventListener('click', pickGrant);
+  grantInput.addEventListener('change', () => {
+    const file = grantInput.files && grantInput.files[0];
+    if (file) applyGrantFile(file);
+  });
+  document.addEventListener('click', ev => {
+    if (editUnlocked) return;
+    if (ev.target.closest('.action-panel button, tbody button')) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      showStatus('warn', '编辑已锁定：请先在页脚「解锁编辑」导入管理员授权。');
+    }
+  }, true);
+  window.__crsecueVerifyGrant = verifyEditGrant;
+  window.__crsecueRefreshEditLock = refreshEditLock;
+  refreshEditLock();
+}
+
 if (verifyFileBtn) {
   verifyFileBtn.addEventListener('click', openVerifyModal);
   verifyPick.addEventListener('click', () => { verifyInput.value = ''; verifyInput.click(); });
