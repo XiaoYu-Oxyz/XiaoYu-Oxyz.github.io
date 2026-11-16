@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "release": 3,
-  "issuedAt": "2026-11-16T08:26:37.274Z",
+  "release": 4,
+  "issuedAt": "2026-11-16T08:39:33.628Z",
   "signer": "admin",
   "files": {
     "calendars/Z1.ics": "sha256:40fbb026e87b0895b940d98e35a3d95f16c00563a415e96db4c627c6255da09f",
@@ -11,26 +11,26 @@
     "data/Z2.xlsx": "sha256:61cdc63d98ade58d088143e8bdb61b5095d623496edeab5c7804a5a20cede585",
     "data/Z5.xlsx": "sha256:1f9a74fb208ef414480a0f851ea7d6b331996220651c045408d25b0e87c7d25a",
     "data/设置.json": "sha256:b58886cfdcaccd0804c03c745fb713167510189c97f9d2896cb0966a7d0994fc",
-    "index.html": "sha256:4101869de63c35055b4cf3701d5236fe28e548aca177b3d0470d698fad863e90",
+    "index.html": "sha256:3830bacbe7f46e1163481971bbdb317c53e98e7ee8f32abe69f0474d12f6556c",
     "keys/FINGERPRINT": "sha256:bb61169bfc12a9afff5659843d44735e606267c7bccba9bf81bf6cd2e057f5c5",
     "keys/data-admin.pub": "sha256:1ea782a4dcc97f9736d31b5b9c6c15b16dff95bcaf006df710afc57a166d21e4",
     "keys/root.pub": "sha256:766117972d579f774776339defa2d0a3f91025fe1834105c4240158d9c2a5771",
     "keys/roster.json": "sha256:75c71320a88f9e7550cddd53945f3c52611af72f9e14cc66f6ce5b1ec488da6f",
-    "src/app.js": "sha256:4967c9e15e7d1412dd595942dfaca2535bae5de076024a0b04455bb81642198c",
-    "src/index.template.html": "sha256:f68be110c5c8c24da2f1c88abc7aadf8c05da39f1dd1385bb2b00ba7e764435a",
+    "src/app.js": "sha256:65de72c01cd8aaf7f46e06a600011f24389cf3433b9a3f35bec65e2b3200cd2f",
+    "src/index.template.html": "sha256:d69ab585e7722a1f9275e57b311a0784e43e788593001bf4ee16c1e2a24adcd5",
     "src/styles/00-tokens.css": "sha256:7f2e02f415baa83e780c0c61c7f7ae6c51cd129e7713e7662056c0a9e82a2d9c",
     "src/styles/10-base.css": "sha256:85d2ec96d410b2e8c601b8cb64a08e3871a501dab92e678f5e56ecd524bccd6e",
     "src/styles/20-week.css": "sha256:7f61d431a88d021a26271e32009246cd2d80fd3b1eb6315d552aa48b96ff207a",
     "src/styles/30-list-states.css": "sha256:be49f31fa93d41c4b288092142db5de3bdef38637e8fb91e988d9698be0a9e75",
-    "src/styles/40-modals.css": "sha256:995918bbf0d313fa85919a3ab83979a4f3e8f0457eb66a9e2c1121fcb0238e4b",
+    "src/styles/40-modals.css": "sha256:e4ee137e89bc29350208d4dd58e8ff62643cfca169c38e96474090efeedf1908",
     "src/styles/50-mobile.css": "sha256:4a89456405a833933bb083f82202fb288b701d7359391c32a4c1bda5bff66cbc",
-    "src/styles/60-dark.css": "sha256:f69bcc5d59b32b7c2bfaca19a82e5efd369b3384a1301cc7a7809680fed3bfbf",
+    "src/styles/60-dark.css": "sha256:b2d090b3f3c734de0a305f9678cec963b958f785cee0a50a11b7c16debeb9ee8",
     "src/styles/70-compat.css": "sha256:8341640d12668a685b43e613d6cccd022a1c49b3281f5a278efa0a0a7bacc603",
     "tools/build.py": "sha256:22c00feb3a1048dbceba9fc44657a23df6f9c324b3ddd05c5ab840d349bb6724",
     "tools/common.py": "sha256:d0db2208722c8b463fe4ecca64f5e2cf2d8d2b3a239a4de7f065f524b4b3b2c9",
     "tools/release.mjs": "sha256:3725be5328b9e0c9617a7b00c89698c3a4b56dee5f09f0dec5d33dd7eb1e4cad",
     "tools/verify.py": "sha256:9542f993ad4cf88cc653cc33c5f3b4f1a80f7f77eb4fb353e3509a3425f88205"
   },
-  "treeHash": "sha256:9a8cfea31f9c2107f38fcbad694721816f6ef4815072f4902929a595c85c0bd3",
-  "prev": "sha256:a68c05eaf0b052b6e8e242144aedc40f07ca791eeed34115cb0f3617bae10cf5"
+  "treeHash": "sha256:305aa723dca33a654c4640a7c81543e58cf7ac9092c051c4ad950d3b5a32e894",
+  "prev": "sha256:29f6799a89dd40019de482b54929003724786f36db2771572966b8e334c849ad"
 }

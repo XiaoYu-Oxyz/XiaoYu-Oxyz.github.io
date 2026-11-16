@@ -171,6 +171,8 @@
     .status-action:hover { background: var(--c-rgb-255-255-255-22); }
     /* 导入弹窗的几块浅底：摘要、同名提示、选中的方式卡、推荐徽标 */
     .import-summary { background: var(--c-0d1117); border-color: var(--c-30363d); color: var(--c-c9d1d9); }
+    .import-sign-note { background: var(--c-161b22); border-color: var(--c-9a6700); color: var(--c-e3b341); }
+    .import-sign-note.ok { border-color: var(--row-tomorrow-border); background: var(--row-tomorrow-bg); color: var(--row-tomorrow-text); }
     .import-summary b { color: var(--c-58a6ff); }
     .form-conflict, .import-conflict { background: var(--c-1f1a10); border-left-color: var(--c-8a6100); color: var(--c-d4a72c); }
     .mode-card.selected { background: var(--c-0d2d4d); border-color: var(--c-1f6feb); }
