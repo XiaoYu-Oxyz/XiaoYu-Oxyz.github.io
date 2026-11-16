@@ -3580,6 +3580,7 @@ const unlockEditBtn = document.getElementById('unlockEditBtn');
 const unlockEditBtnFooter = document.getElementById('unlockEditBtnFooter');
 const grantInput = document.getElementById('grantInput');
 let editUnlocked = false;
+let verifiedGrant = null;
 
 function readEditGrant() {
   try {
@@ -3613,8 +3614,22 @@ async function verifyEditGrant(grant, trustedKeys) {
   return grant.sub || grant.keyId;
 }
 
-function grantAllowsClass(grant) {
-  return Boolean(grant && Array.isArray(grant.scope) && grant.scope.includes(selectedClass));
+function grantAllowsClass(grant, classId) {
+  const target = classId || selectedClass;
+  return Boolean(grant && Array.isArray(grant.scope) && grant.scope.includes(target));
+}
+
+// 同步按当前班级刷新锁定 UI（不验签，只查内存里已验证的 grant）
+function syncLockUI(classId) {
+  const target = classId || selectedClass;
+  const allowed = grantAllowsClass(verifiedGrant, target);
+  editUnlocked = allowed;
+  document.body.classList.toggle('edit-locked', !allowed);
+  if (editLockBadge) {
+    editLockBadge.hidden = allowed;
+    if (!allowed) editLockBadge.title = verifiedGrant ? `授权不包含当前班级 ${target}` : '本机编辑已锁定：需要管理员授权';
+  }
+  return allowed;
 }
 
 async function refreshEditLock() {
@@ -3627,26 +3642,16 @@ async function refreshEditLock() {
     return;
   }
   const grant = readEditGrant();
-  let unlocked = false;
-  let reason = '本机编辑已锁定：需要管理员授权。';
+  verifiedGrant = null;
   if (grant) {
     try {
       await verifyEditGrant(grant);
-      if (grantAllowsClass(grant)) {
-        unlocked = true;
-      } else {
-        reason = `授权不包含当前班级 ${selectedClass}。`;
-      }
+      verifiedGrant = grant;
     } catch (error) {
-      reason = '授权无效：' + error.message;
+      verifiedGrant = null;
     }
   }
-  editUnlocked = unlocked;
-  document.body.classList.toggle('edit-locked', !unlocked);
-  if (editLockBadge) {
-    editLockBadge.hidden = unlocked;
-    editLockBadge.title = reason;
-  }
+  syncLockUI();
 }
 
 async function applyGrantFile(file) {
@@ -3670,13 +3675,8 @@ if (unlockEditBtnFooter) {
   });
   document.addEventListener('click', ev => {
     if (navigator.webdriver && !window.__crsecueTestLock) return;
-    const currentGrant = readEditGrant();
-    if (editUnlocked && grantAllowsClass(currentGrant)) return;
-    if (editUnlocked && currentGrant && !grantAllowsClass(currentGrant)) {
-      editUnlocked = false;
-      document.body.classList.add('edit-locked');
-      if (editLockBadge) editLockBadge.hidden = false;
-    }
+    syncLockUI();
+    if (editUnlocked) return;
     if (ev.target.closest('.action-panel button, tbody button')) {
       ev.preventDefault();
       ev.stopPropagation();
@@ -3686,7 +3686,11 @@ if (unlockEditBtnFooter) {
   window.__crsecueVerifyGrant = verifyEditGrant;
   window.__crsecueRefreshEditLock = refreshEditLock;
   window.__crsecueGrantAllowsClass = grantAllowsClass;
-  document.addEventListener('change', ev => { if (ev.target && ev.target.id === 'classSelect') refreshEditLock(); });
+  document.addEventListener('change', ev => {
+    if (!ev.target || ev.target.id !== 'classSelect') return;
+    syncLockUI(ev.target.value);
+    setTimeout(() => { refreshEditLock(); }, 0);
+  });
   refreshEditLock();
 }
 
