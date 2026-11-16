@@ -17,7 +17,7 @@
 
 - 私钥：`C:\Users\Lenovo\.crsecue\data-admin-p256.pem`（仓库外，mode 600）
 - 公钥：`keys/data-admin.pub`（随仓库提交，可公开）
-- keyId：`data-admin-2026-11`
+- keyId：`data-admin.pub`
 
 生成（只做一次）：
 
@@ -25,7 +25,7 @@
 node tools/sign-export.mjs keygen \
   --out C:\Users\Lenovo\.crsecue\data-admin-p256.pem \
   --pub keys/data-admin.pub \
-  --keyid data-admin-2026-11
+  --keyid data-admin.pub
 ```
 
 > 私钥不要进仓库、不要进 Actions secrets、不要发微信；备份进密码管理器。
@@ -40,13 +40,13 @@ node tools/sign-export.mjs sign \
   --in Z1-20261116.json \
   --out Z1-20261116.signed.json \
   --signer admin \
-  --keyid data-admin-2026-11
+  --keyid data-admin.pub
 ```
 
 生成的文件在原 JSON 上多一个字段：
 
 ```json
-"_crsecue": { "v": 1, "signer": "admin", "keyId": "data-admin-2026-11", "alg": "ES256", "sig": "<base64 raw r||s，64 字节>" }
+"_crsecue": { "v": 1, "signer": "admin", "keyId": "data-admin.pub", "alg": "ES256", "sig": "<base64 raw r||s，64 字节>" }
 ```
 
 签名对象 = 去掉 `_crsecue` 后的 **canonical JSON**（key 排序），所以字段顺序变化不影响验签。
@@ -62,7 +62,7 @@ node tools/sign-export.mjs verify \
 输出：
 
 ```
-OK: 签名有效（signer=admin，keyId=data-admin-2026-11，实验 12 条）
+OK: 签名有效（signer=admin，keyId=data-admin.pub，实验 12 条）
 ```
 
 失败场景：
@@ -134,3 +134,8 @@ OK: 签名有效（signer=admin，keyId=data-admin-2026-11，实验 12 条）
 - 页面直接用 `crypto.subtle.verify`，无需转换；
 - `tests/sign-export.test.mjs` 断言签名解码后正好 64 字节。
 
+
+
+## 10. 签发日期
+
+`sign-export.mjs sign` 会写入 `_crsecue.issuedAt`（YYYY-MM-DD），`verify` 与页面验证结果都会显示；旧文件没有该字段仍可验证。
