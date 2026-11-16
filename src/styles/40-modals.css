@@ -127,6 +127,16 @@
   }
   .import-summary b { color: var(--c-0969da); }
   .import-dupe { color: var(--c-9a6700); font-weight: 600; }
+.import-sign-note {
+    margin: -6px 0 14px; padding: 8px 11px;
+    border: 1px solid var(--c-f0d38a); border-radius: 8px;
+    background: var(--c-fff8e6); color: var(--c-7a4b00); font-size: 12.5px; line-height: 1.6;
+  }
+  .import-sign-note.ok {
+    border-color: var(--row-tomorrow-border);
+    background: var(--row-tomorrow-bg);
+    color: var(--row-tomorrow-text);
+  }
   .import-warning {
     margin: -6px 0 14px; padding: 9px 11px;
     border: 1px solid var(--c-f0d38a); border-radius: 8px;

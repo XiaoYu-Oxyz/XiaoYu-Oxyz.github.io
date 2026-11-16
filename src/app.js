@@ -5143,6 +5143,7 @@ scheduleTableEl.addEventListener('keydown', ev => {
 const importMask       = document.getElementById('importMask');
 const importClose      = document.getElementById('importClose');
 const importCancelBtn  = document.getElementById('importCancel');
+const importSignNote = document.getElementById('importSignNote');
 const importConfirmBtn = document.getElementById('importConfirm');
 const importSummary    = document.getElementById('importSummary');
 const importConflict   = document.getElementById('importConflict');
@@ -5475,6 +5476,20 @@ function openImportModal(data) {
   importScopeWarning.textContent = filteredBackup
     ? '这是“当前筛选”导出的备份，不是完整班级。叠加只导入这些记录；替换会清空未包含在备份中的实验。'
     : '';
+
+  if (data.verifiedSigner) {
+    importSignNote.hidden = false;
+    importSignNote.classList.add('ok');
+    importSignNote.textContent = `数据包签名已校验：${data.verifiedSigner}`;
+  } else if (data.source === 'json') {
+    importSignNote.hidden = false;
+    importSignNote.classList.remove('ok');
+    importSignNote.textContent = '该文件没有管理员签名：无法确认来源，只代表发送者本机数据。';
+  } else {
+    importSignNote.hidden = true;
+    importSignNote.classList.remove('ok');
+    importSignNote.textContent = '';
+  }
   document.querySelector('input[name="importMode"][value="merge"]').checked = true;
   conflictSelect.value = 'keep';
 
@@ -5500,6 +5515,9 @@ function closeImportModal(skipReload) {
   importConflict.textContent = '';
   importScopeWarning.hidden = true;
   importScopeWarning.textContent = '';
+  importSignNote.hidden = true;
+  importSignNote.classList.remove('ok');
+  importSignNote.textContent = '';
   if (!skipReload && pendingStorageRefresh && !hasOpenOverlay() && !editMode && !deleteMode) {
     pendingStorageRefresh = false;
     setTimeout(() => { window.location.reload(); }, 0);

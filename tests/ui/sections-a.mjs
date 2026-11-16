@@ -152,6 +152,7 @@ const { pathToFileURL, fileURLToPath, assert, fs, os, path, root, appUrl, browse
     buffer: fs.readFileSync(filteredXlsxPath)
   });
   await page.waitForSelector('#importMask.show');
+  assert.equal(await page.locator('#importSignNote').isVisible(), false, 'xlsx 不显示签名提示');
   assert.equal(await page.locator('#importScopeWarning').isVisible(), true);
   assert.match(await page.locator('#importScopeWarning').innerText(), /当前筛选.*不是完整班级/);
   await page.locator('#importCancel').click();
@@ -217,6 +218,8 @@ const { pathToFileURL, fileURLToPath, assert, fs, os, path, root, appUrl, browse
   // 4. 导入 JSON，再用“撤销导入”恢复导入前的班级。
   await page.locator('#fileInput').setInputFiles(fixture);
   await page.waitForSelector('#importMask.show');
+  assert.equal(await page.locator('#importSignNote').isVisible(), true);
+  assert.match(await page.locator('#importSignNote').innerText(), /没有管理员签名/);
   assert.match(await page.locator('#importSummary').innerText(), /有效记录 1 条/);
   assert.match(await page.locator('#importSummary').innerText(), /来源：JSON/);
   assert.match(await page.locator('#importSummary').innerText(), /week1：2026-09-07（不变）/);

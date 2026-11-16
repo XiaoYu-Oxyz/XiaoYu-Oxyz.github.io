@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-SWfJ4V59FBLdWVlC36yiU1uuXeB2AkoLBEVbuBZCGYw='; script-src-elem 'sha256-SWfJ4V59FBLdWVlC36yiU1uuXeB2AkoLBEVbuBZCGYw='; script-src-attr 'none'; style-src 'sha256-u4sYltRDCAew1a6SV9N5ZWmVN3zyr2cOOzcO4GuTmU8='; style-src-elem 'sha256-u4sYltRDCAew1a6SV9N5ZWmVN3zyr2cOOzcO4GuTmU8='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Zd5ywBzYqvf0bgamAAEfJDic80M7mj81vsZeKzIAzS8='; script-src-elem 'sha256-Zd5ywBzYqvf0bgamAAEfJDic80M7mj81vsZeKzIAzS8='; script-src-attr 'none'; style-src 'sha256-usJNXN8KKPbMmz1vEJk3J88fuDwoDHvOUZAShvwcLGI='; style-src-elem 'sha256-usJNXN8KKPbMmz1vEJk3J88fuDwoDHvOUZAShvwcLGI='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>CrseCue</title>
 <style>
@@ -1020,6 +1020,16 @@
   }
   .import-summary b { color: var(--c-0969da); }
   .import-dupe { color: var(--c-9a6700); font-weight: 600; }
+.import-sign-note {
+    margin: -6px 0 14px; padding: 8px 11px;
+    border: 1px solid var(--c-f0d38a); border-radius: 8px;
+    background: var(--c-fff8e6); color: var(--c-7a4b00); font-size: 12.5px; line-height: 1.6;
+  }
+  .import-sign-note.ok {
+    border-color: var(--row-tomorrow-border);
+    background: var(--row-tomorrow-bg);
+    color: var(--row-tomorrow-text);
+  }
   .import-warning {
     margin: -6px 0 14px; padding: 9px 11px;
     border: 1px solid var(--c-f0d38a); border-radius: 8px;
@@ -1716,6 +1726,8 @@
     .status-action:hover { background: var(--c-rgb-255-255-255-22); }
     /* 导入弹窗的几块浅底：摘要、同名提示、选中的方式卡、推荐徽标 */
     .import-summary { background: var(--c-0d1117); border-color: var(--c-30363d); color: var(--c-c9d1d9); }
+    .import-sign-note { background: var(--c-161b22); border-color: var(--c-9a6700); color: var(--c-e3b341); }
+    .import-sign-note.ok { border-color: var(--row-tomorrow-border); background: var(--row-tomorrow-bg); color: var(--row-tomorrow-text); }
     .import-summary b { color: var(--c-58a6ff); }
     .form-conflict, .import-conflict { background: var(--c-1f1a10); border-left-color: var(--c-8a6100); color: var(--c-d4a72c); }
     .mode-card.selected { background: var(--c-0d2d4d); border-color: var(--c-1f6feb); }
@@ -1957,7 +1969,7 @@
     <button class="diag-btn" id="feedbackBtn" type="button" title="把当前班级和最近一条实验拼成一段话，粘贴到班级群反馈">发现安排有误？复制反馈</button>
     <button class="diag-btn" id="diagBtn" type="button" title="复制浏览器/数据版本等信息，方便反馈问题">遇到问题？复制诊断信息</button>
   </p>
-  <p class="release-row"><span class="release-info" id="releaseInfo" title="签名发布信息：release 号 · 签名者 · 根公钥指纹前 8 组">release 3 · admin · 99BA 4A96 204A DA13</span></p>
+  <p class="release-row"><span class="release-info" id="releaseInfo" title="签名发布信息：release 号 · 签名者 · 根公钥指纹前 8 组">release 4 · admin · 99BA 4A96 204A DA13</span></p>
 </main>
 
 <!-- 添加实验模态框 -->
@@ -2053,6 +2065,7 @@
     </div>
     <div class="modal-body">
       <div class="import-summary" id="importSummary"></div>
+<div class="import-sign-note" id="importSignNote" role="status" hidden></div>
       <div class="import-warning" id="importScopeWarning" role="status" hidden></div>
       <div class="import-conflict" id="importConflict" hidden></div>
 
@@ -7376,6 +7389,7 @@ scheduleTableEl.addEventListener('keydown', ev => {
 const importMask       = document.getElementById('importMask');
 const importClose      = document.getElementById('importClose');
 const importCancelBtn  = document.getElementById('importCancel');
+const importSignNote = document.getElementById('importSignNote');
 const importConfirmBtn = document.getElementById('importConfirm');
 const importSummary    = document.getElementById('importSummary');
 const importConflict   = document.getElementById('importConflict');
@@ -7708,6 +7722,20 @@ function openImportModal(data) {
   importScopeWarning.textContent = filteredBackup
     ? '这是“当前筛选”导出的备份，不是完整班级。叠加只导入这些记录；替换会清空未包含在备份中的实验。'
     : '';
+
+  if (data.verifiedSigner) {
+    importSignNote.hidden = false;
+    importSignNote.classList.add('ok');
+    importSignNote.textContent = `数据包签名已校验：${data.verifiedSigner}`;
+  } else if (data.source === 'json') {
+    importSignNote.hidden = false;
+    importSignNote.classList.remove('ok');
+    importSignNote.textContent = '该文件没有管理员签名：无法确认来源，只代表发送者本机数据。';
+  } else {
+    importSignNote.hidden = true;
+    importSignNote.classList.remove('ok');
+    importSignNote.textContent = '';
+  }
   document.querySelector('input[name="importMode"][value="merge"]').checked = true;
   conflictSelect.value = 'keep';
 
@@ -7733,6 +7761,9 @@ function closeImportModal(skipReload) {
   importConflict.textContent = '';
   importScopeWarning.hidden = true;
   importScopeWarning.textContent = '';
+  importSignNote.hidden = true;
+  importSignNote.classList.remove('ok');
+  importSignNote.textContent = '';
   if (!skipReload && pendingStorageRefresh && !hasOpenOverlay() && !editMode && !deleteMode) {
     pendingStorageRefresh = false;
     setTimeout(() => { window.location.reload(); }, 0);
