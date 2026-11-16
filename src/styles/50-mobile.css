@@ -1,0 +1,273 @@
+  /* ---------- 手机端：隐藏表头，每行变成紧凑两行 ---------- */
+  @media (max-width: 940px) {
+    body { padding: 12px 8px; }
+    /* .wrap 改纵向 flex，用 order 把「第 1 周设置」排到表格之后：
+       不动 DOM，JS 里的 #week1Input 引用不受影响。 */
+    .wrap { display: flex; flex-direction: column; padding: 14px; border-radius: 10px; }
+    .head {
+      order: 1;
+      display: grid; grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-areas: "title actions" "picker picker" "filters filters";
+      gap: 8px; margin-bottom: 10px;
+    }
+    /* display:contents 让 h1 / .class-picker 直接成为 grid 项 */
+    .head-main { display: contents; }
+    .title-row { grid-area: title; align-self: center; }
+    h1 { font-size: 20px; }
+    .class-picker { grid-area: picker; gap: 4px; }
+    .class-picker select { max-width: 160px; }
+    .class-tool { width: 36px; height: 36px; flex: none; }
+    .class-tools { flex: none; gap: 6px; }
+    .head-filters { grid-area: filters; gap: 10px; }
+    .head-actions { grid-area: actions; margin-left: 0; gap: 6px; flex-wrap: nowrap; }
+    /* 与桌面功能一致：第 1 周设置与「数据更新至」在手机端同样显示，
+       只是用短标签 + 小字号压成一行，避免又占掉一大块首屏。 */
+    .settings-row { margin: 0 0 8px; gap: 6px; }
+    .settings-row label { gap: 6px; font-size: 12px; }
+    .settings-row input[type="date"] { font-size: 12px; padding: 3px 6px; }
+    .settings-hint { display: none; }
+    .data-updated { font-size: 11px; }
+    /* 显式排序：.wrap 是 flex 容器，未指定 order 的子元素会落到最前面（诊断行曾在表格之上） */
+    .head { order: 1; }
+    .storage-warn { order: 2; }
+    .first-run { order: 2; }
+    .cue-bar { order: 3; }
+    .action-panel { order: 4; }
+    .settings-row { order: 5; }
+    .import-status { order: 6; }
+    .clock { order: 7; font-size: 12px; margin-bottom: 8px; }
+    /* 图例在所有端都显示：小屏压成一行、可换行，颜色仍是五种状态 */
+    .legend { order: 7; flex-wrap: wrap; gap: 3px 9px; font-size: 11px; margin-bottom: 6px; }
+    .legend i { width: 9px; height: 9px; }
+    .table-wrap { order: 8; min-width: 0; }
+    .diag-row { order: 9; }
+    .actions-toggle { padding: 7px 11px; font-size: 12.5px; min-height: 44px; }
+    .copy-week-outside { padding: 7px 6px; font-size: 11.5px; min-height: 44px; }
+    /* 触控目标 ≥44px（WCAG 2.5.5）：面板按钮默认收起，不占首屏 */
+    .action-panel .add-btn,
+    .action-panel .import-btn,
+    .action-panel .ghost-btn,
+    .action-panel .edit-btn,
+    .action-panel .delete-btn { min-height: 44px; }
+    .export-choice { flex: 1 1 100%; }
+    .action-panel { padding: 7px; margin-bottom: 10px; }
+    /* 放不下就换行，而不是把按钮压窄：之前 nowrap + flex:1 1 auto 会在 361–440px
+       把 8 个按钮压成一行，「添加实验」只剩 54px、导入/导出只剩 26px，文字被裁。 */
+    .action-groups { flex-wrap: wrap; gap: 6px; row-gap: 6px; }
+    .action-group { flex: 1 1 auto; flex-wrap: wrap; gap: 4px; min-width: 0; }
+    .action-group > button { flex: 0 0 auto; }   /* 按钮永远保持自身宽度 */
+    .action-group + .action-group {
+      margin: 0; padding-left: 6px; border-left: 1px solid var(--c-e1e6eb);
+    }
+    .group-label { display: none; }
+    .action-panel .add-btn,
+    .action-panel .import-btn,
+    .action-panel .ghost-btn,
+    .action-panel .edit-btn,
+    .action-panel .delete-btn {
+      flex: 1 1 0; min-width: 0;
+      padding: 7px 6px; font-size: 12.5px;
+    }
+    .label-long { display: none; }
+    .label-short { display: inline; }
+    .recent-filter { font-size: 12.5px; }
+    .recent-count { flex: none; }
+    /* 首行允许换行：原来的 nowrap + overflow:hidden 会把节次和"今天/下一次"标签直接切掉 */
+    .cell-mobile .m-line1 { white-space: normal; overflow: visible; }
+    .table-wrap { overflow: visible; }
+    table { min-width: 0; width: 100%; display: block; }
+    thead {
+      position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+      overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+    }
+    tbody { display: block; }
+    /* 手机卡片改成"一周一组"：周与周之间用一条居中的细横线分隔。
+       横线画在卡片的 .cell-mobile 上（tr 是表格行，伪元素在 Chrome 里不渲染）。
+       行距变量：单列 24px、两列由 grid gap 提供 10px；线的位置用公式严格居中：
+       top = -(行距 / 2) - (线高 / 2) */
+    tbody { --week-gap: 24px; --week-line: 2px; }
+    tbody tr.week-start { margin-top: var(--week-gap); }
+    tbody tr.week-start > td { border-top: 0; }
+    /* 周分隔线：左右略长于列宽，垂直严格落在行距正中 */
+    tbody tr.week-start td.cell-mobile::before {
+      content: ''; position: absolute;
+      top: calc(var(--week-gap) / -2 - var(--week-line) / 2);
+      left: 50%; width: calc(100% + 12px); height: var(--week-line);
+      transform: translateX(-50%);
+      background: var(--c-d0d7de); border-radius: 1px;
+    }
+    /* 分隔线不随今天/明天改色：这条线表达"换周"，红色/绿色表达"今天/明天"，各管一件事 */
+    tbody tr {
+      position: relative;
+      display: flex; align-items: stretch;
+      margin-bottom: 10px; border: 1px solid var(--c-e1e6eb);
+      border-radius: 0; overflow: visible; background: var(--c-fff);
+    }
+    tbody tr td { display: none; }
+    tbody tr.note-row { display: none; }
+    tbody tr td.cell-mobile {
+      display: block; flex: 1 1 100%; min-width: 0; width: 100%;
+      padding: 10px 12px;
+    }
+    body.deleting tbody tr td.cell-mark,
+    body.editing tbody tr td.cell-mark {
+      display: flex; align-items: center; justify-content: center;
+      position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+      width: 36px; height: 36px; padding: 0; line-height: 0; z-index: 2;
+      touch-action: manipulation;
+      /* 桌面表格给 td 的 1px 底边会跟着这个"绝对定位的小格子"画成一截横线，
+         看起来像图标下面多了条黑杠，这里清掉 */
+      border: 0; background: transparent;
+    }
+    /* 24px 是 WCAG 2.5.8 的最小可点尺寸；容器 36px 只负责居中，不是点击热区 */
+    body.deleting tbody tr .mark-btn,
+    body.editing tbody tr .edit-row-btn {
+      width: 24px; height: 24px;
+    }
+    body.editing tbody tr .edit-row-btn svg { width: 14px; height: 14px; }
+    body.deleting tbody tr .mark-btn::before { width: 11px; height: 2px; }
+    body.deleting tbody tr .mark-btn::after { width: 2px; height: 11px; }
+    tbody tr.row-today { background: var(--row-today-bg); border-color: var(--row-today-border); }
+    tbody tr.row-tomorrow { background: var(--row-tomorrow-bg); border-color: var(--row-tomorrow-border); }
+    tbody tr.row-past { background: var(--row-past-bg); }
+    tbody tr.row-next { border-color: var(--row-next-border); box-shadow: inset 0 0 0 1px var(--row-next-border); }
+    tbody tr.row-today td.cell-mobile { color: var(--c-a40e26); font-weight: 700; }
+    tbody tr.row-tomorrow td.cell-mobile { color: var(--c-1a7f37); font-weight: 700; }
+    tbody tr.row-past td.cell-mobile { color: var(--c-6e7781); }
+    tbody tr.row-past .m-name { color: var(--c-57606a); }   /* 原 #6e7781 在 #f6f8fa 上只有 4.27:1 */
+    /* 冲突：整张卡片描一圈琥珀色边框 + 极浅底纹（卡片是方角，填充也跟着方角），
+       同组的两条再用一条最短对角线段连起来（见 .conflict-link-layer）。 */
+    tbody tr.row-conflict {
+    /* 2px 视觉描边改用「1px 边框 + 1px 内阴影」，否则相邻卡片文字会被压低 1px */
+    border-color: var(--row-conflict-border);
+      background: var(--row-conflict-bg);
+    }
+    tbody tr.row-past.row-conflict { border-color: var(--row-conflict-past-border); background: var(--row-conflict-past-bg); }
+    tbody tr.row-conflict.conflict-peer { border-color: var(--row-conflict-peer-border); background: var(--row-conflict-peer-bg); }
+    /* 边框已经表达了冲突，标记列不再重复填色 */
+    tbody tr.row-conflict td.cell-mark,
+    tbody tr.row-conflict.row-past td.cell-mark {
+      background: transparent; box-shadow: none;
+    }
+    .cell-mobile .m-line1 {
+      display: flex; align-items: center; flex-wrap: wrap; gap: 2px 6px;
+      font-size: 12.5px; color: var(--c-57606a); line-height: 1.6; overflow-wrap: anywhere;
+    }
+    .cell-mobile .m-line1 > .tag,
+    .cell-mobile .m-line1 > .next-badge { flex: none; }
+    .cell-mobile .m-line2 {
+      display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 8px;
+      margin-top: 3px; line-height: 1.5; overflow-wrap: anywhere;
+    }
+    .cell-mobile .m-name { font-size: 15px; font-weight: 700; color: var(--c-24292f); }
+    .cell-mobile .m-place { font-size: 13px; color: var(--c-57606a); }
+    .cell-mobile .m-note {
+      margin-top: 4px; padding-top: 4px; border-top: 1px dashed var(--c-eaeef2);
+      color: var(--c-57606a); font-size: 12px; line-height: 1.55;
+      white-space: pre-wrap; overflow-wrap: anywhere;
+    }
+    /* 长备注折三行 + "展开备注"（-webkit-line-clamp 在 Android 老 WebView 也可用） */
+    .cell-mobile .m-note.is-clamped {
+      display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3;
+      overflow: hidden;
+    }
+    .m-note-toggle {
+      display: block; margin: 2px 0 0; padding: 0;
+      border: 0; background: none; color: var(--c-0969da);
+      font-family: inherit; font-size: 12px; line-height: 1.6;
+      cursor: pointer; text-decoration: underline;
+    }
+    .cell-mobile .tag { margin-left: 0; }
+    tbody tr.empty-row { border: 0; background: transparent; }
+    tbody tr.empty-row td { display: block; padding: 28px 12px; }
+    .empty-row td { line-height: 1.8; }
+  }
+
+  @media (max-width: 360px) {
+    .action-groups { flex-wrap: wrap; gap: 6px; }
+    .action-group { flex: 1 1 100%; flex-wrap: nowrap; }
+    .action-group + .action-group {
+      margin-top: 6px; padding-top: 6px; padding-left: 0;
+      border-left: 0; border-top: 1px solid var(--c-e1e6eb);
+    }
+    .action-panel .add-btn,
+    .action-panel .import-btn,
+    .action-panel .ghost-btn,
+    .action-panel .edit-btn,
+    .action-panel .delete-btn {
+      padding: 6px 5px; font-size: 11.5px;
+    }
+  }
+  /* ---------- 平板 / 窄桌面：两列卡片，避免 700px 宽的"单列巨型卡片" ---------- */
+  @media (min-width: 561px) and (max-width: 940px) {
+    /* 两列的行距由 grid gap 提供；线和 margin 都从这个变量推出来 */
+    tbody { --week-gap: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: var(--week-gap); align-items: start; }
+    tbody tr { margin-bottom: 0; }
+    /* 换周时强制落到新一行的左列：不同周的实验不并排，分隔线才有意义 */
+    tbody tr.week-start { grid-column-start: 1; margin-top: 0; }
+    /* 两列时隔线横跨整行（200% + 列距），top 仍用同一个居中公式 */
+    tbody tr.week-start td.cell-mobile::before {
+      left: 0; width: calc(200% + var(--week-gap)); transform: none;
+    }
+    tbody tr.empty-row { grid-column: 1 / -1; }
+    tbody tr.note-row { display: none; }
+  }
+
+  /* ---------- 窄屏：「班级：」始终可见（用户要求），靠缩小控件保证 320px 不溢出 ---------- */
+  @media (max-width: 400px) {
+    .class-picker { flex-wrap: wrap; row-gap: 4px; }
+    .class-picker > label { flex: none; font-size: 12px; }
+    .class-picker select { max-width: 84px; }
+    .class-tool { width: 32px; height: 32px; }
+    .class-tools { gap: 4px; }
+  }
+
+  /* ---------- 触屏按压反馈 ---------- */
+  .add-btn:active, .import-btn:active, .danger-btn:active, .ghost-btn:active,
+  .class-tool:active, .actions-toggle:active, .delete-btn:active, .edit-btn:active {
+    transform: translateY(1px); filter: brightness(.95);
+  }
+
+  /* ---------- 尊重系统的"减少动态效果" ---------- */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: .001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: .001ms !important;
+      scroll-behavior: auto !important;
+    }
+    .actions-toggle[aria-expanded="true"] .caret { transform: none; }
+    .add-btn:active, .import-btn:active, .danger-btn:active, .ghost-btn:active,
+    .class-tool:active, .actions-toggle:active, .delete-btn:active, .edit-btn:active {
+      transform: none;
+    }
+  }
+
+  /* ---------- 横屏 / 矮屏（如 640×360、812×375） ----------
+     实测竖屏时首行在 296px，横屏却在 262px —— 屏幕只剩 360 高时
+     头部（含提示条、设置行、时钟）吃掉七成，一张卡片都放不全。
+     这里把"配置类"信息折叠掉，把首屏让给实验卡片。 */
+  @media (max-width: 940px) and (max-height: 480px) {
+    body { padding: 8px 6px; }
+    .wrap { padding: 10px; }
+    .head { margin-bottom: 6px; }
+    .head-filters { margin-bottom: 6px; }
+    .settings-row, .first-run { display: none; }
+    /* 横屏也保留图例：压成一行、不额外占高（图例已在小屏规则里缩过） */
+    .legend { gap: 3px 8px; font-size: 11px; margin-bottom: 4px; }
+    .legend i { width: 8px; height: 8px; margin-right: 4px; }
+    /* 头部控件也收一档：横屏时高度比可点面积更稀缺 */
+    h1 { font-size: 17px; }
+    .actions-toggle, .copy-week-outside { min-height: 34px; padding: 4px 8px; }
+    .class-tool { width: 32px; height: 32px; }
+    .class-picker select { padding: 4px 6px; }
+    .cue-bar { padding: 4px 8px; font-size: 12px; }
+    .cue-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cue-close { width: 22px; height: 22px; font-size: 12px; }
+    .clock { font-size: 11.5px; margin-bottom: 4px; }
+    .action-panel { margin-bottom: 6px; }
+    /* 注意：这里不要再给 tbody tr 加 margin-bottom。
+       两列布局下行距来自 grid gap，任何 margin 都会让分隔线偏离行距正中
+       （top 是按 --week-gap 算的）。 */
+  }
+

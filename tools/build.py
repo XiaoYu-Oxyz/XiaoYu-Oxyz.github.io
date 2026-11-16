@@ -18,7 +18,7 @@ Rules:
 
 源码结构（G1 之后）：
     src/index.template.html   页面骨架，含 /*__CRSECUE_CSS__*/ 与 /*__CRSECUE_JS__*/ 两个占位
-    src/app.css               = 原 <style> 内容
+    src/styles/*.css          = 原 <style> 内容，按文件名排序拼接
     src/app.js                = 原 <script> 内容
 构建时把三者内联回**单个** index.html，并按实际内容重算 CSP 哈希；
 产物仍是单文件（GitHub Pages 行为、file:// 双击、离线分发都不变）。
@@ -49,7 +49,7 @@ DEPLOY = common.INDEX
 CALENDARS_DIR = common.CALENDARS_DIR
 SRC_DIR = common.REPO_ROOT / "src"
 PAGE_TEMPLATE = SRC_DIR / "index.template.html"
-APP_CSS = SRC_DIR / "app.css"
+STYLES_DIR = SRC_DIR / "styles"
 APP_JS = SRC_DIR / "app.js"
 CSS_SLOT = "/*__CRSECUE_CSS__*/"
 JS_SLOT = "/*__CRSECUE_JS__*/"
@@ -691,11 +691,14 @@ def main(argv=None):
         "classes": classes,
     }
 
-    for required in (PAGE_TEMPLATE, APP_CSS, APP_JS):
+    for required in (PAGE_TEMPLATE, APP_JS):
         if not required.exists():
             fail("找不到源文件 %s" % required.relative_to(BASE))
+    css_files = sorted(STYLES_DIR.glob("*.css")) if STYLES_DIR.exists() else []
+    if not css_files:
+        fail("找不到样式源文件 %s/*.css" % STYLES_DIR.relative_to(BASE))
     html = PAGE_TEMPLATE.read_bytes().decode("utf-8-sig").replace("\r\n", "\n")
-    css = APP_CSS.read_bytes().decode("utf-8").replace("\r\n", "\n")
+    css = "".join(f.read_bytes().decode("utf-8").replace("\r\n", "\n") for f in css_files)
     js = APP_JS.read_bytes().decode("utf-8").replace("\r\n", "\n")
     if html.count(CSS_SLOT) != 1 or html.count(JS_SLOT) != 1:
         fail("src/index.template.html 里必须各有一个 %s / %s 占位" % (CSS_SLOT, JS_SLOT))

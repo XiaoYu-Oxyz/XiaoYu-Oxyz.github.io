@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-HudPun7LfvWGQ6Cs08Jm4QMkaL9nIGE/sQMq1G4lCg8='; script-src-elem 'sha256-HudPun7LfvWGQ6Cs08Jm4QMkaL9nIGE/sQMq1G4lCg8='; script-src-attr 'none'; style-src 'sha256-jm3W8YovaRmHWbYpN/UV7+XkhoEVw17rzV4PoZDZsoM='; style-src-elem 'sha256-jm3W8YovaRmHWbYpN/UV7+XkhoEVw17rzV4PoZDZsoM='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-HudPun7LfvWGQ6Cs08Jm4QMkaL9nIGE/sQMq1G4lCg8='; script-src-elem 'sha256-HudPun7LfvWGQ6Cs08Jm4QMkaL9nIGE/sQMq1G4lCg8='; script-src-attr 'none'; style-src 'sha256-P1n+cUfyDIqimyfMmLYm0QaHflW8QWINe2qX9fa4M/s='; style-src-elem 'sha256-P1n+cUfyDIqimyfMmLYm0QaHflW8QWINe2qX9fa4M/s='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>CrseCue</title>
 <style>
@@ -1785,6 +1785,44 @@
     border-color: var(--row-conflict-past-border);
     box-shadow: inset 0 0 0 1px var(--row-conflict-past-border);
   }
+}
+
+/* flex gap 兜底（老 Safari < 14.1 / Chrome < 84 不支持 gap）：
+   水平容器用 margin-left，纵向容器用 margin-top。
+   只影响不支持 gap 的浏览器；现代引擎走 @supports 不命中，布局一个像素都不动。
+   注意：不要给 .head 直接加 margin-left（会盖掉 .head-actions 的 margin-left:auto）。 */
+@supports not (gap: 1px) {
+  .head-main > * + * { margin-left: 10px; }
+  .title-row > * + * { margin-left: 8px; }
+  .head-actions > * + * { margin-left: 8px; }
+  .actions-toggle > * + * { margin-left: 6px; }
+  .action-search > * + * { margin-left: 6px; }
+  .action-groups > * + * { margin-left: 16px; }
+  .class-picker > * + * { margin-left: 6px; }
+  .recent-filter > * + * { margin-left: 6px; }
+  .first-run > * + * { margin-left: 8px; }
+  .cue-bar > * + * { margin-left: 8px; }
+  .week-toolbar > * + * { margin-left: 8px; }
+  .settings-row > * + * { margin-left: 10px; }
+  .settings-row label > * + * { margin-left: 8px; }
+  .modal-foot > * + * { margin-left: 8px; }
+  .target-card > * + * { margin-left: 10px; }
+  .mode-card > * + * { margin-left: 10px; }
+  .mode-card-title > * + * { margin-left: 7px; }
+  .export-scope-option > * + * { margin-left: 7px; }
+  .export-options > * + * { margin-left: 10px; }
+  .hidden-class-list > * + * { margin-left: 6px; }
+  .conflict-box > * + * { margin-left: 6px; }
+  .cell-mobile .m-line1 > * + * { margin-left: 2px; }
+  .cell-mobile .m-line2 > * + * { margin-left: 2px; }
+  /* 纵向容器 */
+  .form-row > * + * { margin-top: 6px; }
+  .choice-body > * + * { margin-top: 6px; }
+  .week-field > * + * { margin-top: 6px; }
+  .target-cards > * + * { margin-top: 8px; }
+  .target-card-body > * + * { margin-top: 3px; }
+  .mode-cards > * + * { margin-top: 10px; }
+  .mode-card-body > * + * { margin-top: 4px; }
 }
 </style>
 </head>

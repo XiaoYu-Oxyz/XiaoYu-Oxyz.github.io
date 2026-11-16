@@ -12,6 +12,6 @@
 
 ## 相关目录
 
-- `src/` 源码（app.css / app.js / index.template.html），`tools/build.py` 内联成单文件 `index.html`
+- `src/` 源码（styles/*.css / app.js / index.template.html），`tools/build.py` 内联成单文件 `index.html`
 - `tools/` 构建与体检脚本（build / verify / validate_data / color_audit / compat_lint / check_docs_links）
-- `tests/` 五套测试（Python 单测、logic、ui-smoke、week-view、visual-smoke）
+- `tests/` 五套测试；`tests/ui/` 是 ui-smoke 的 harness + 5 个分段模块

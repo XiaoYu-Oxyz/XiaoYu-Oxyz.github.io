@@ -1,0 +1,238 @@
+
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  /* 表单控件默认使用 UA 的 13.33px，会让字号阶梯里多出一个"野值" */
+  button, input, select, textarea { font-family: inherit; font-size: inherit; }
+  .caret, .group-label { font-size: 11.5px; }
+  body.locked, body.locked * { pointer-events: none !important; }
+  body {
+    margin: 0; padding: 24px 16px;
+    font-family: "Microsoft YaHei", "PingFang SC", system-ui, -apple-system, sans-serif;
+    background: var(--page-bg); color: var(--text-main);
+    /* iOS/老 WebView 转横屏时会"自动放大"字号，把布局顶乱；这里统一关掉，交给浏览器缩放 */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  a:focus-visible, button:focus-visible, select:focus-visible,
+  textarea:focus-visible, input:focus-visible, [tabindex]:focus-visible {
+    outline: 2px solid var(--c-0969da); outline-offset: 2px;
+  }
+
+  /* 老浏览器（Chrome<86 / Safari<15.4）不认识 :focus-visible：整条规则被丢弃，
+     键盘焦点环会消失。所以先给 :focus 一个基础环，再用 :not(:focus-visible)
+     在支持的浏览器上把"鼠标点出来的焦点"环去掉；老浏览器会丢弃下面那条，基础环保留。 */
+  a:focus, button:focus, select:focus, textarea:focus, input:focus, [tabindex]:focus {
+    outline: 2px solid var(--c-0969da); outline-offset: 2px;
+  }
+  a:focus:not(:focus-visible), button:focus:not(:focus-visible),
+  select:focus:not(:focus-visible), textarea:focus:not(:focus-visible),
+  input:focus:not(:focus-visible), [tabindex]:focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  /* flex gap 不支持时的兜底：只补三个最容易挤在一起的组（其余接受间距塌陷） */
+  @supports not (gap: 1px) {
+    .action-group > * + * { margin-left: 8px; }
+    .head-filters > * + * { margin-left: 12px; }
+    .legend > * + * { margin-left: 12px; }
+    .class-tools > * + * { margin-left: 4px; }
+  }
+
+  /* 老浏览器提示条：默认显示；支持 CSS 变量的现代浏览器把它隐藏。
+     IE 不认 @supports，所以会一直显示——正是我们要的效果。 */
+  .browser-warning {
+    max-width: 980px; margin: 12px auto; padding: 10px 12px;
+    border: 2px solid currentColor; border-radius: 8px;
+    font-size: 13px; line-height: 1.6;
+  }
+  @supports (--css: variables) { .browser-warning { display: none; } }
+  @media print { .browser-warning { display: none !important; } }
+
+  .sr-only {
+    position: absolute !important; width: 1px; height: 1px;
+    padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0);
+    white-space: nowrap; border: 0;
+  }
+  .wrap {
+    max-width: 1100px; margin: 0 auto; background: var(--c-fff);
+    border-radius: 12px; padding: 24px;
+    box-shadow: 0 2px 16px var(--c-rgb-0-0-0-08);
+  }
+
+  /* 标题行 + 按钮 */
+  /* 页头：标题/班级 · 筛选 · 操作 三块；桌面一行，手机三行（见底部媒体查询） */
+  .head {
+    display: flex; align-items: center; flex-wrap: wrap;
+    gap: 8px 14px; margin-bottom: 12px;
+  }
+  .head-main { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-width: 0; }
+  /* 标题 + 状态徽标（只读 / 本机数据）同一行 */
+  .title-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .head-filters { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .head-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-left: auto; }
+  h1 { margin: 0; font-size: 22px; flex: none; }
+
+  .actions-toggle {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 13px; font-size: 13px; font-weight: 700; line-height: 1.4;
+    color: var(--c-24292f); background: var(--c-fff); border: 1px solid var(--c-d0d7de);
+    border-radius: 8px; cursor: pointer; font-family: inherit; white-space: nowrap;
+    transition: background .15s, border-color .15s;
+  }
+  .actions-toggle:hover { border-color: var(--c-afb8c1); }
+  .actions-toggle .caret {
+    display: inline-block; color: var(--c-57606a); font-size: 11px;
+    line-height: 1; transition: transform .15s;
+  }
+  .actions-toggle[aria-expanded="true"] .caret { transform: rotate(180deg); }
+  .actions-toggle:focus-visible { outline: 2px solid var(--c-0969da); outline-offset: 2px; }
+  .copy-week-outside {
+    color: var(--c-0757b8); border-color: transparent; background: transparent;
+    padding: 8px 10px;
+  }
+  .copy-week-outside:hover { background: var(--c-eaf3ff); border-color: var(--c-b6d6f8); }
+  .copy-week-outside:focus-visible { outline: 2px solid var(--c-0969da); outline-offset: 2px; }
+
+  .action-panel {
+    margin: 0 0 12px;
+    padding: 11px 12px;
+    background: var(--c-f8fafc); border: 1px solid var(--c-d8dee4);
+    border-radius: 10px;
+    box-shadow: 0 5px 18px var(--c-rgb-36-41-47-05);
+  }
+  .action-panel[hidden] { display: none; }
+  .action-search { display: flex; align-items: center; gap: 6px; margin-bottom: 9px; }
+  .search-input {
+    flex: 1; min-width: 0; width: 100%;
+    padding: 7px 10px; font-size: 13px; color: var(--c-24292f);
+    border: 1px solid var(--c-d0d7de); border-radius: 7px; background: var(--c-fff);
+    font-family: inherit;
+  }
+  .search-input:focus {
+    border-color: var(--c-0969da); box-shadow: 0 0 0 3px var(--c-rgb-9-105-218-35);
+  }
+  .search-input:focus:not(:focus-visible) { outline: none; }
+  .search-hit { background: var(--c-fff3b0); color: inherit; border-radius: 2px; padding: 0 1px; }
+  .action-groups { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .action-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
+  .action-group + .action-group { padding-left: 16px; border-left: 1px solid var(--c-e1e6eb); }
+  .group-label {
+    font-size: 11px; font-weight: 700; color: var(--c-57606a);
+    letter-spacing: .08em; white-space: nowrap;
+  }
+  .label-short { display: none; }
+  .class-picker {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 13px; color: var(--c-57606a); white-space: nowrap; min-width: 0;
+  }
+  .class-picker > label { white-space: nowrap; }
+  .class-picker select {
+    max-width: 220px; min-width: 0; padding: 6px 10px; font-size: 14px; line-height: 1.4;
+    font-family: inherit; color: var(--c-24292f); background: var(--c-fff);
+    border: 1px solid var(--c-d0d7de); border-radius: 8px; cursor: pointer;
+  }
+  .class-picker select:focus {
+    border-color: var(--c-0969da); box-shadow: 0 0 0 3px var(--c-rgb-9-105-218-35);
+  }
+  .class-picker select:focus:not(:focus-visible) { outline: none; }
+  .class-picker select:disabled {
+    background: var(--c-f6f8fa); color: var(--c-6e7781); cursor: not-allowed;
+  }
+  .class-tools { display: inline-flex; align-items: center; gap: 4px; }
+  .class-tool {
+    position: relative; width: 36px; height: 36px; padding: 0; display: inline-flex;
+    align-items: center; justify-content: center;
+    color: var(--c-57606a); background: transparent; border: 0;
+    border-radius: 8px; cursor: pointer; font-family: inherit;
+  }
+  .class-tool::before {
+    content: ""; position: absolute;
+    top: 4px; right: 4px; bottom: 4px; left: 4px;
+    background: var(--c-fff); border: 1px solid var(--c-d0d7de); border-radius: 6px;
+  }
+  .class-tool svg {
+    position: relative; z-index: 1;
+    width: 15px; height: 15px; fill: none; stroke: currentColor;
+    stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  }
+  .class-tool:hover::before { background: var(--c-f6f8fa); border-color: var(--c-afb8c1); }
+  .class-tool:disabled { color: var(--c-b8c0c8); cursor: not-allowed; }
+  .class-tool:disabled::before { background: var(--c-f6f8fa); }
+  .class-tool-danger { color: var(--c-a40e26); }
+  .class-tool-danger::before { border-color: var(--c-ffcecb); }
+  .class-tool-danger:hover::before { background: var(--c-fff5f5); border-color: var(--c-ffb3ae); }
+  .recent-filter {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 13px; color: var(--c-57606a); white-space: nowrap; cursor: pointer;
+    /* 触控热区：视觉仍是 18px，padding 把可点区撑到 30px 高、并吃掉标签文字，
+       负 margin 让外框尺寸不变 → 行高与首屏高度一个像素都不动。
+       不用 ::after 覆盖层：它会盖住 <input> 本身，Playwright 的 uncheck() 会报
+       "label intercepts pointer events"，读屏落焦也会落到 label 而不是复选框。
+       44px（WCAG 2.5.5 AAA）要增行高，320px 首屏会从 363px 顶到 389px、
+       超过 PRD G2 的 380px 预算，故取 30px。 */
+    padding: 6px 3px; margin: -6px -3px;
+  }
+  .recent-filter input {
+    width: 18px; height: 18px; margin: 0;
+    accent-color: var(--c-0969da); cursor: pointer;
+  }
+  .recent-filter.is-disabled { color: var(--c-6e7781); cursor: not-allowed; opacity: .6; }
+  .recent-filter.is-disabled input { cursor: not-allowed; }
+  .recent-count { font-size: 12px; color: var(--c-6e7781); white-space: nowrap; }
+  /* 本地存储不可用时的常驻警告：不吓人，但必须让用户知道"改完刷新就没了" */
+  .storage-warn {
+    margin: 0 0 10px; padding: 8px 12px;
+    border: 1px solid var(--c-f0d38a); border-radius: 8px;
+    background: var(--c-fff8e6); color: var(--c-7a4b00);
+    font-size: 12.5px; line-height: 1.65;
+  }
+  /* 设备时区与课表时区（UTC+8）不一致时的提示：蓝底，语气比存储警告轻 */
+  .tz-warn { background: var(--c-f2f8ff); border-color: var(--c-b6d4fb); color: var(--c-0757b8); }
+  /* 首次访问提示：默认班不是"你的班"时最容易看错课表 */
+  .first-run {
+    display: flex; align-items: center; gap: 8px;
+    margin: 0 0 10px; padding: 7px 10px;
+    border: 1px solid var(--c-b6d4fb); border-radius: 8px;
+    background: var(--c-f2f8ff); color: var(--c-0757b8);
+    font-size: 12.5px; line-height: 1.6;
+  }
+  .first-run-close {
+    margin-left: auto; flex: none;
+    width: 24px; height: 24px; padding: 0;
+    border: 1px solid var(--c-b6d4fb); border-radius: 6px;
+    background: var(--c-fff); color: var(--c-0757b8); cursor: pointer;
+    font-family: inherit; font-size: 14px; line-height: 1;
+  }
+  .first-run-close:hover { background: var(--c-e3f0ff); }
+  /* 顶部「今天 / 下一节」提示条 */
+  .cue-bar {
+    display: flex; align-items: center; gap: 8px;
+    margin: 0 0 10px; padding: 8px 12px;
+    border: 1px solid var(--c-b6d4fb); border-radius: 8px;
+    background: var(--c-f2f8ff); color: var(--c-0757b8);
+    font-size: 13px; line-height: 1.5;
+  }
+  .cue-bar.is-today { border-color: var(--c-ffc9c7); background: var(--c-fff3f2); color: var(--c-a40e26); }
+  /* 单行截断：超长实验名/地点不能把提示条撑成十几行（窄屏块里没有这条覆盖时会复原） */
+  .cue-text { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* 提示条本身可点：跳到对应那条实验并闪一下 */
+  .cue-text.is-jumpable { cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
+  .cue-text.is-jumpable:hover { text-decoration-style: solid; }
+  .cue-text.is-jumpable:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; border-radius: 4px; }
+  /* 跳转高亮：琥珀已被"冲突"占用，换成状态色里没有的紫 */
+  .is-flash { outline: 3px solid var(--c-8250df); outline-offset: -2px; }
+  .cue-close {
+    position: relative;
+    margin-left: auto; flex: none;
+    width: 26px; height: 26px; padding: 0;
+    border: 1px solid currentColor; border-radius: 6px;
+    background: transparent; color: inherit; opacity: .65;
+    cursor: pointer; font-family: inherit; font-size: 14px; line-height: 1;
+  }
+  .cue-close:hover { opacity: 1; }
+  /* 触控热区：视觉还是 26px，实际可点是 44px（WCAG 2.5.5 建议值） */
+  .cue-close::after {
+    content: ''; position: absolute;
+    top: -9px; right: -9px; bottom: -9px; left: -9px;
+    border-radius: 8px;
+  }

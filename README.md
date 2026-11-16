@@ -258,7 +258,7 @@
 
 ```
 src/index.template.html   页面骨架（含 CSS/JS 占位与 CSP meta）
-src/app.css               样式（= 产物里的 <style>）
+src/styles/*.css          样式源码（8 个文件，按文件名排序拼接）
 src/app.js                脚本（= 产物里的 <script>）
 index.html                构建产物（单文件，Pages 直接发布的就是它）
 ```

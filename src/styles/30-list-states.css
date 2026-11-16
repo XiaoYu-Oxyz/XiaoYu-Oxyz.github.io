@@ -1,0 +1,186 @@
+  /* ---------- 时间冲突：左侧整列浅琥珀色（无文字） ---------- */
+  tbody tr.row-conflict td.cell-mark {
+    background: var(--c-ffe6a6);
+  }
+  tbody tr.row-conflict.row-past td.cell-mark {
+    background: var(--c-f6e3b8);
+  }
+  /* 以下边框和悬停只用于桌面表格；手机端由 tr 边框跨卡片连接。 */
+  @media (min-width: 941px) {
+    tbody tr.row-conflict td.cell-mark {
+      border-left: 3px solid var(--c-b7791f);
+      padding-left: 7px;
+    }
+    tbody tr.row-conflict.row-past td.cell-mark {
+      border-left-color: var(--c-c49a45);
+    }
+    tbody tr.conflict-peer td.cell-mark {
+      background: var(--c-ffd978);
+      border-left-color: var(--c-8a5306);
+    }
+    tbody tr.row-conflict.row-past.conflict-peer td.cell-mark {
+      background: var(--c-eddaa5);
+      border-left-color: var(--c-a17a2a);
+    }
+    tbody tr.row-conflict.conflict-join-next td.cell-mark {
+      border-bottom-color: var(--c-ffe6a6);
+    }
+    tbody tr.row-conflict.conflict-join-top td.cell-mark {
+      border-top-color: var(--c-ffe6a6);
+    }
+    tbody tr.row-past.row-conflict.conflict-join-next td.cell-mark {
+      border-bottom-color: var(--c-f6e3b8);
+    }
+    tbody tr.row-past.row-conflict.conflict-join-top td.cell-mark {
+      border-top-color: var(--c-f6e3b8);
+    }
+    tbody tr.row-conflict.conflict-peer.conflict-join-next td.cell-mark {
+      border-bottom-color: var(--c-ffd978);
+    }
+    tbody tr.row-conflict.conflict-peer.conflict-join-top td.cell-mark {
+      border-top-color: var(--c-ffd978);
+    }
+    tbody tr.row-past.row-conflict.conflict-peer.conflict-join-next td.cell-mark {
+      border-bottom-color: var(--c-eddaa5);
+    }
+    tbody tr.row-past.row-conflict.conflict-peer.conflict-join-top td.cell-mark {
+      border-top-color: var(--c-eddaa5);
+    }
+  }
+  tbody tr.note-row[data-conflict] td {
+    border-left: 4px solid var(--c-c28a12);
+    padding-left: 52px;
+  }
+
+  /* ---------- 删除模式 ---------- */
+  .delete-btn {
+    width: 88px; padding: 8px 0; text-align: center;
+    font-size: 13px; font-weight: 600; line-height: 1.4;
+    color: var(--c-cf222e); background: var(--c-fff); border: 1px solid var(--c-d0d7de); border-radius: 8px;
+    cursor: pointer; font-family: inherit; white-space: nowrap;
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  .delete-btn:hover { border-color: var(--c-ff8182); color: var(--c-a40e26); }
+  .delete-btn.active {
+    color: var(--c-cf222e); background: var(--c-fff); border-color: var(--c-cf222e);
+    box-shadow: inset 0 0 0 1px currentColor;
+  }
+  .delete-btn.active:hover { color: var(--c-a40e26); border-color: var(--c-a40e26); }
+
+  .edit-btn {
+    width: 88px; padding: 8px 0; text-align: center;
+    font-size: 13px; font-weight: 600; line-height: 1.4;
+    color: var(--c-24292f); background: var(--c-fff); border: 1px solid var(--c-d0d7de); border-radius: 8px;
+    cursor: pointer; font-family: inherit; white-space: nowrap;
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  .edit-btn:hover { border-color: var(--c-afb8c1); }
+  .edit-btn.active {
+    color: var(--c-0969da); background: var(--c-fff); border-color: var(--c-0969da);
+    box-shadow: inset 0 0 0 1px currentColor;
+  }
+  .edit-btn.active:hover { color: var(--c-0757b8); border-color: var(--c-0757b8); }
+
+  .ghost-btn:disabled, .ghost-btn:disabled:hover,
+  .add-btn:disabled, .add-btn:disabled:hover,
+  .edit-btn:disabled, .edit-btn:disabled:hover {
+    opacity: .45; cursor: not-allowed;
+  }
+  .ghost-btn:disabled:hover { background: var(--c-fff); }
+  .add-btn:disabled:hover { border-color: var(--c-0969da); color: var(--c-0969da); }
+  .edit-btn:disabled:hover { border-color: var(--c-d0d7de); color: var(--c-24292f); }
+  .delete-btn:disabled, .delete-btn:disabled:hover {
+    opacity: .45; cursor: not-allowed; background: var(--c-fff);
+  }
+
+  /* 左侧删除标记列：始终占位，进入删除模式只显示/隐藏图标，表格不位移、行高不变 */
+  th.col-mark { width: 46px; }
+  /* 无冲突的班级：把 46px 的冲突轨道收起来（进入编辑/删除模式时恢复，按钮还在） */
+  body.no-conflict:not(.editing):not(.deleting) th.col-mark,
+  body.no-conflict:not(.editing):not(.deleting) td.cell-mark {
+    width: 0; max-width: 0; padding: 0; border: 0; background: transparent; overflow: hidden;
+  }
+  body.no-conflict:not(.editing):not(.deleting) td.cell-mark > * { display: none; }
+  td.cell-mark { padding: 8px 4px 8px 10px; line-height: 0; text-align: left; }
+
+  .mark-btn {
+    position: relative;
+    width: 24px; height: 24px; padding: 0;
+    border: 2px solid var(--c-cf222e); border-radius: 50%;
+    background: var(--c-fff); color: var(--c-cf222e);
+    cursor: pointer; font-family: inherit;
+    display: inline-flex; align-items: center; justify-content: center;
+    vertical-align: middle;
+    visibility: hidden;
+    pointer-events: none;
+    transition: background .15s, border-color .15s, color .15s, transform .1s;
+  }
+  body.deleting .mark-btn { visibility: visible; pointer-events: auto; }
+  .mark-btn:hover { background: var(--c-ffebe9); }
+  .mark-btn:active { transform: scale(.9); }
+  .mark-btn:focus-visible { outline: 2px solid var(--c-0969da); outline-offset: 2px; }
+  .mark-btn::before,
+  .mark-btn::after {
+    content: ''; position: absolute; left: 50%; top: 50%;
+    background: currentColor; border-radius: 1px;
+    transform: translate(-50%, -50%);
+  }
+  .mark-btn::before { width: 11px; height: 2px; }
+  .mark-btn::after { width: 2px; height: 11px; display: none; }
+  .mark-btn.is-marked { border-color: var(--c-2da44e); color: var(--c-2da44e); }
+  .mark-btn.is-marked:hover { background: var(--c-e6f9ea); }
+  .mark-btn.is-marked::after { display: block; }
+
+  .edit-row-btn {
+    width: 24px; height: 24px; padding: 0;
+    border: 2px solid var(--c-0969da); border-radius: 6px;
+    background: var(--c-fff); color: var(--c-0969da);
+    font-family: inherit; font-size: 15px; font-weight: 700; line-height: 1;
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    vertical-align: middle;
+    visibility: hidden; pointer-events: none;
+    transition: background .15s, border-color .15s, color .15s, transform .1s;
+  }
+  body.editing .edit-row-btn { visibility: visible; pointer-events: auto; }
+  .edit-row-btn svg {
+    width: 16px; height: 16px; display: block; fill: currentColor; pointer-events: none;
+  }
+  .edit-row-btn:hover { background: var(--c-eaf3ff); border-color: var(--c-0757b8); }
+  .edit-row-btn:active { transform: scale(.9); }
+  .edit-row-btn:focus-visible { outline: 2px solid var(--c-0969da); outline-offset: 2px; }
+
+  tbody tr.row-marked td {
+    background: var(--c-f7f8fa); color: var(--c-57606a);   /* 原 #b0b8c1 在 #f7f8fa 上只有 1.89:1 */
+  }
+  tbody tr.row-marked td.cell-mark { background: var(--c-f7f8fa); }
+  tbody tr.row-marked .tag { opacity: .4; }
+
+  .empty-clear {
+    margin-left: 4px; padding: 3px 10px; min-height: 24px;
+    font-family: inherit; font-size: 12.5px; color: var(--c-0969da);
+    background: none; border: 1px solid var(--c-b6d6f8); border-radius: 999px; cursor: pointer;
+  }
+  .empty-clear:hover { background: var(--c-eaf3ff); }
+  .empty-row td {
+    text-align: center; color: var(--c-6e7781); font-size: 13px;
+    line-height: 1.9; padding: 40px 16px; background: var(--c-fff);
+  }
+
+  .tag {
+    display: inline-block; margin-left: 6px; padding: 1px 7px;
+    border-radius: 10px; font-size: 12px; font-weight: 700;
+    vertical-align: 1px; white-space: nowrap;
+  }
+  .tag-today    { background: var(--c-cf222e); color: var(--c-fff); }
+  .tag-tomorrow { background: var(--c-1a7f37); color: var(--c-fff); }
+  .tag-past     { background: var(--c-d8dee4); color: var(--c-424a53); }
+
+  /* ---------- 表单/导入里的冲突提示 ---------- */
+  .form-conflict, .import-conflict {
+    margin: 0 0 14px; padding: 8px 10px;
+    border-left: 3px solid var(--c-c28a12); border-radius: 0 8px 8px 0;
+    background: var(--c-fffaf0); color: var(--c-7a4f01);
+    font-size: 12.5px; line-height: 1.65; word-break: break-word;
+  }
+

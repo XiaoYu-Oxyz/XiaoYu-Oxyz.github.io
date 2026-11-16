@@ -1,0 +1,443 @@
+import * as H from './harness.mjs';
+const { pathToFileURL, fileURLToPath, assert, fs, os, path, root, appUrl, browserName, browserType, channel, browser, context, page, pageErrors, fixtureDir, fixture, poll, waitValue, waitNotValue, waitText, waitAttr, waitCount, waitVisible, waitFocus, relLum, contrastRatio, clickUndo, settle, setWeek1 } = H;
+import { theadDisplay } from './sections-a.mjs';
+import { conflict, light, dark } from './sections-c.mjs';
+
+  // 24. 状态栏文案要截断：名称/地点可到 200 字，整段塞进状态栏会撑成大色块
+  {
+    const statusCtx = await browser.newContext({ viewport: { width: 390, height: 900 } });
+    const statusPage = await statusCtx.newPage();
+    await statusPage.goto(`${appUrl}?class=Z2`);
+    await statusPage.waitForSelector('tbody tr[data-idx]');
+    await statusPage.locator('#actionsToggle').click();
+    await statusPage.locator('#addBtn').click();
+    await statusPage.waitForSelector('#modalMask.show');
+    await statusPage.fill('#formPeriod', '第1-2节');
+    await statusPage.fill('#formName', '长'.repeat(180));
+    await statusPage.fill('#formPlace', '地点'.repeat(90));
+    await statusPage.locator('#modalSubmit').click();
+    await statusPage.waitForTimeout(600);
+    const bar = await statusPage.evaluate(() => {
+      const el = document.querySelector('.import-status.show');
+      return {
+        visible: (el.querySelector('.status-text') || el).textContent.length,
+        title: (el.title || '').length,
+        live: document.getElementById('liveStatus').textContent.length,
+        height: Math.round(el.getBoundingClientRect().height)
+      };
+    });
+    assert.ok(bar.visible <= 81, `状态栏可见文字应截到 80 字以内，实际 ${bar.visible}`);
+    assert.ok(bar.title > bar.visible, '完整文案应保留在 title 里');
+    assert.ok(bar.live > bar.visible, '读屏播报保留全文');
+    assert.ok(bar.height <= 120, `状态栏不应撑太高，实际 ${bar.height}px`);
+
+    // E1：截断时可点「展开」看全文；再点收起；整条状态栏也能点
+    const toggleState = () => statusPage.evaluate(() => {
+      const bar = document.querySelector('.import-status.show');
+      const span = bar.querySelector('.status-text');
+      const toggle = bar.querySelector('.status-toggle');
+      return {
+        len: span.textContent.length,
+        label: toggle.textContent,
+        expanded: toggle.getAttribute('aria-expanded'),
+        height: Math.round(bar.getBoundingClientRect().height),
+        overflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth
+      };
+    });
+    const collapsed = await toggleState();
+    assert.equal(collapsed.label, '展开', '截断时应出现「展开」按钮');
+    assert.equal(collapsed.expanded, 'false', '初始应为收起');
+    await statusPage.locator('.status-toggle').click();
+    await statusPage.waitForTimeout(150);
+    const expanded = await toggleState();
+    assert.ok(expanded.len > 200, `展开后应显示全文，实际 ${expanded.len} 字`);
+    assert.equal(expanded.label, '收起', '展开后按钮应变成「收起」');
+    assert.equal(expanded.expanded, 'true', '展开后 aria-expanded=true');
+    assert.ok(expanded.height <= 440, `展开后不应无限撑高，实际 ${expanded.height}px`);
+    assert.equal(expanded.overflowX, 0, '展开后不应横向溢出');
+    await statusPage.locator('.status-toggle').click();
+    await statusPage.waitForTimeout(150);
+    const recollapsed = await toggleState();
+    assert.ok(recollapsed.len <= 81, '再次点击应收起');
+    assert.equal(recollapsed.label, '展开', '收起后按钮文字应恢复');
+
+    // 点状态栏空白处也能展开
+    await statusPage.evaluate(() => {
+      const bar = document.querySelector('.import-status.show');
+      const r = bar.getBoundingClientRect();
+      bar.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: r.left + 3, clientY: r.top + 2 }));
+    });
+    await statusPage.waitForTimeout(150);
+    assert.ok((await toggleState()).len > 200, '点状态栏本身也应展开');
+
+    // 同一批长文案也不能把「下一节」提示条撑成十几行（单行截断）
+    const cue = await statusPage.evaluate(() => {
+      const bar = document.getElementById('cueBar');
+      const txt = document.getElementById('cueText');
+      if (!bar || bar.hidden) return null;
+      return {
+        barH: Math.round(bar.getBoundingClientRect().height),
+        ws: getComputedStyle(txt).whiteSpace,
+        clipped: txt.scrollWidth > txt.clientWidth + 2
+      };
+    });
+    if (cue) {
+      assert.ok(cue.barH <= 60, `提示条应保持单行，实际 ${cue.barH}px`);
+      assert.equal(cue.ws, 'nowrap', '提示条文字必须单行截断');
+      assert.ok(cue.clipped, '超长文案应被省略号截断');
+    }
+    await statusCtx.close();
+  }
+  console.log('\u00a725 打印分页：表头跨页重复、行不被切断、单行放得下一页、打印时隐藏界面元素');
+  // 25. 打印分页：表头跨页重复、行不被切断、单行放得下一页、打印时隐藏界面元素
+  //     A4 去掉 12mm 上下边距后可用高 ≈ 1032px（96dpi）
+  {
+    const printCtx = await browser.newContext({ viewport: { width: 703, height: 1032 } });
+    const printPage = await printCtx.newPage();
+    await printPage.clock.install({ time: new Date('2026-11-15T12:00:00') });
+    await printPage.addInitScript(() => {
+      const rows = [];
+      for (let i = 0; i < 90; i += 1) {
+        const d = new Date(Date.UTC(2026, 10, 16 + i));
+        rows.push({
+          date: d.toISOString().slice(0, 10),
+          period: `第${(i % 5) * 2 + 1}-${(i % 5) * 2 + 2}节`,
+          name: '打印测试' + i,
+          place: 'A' + (i % 9 + 1),
+          note: i % 10 === 0 ? '备注一行' : ''
+        });
+      }
+      localStorage.setItem('ghpages:zhizao2402:classdata:v1:Z1', JSON.stringify(rows));
+    });
+    await printPage.goto(`${appUrl}?class=Z1`);
+    await printPage.waitForSelector('tbody tr[data-idx]');
+    await printPage.evaluate(() => { recentOnly = false; render(); });
+    await printPage.waitForTimeout(300);
+    await printPage.emulateMedia({ media: 'print' });
+    await printPage.waitForTimeout(300);
+    const print = await printPage.evaluate(() => {
+      const rows = Array.from(document.querySelectorAll('tbody tr[data-idx]'));
+      const thead = document.querySelector('thead');
+      const heights = rows.map(r => Math.round(r.getBoundingClientRect().height));
+      const pageContent = 1032;   // A4 297mm - 24mm 边距 ≈ 273mm @96dpi
+      return {
+        rowCount: rows.length,
+        theadDisplay: getComputedStyle(thead).display,
+        theadHeight: Math.round(thead.getBoundingClientRect().height),
+        breakInside: rows.length ? getComputedStyle(rows[0]).breakInside : null,
+        maxRowHeight: Math.max(...heights),
+        pageContent,
+        hidden: ['#cueBar', '.action-panel', '.legend', '.clock', '.diag-row'].map(sel => {
+          const el = document.querySelector(sel);
+          return el ? getComputedStyle(el).display === 'none' : true;
+        })
+      };
+    });
+    assert.ok(print.rowCount >= 80, `前置条件：打印时应渲染足够多的行，实际 ${print.rowCount}`);
+    assert.equal(print.theadDisplay, 'table-header-group', '表头必须是 table-header-group 才会跨页重复');
+    assert.equal(print.breakInside, 'avoid', '数据行必须 break-inside: avoid，不能被页边界切成两半');
+    assert.ok(print.maxRowHeight < print.pageContent - print.theadHeight,
+      `单行高 ${print.maxRowHeight}px 必须小于每页可用高 ${print.pageContent - print.theadHeight}px`);
+    assert.deepEqual(print.hidden, [true, true, true, true, true], '打印时必须隐藏提示条/操作面板/图例/时钟/页脚按钮');
+    await printCtx.close();
+
+    // 深色模式打印：必须仍然是白纸黑字（深色块的 body 规则在打印块之后，曾把整页染黑）
+    for (const scheme of ['light', 'dark']) {
+      const colorCtx = await browser.newContext({ viewport: { width: 794, height: 1123 }, colorScheme: scheme });
+      const colorPage = await colorCtx.newPage();
+      await colorPage.clock.install({ time: new Date('2026-11-15T12:00:00') });
+      await colorPage.addInitScript(() => localStorage.setItem('ghpages:zhizao2402:classdata:v1:Z1', JSON.stringify([
+        { date: '2026-11-15', period: '第3-4节', name: '今天实验', place: 'A102', note: '' },
+        { date: '2026-11-20', period: '第7-8节', name: '未来实验', place: 'A103', note: '' }
+      ])));
+      await colorPage.goto(`${appUrl}?class=Z1`);
+      await colorPage.waitForSelector('tbody tr[data-idx]');
+      await colorPage.evaluate(() => { recentOnly = false; render(); });
+      await colorPage.emulateMedia({ media: 'print' });
+      await colorPage.waitForTimeout(250);
+      const colors = await colorPage.evaluate(() => {
+        const g = (sel, prop) => {
+          const el = document.querySelector(sel);
+          return el ? getComputedStyle(el)[prop] : null;
+        };
+        return {
+          bodyBg: g('body', 'backgroundColor'),
+          bodyColor: g('body', 'color'),
+          wrapBg: g('.wrap', 'backgroundColor'),
+          headColor: g('.print-head', 'color'),
+          thColor: g('th', 'color')
+        };
+      });
+      assert.equal(colors.bodyBg, 'rgb(255, 255, 255)', `${scheme} 打印时页面底色必须是白的`);
+      assert.equal(colors.bodyColor, 'rgb(0, 0, 0)', `${scheme} 打印时正文必须是黑的`);
+      assert.equal(colors.wrapBg, 'rgb(255, 255, 255)', `${scheme} 打印时卡片容器底色必须是白的`);
+      assert.equal(colors.headColor, 'rgb(0, 0, 0)', `${scheme} 打印标题必须是黑的`);
+      assert.equal(colors.thColor, 'rgb(0, 0, 0)', `${scheme} 打印表头文字必须是黑的`);
+      await colorCtx.close();
+    }
+  }
+  // A4/C4：打印态对比度 ≥4.5、焦点环对比度 ≥3
+  {
+    const contrastOf = (a, b) => {
+      const lum = rgb => {
+        const m = rgb.match(/\d+/g).map(Number).slice(0, 3);
+        const f = v => { const s = v / 255; return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4); };
+        return 0.2126 * f(m[0]) + 0.7152 * f(m[1]) + 0.0722 * f(m[2]);
+      };
+      const l1 = Math.max(lum(a), lum(b)), l2 = Math.min(lum(a), lum(b));
+      return (l1 + 0.05) / (l2 + 0.05);
+    };
+    for (const scheme of ['light', 'dark']) {
+      const ctx = await browser.newContext({ viewport: { width: 794, height: 1123 }, colorScheme: scheme });
+      const page = await ctx.newPage();
+      await page.goto(`${appUrl}?class=Z2`);
+      await page.waitForSelector('tbody tr[data-idx]');
+      await page.evaluate(() => { recentOnly = false; render(); });
+      await page.emulateMedia({ media: 'print' });
+      await page.waitForTimeout(250);
+      const colors = await page.evaluate(() => {
+        const g = (sel, prop) => {
+          const el = document.querySelector(sel);
+          return el ? getComputedStyle(el)[prop] : null;
+        };
+        return {
+          bodyBg: g('body', 'backgroundColor'), bodyFg: g('body', 'color'),
+          thBg: g('th', 'backgroundColor'), thFg: g('th', 'color'),
+          metaFg: g('.print-meta', 'color')
+        };
+      });
+      assert.ok(contrastOf(colors.bodyFg, colors.bodyBg) >= 4.5, `${scheme} 打印正文对比度不足`);
+      assert.ok(contrastOf(colors.thFg, colors.thBg) >= 4.5, `${scheme} 打印表头对比度不足`);
+      assert.ok(contrastOf(colors.metaFg, colors.bodyBg) >= 4.5, `${scheme} 打印元信息对比度不足`);
+      await page.emulateMedia({ media: 'screen' });
+      await ctx.close();
+    }
+    for (const scheme of ['light', 'dark']) {
+      const ctx = await browser.newContext({ viewport: { width: 390, height: 900 }, colorScheme: scheme });
+      const page = await ctx.newPage();
+      await page.goto(`${appUrl}?class=Z2`);
+      await page.waitForSelector('tbody tr[data-idx]');
+      await page.locator('#actionsToggle').click();
+      await page.keyboard.press('Tab');
+      const ring = await page.evaluate(() => {
+        const el = document.activeElement;
+        const cs = getComputedStyle(el);
+        const bg = getComputedStyle(document.body).backgroundColor;
+        return { outline: cs.outlineColor, bg, width: cs.outlineWidth };
+      });
+      assert.ok(contrastOf(ring.outline, ring.bg) >= 3, `${scheme} 焦点环对比度不足（${ring.outline} on ${ring.bg}）`);
+      await ctx.close();
+    }
+  }
+
+  console.log('\u00a726 语义色与 token 表一致：改色必须同时改 tools/palette.json，否则这里会红');
+  // 26. 语义色与 token 表一致：改色必须同时改 tools/palette.json，否则这里会红
+  {
+    const palette = JSON.parse(fs.readFileSync(path.join(root, 'tools', 'palette.json'), 'utf8'));
+    // palette.semantic 现在指向语义别名（--row-today-bg 等），别名再给出明暗两个色值
+    const expect = (scheme, role) => {
+      const alias = palette.semantic[role];
+      const entry = palette.aliases[alias];
+      return entry ? entry[scheme] : null;
+    };
+    const rgb = hex => {
+      const v = hex.replace('#', '');
+      const n = v.length === 3 ? v.split('').map(c => c + c).join('') : v.slice(0, 6);
+      return `rgb(${parseInt(n.slice(0, 2), 16)}, ${parseInt(n.slice(2, 4), 16)}, ${parseInt(n.slice(4, 6), 16)})`;
+    };
+    const stateRows = [
+      { date: '2026-11-08', period: '第1-2节', name: '过去实验', place: 'A101', note: '' },
+      { date: '2026-11-15', period: '第3-4节', name: '今天实验', place: 'A102', note: '' },
+      { date: '2026-11-16', period: '第3-4节', name: '明天实验', place: 'A103', note: '' },
+      { date: '2026-11-20', period: '第7-8节', name: '冲突甲', place: 'A105', note: '' },
+      { date: '2026-11-20', period: '第7-8节', name: '冲突乙', place: 'A106', note: '' }
+    ];
+
+    for (const scheme of ['light', 'dark']) {
+      const ctx = await browser.newContext({ viewport: { width: 390, height: 950 }, colorScheme: scheme });
+      const page = await ctx.newPage();
+      await page.clock.install({ time: new Date('2026-11-15T12:00:00') });
+      await page.addInitScript(rows => {
+        localStorage.setItem('ghpages:zhizao2402:classdata:v1:Z1', JSON.stringify(rows));
+      }, stateRows);
+      await page.goto(`${appUrl}?class=Z1`);
+      await page.waitForSelector('tbody tr[data-idx]');
+      await page.evaluate(() => { recentOnly = false; render(); });
+      await page.waitForTimeout(300);
+      const actual = await page.evaluate(() => {
+        const rows = Array.from(document.querySelectorAll('tbody tr[data-idx]'));
+        const byName = n => rows.find(r => r.textContent.includes(n));
+        const parse = c => {
+          const m = String(c).match(/rgba?\(([\d.]+), ([\d.]+), ([\d.]+)(?:, ([\d.]+))?\)/);
+          return m ? { r: +m[1], g: +m[2], b: +m[3], a: m[4] === undefined ? 1 : +m[4] } : null;
+        };
+        const blend = (fg, bg) => ({
+          r: fg.r * fg.a + bg.r * (1 - fg.a),
+          g: fg.g * fg.a + bg.g * (1 - fg.a),
+          b: fg.b * fg.a + bg.b * (1 - fg.a),
+          a: 1
+        });
+        // 行内可能有多层（tr / td），取"视觉上真正看到的底色"
+        const effectiveBg = el => {
+          if (!el) return null;
+          let cur = el;
+          const stack = [];
+          while (cur && cur !== document.documentElement) {
+            const c = parse(getComputedStyle(cur).backgroundColor);
+            if (c && c.a > 0) stack.push(c);
+            if (c && c.a >= 0.999) break;
+            cur = cur.parentElement;
+          }
+          let base = { r: 255, g: 255, b: 255, a: 1 };
+          const bodyBg = parse(getComputedStyle(document.body).backgroundColor);
+          if (bodyBg && bodyBg.a > 0.5) base = bodyBg;
+          for (let i = stack.length - 1; i >= 0; i -= 1) base = blend(stack[i], base);
+          return `rgb(${Math.round(base.r)}, ${Math.round(base.g)}, ${Math.round(base.b)})`;
+        };
+        const rowBg = name => {
+          const row = byName(name);
+          if (!row) return null;
+          const cell = row.querySelector('td.cell-mobile') || row.querySelector('td');
+          return effectiveBg(cell || row);
+        };
+        const conflict = byName('冲突甲');
+        return {
+          pageBg: getComputedStyle(document.body).backgroundColor,
+          textMain: getComputedStyle(document.body).color,
+          rowPastBg: rowBg('过去实验'),
+          rowTodayBg: rowBg('今天实验'),
+          rowTomorrowBg: rowBg('明天实验'),
+          conflictBorder: conflict ? getComputedStyle(conflict).borderTopColor : null,
+          conflictBg: rowBg('冲突甲')
+        };
+      });
+      assert.equal(actual.pageBg, rgb(expect(scheme, 'pageBg')), `${scheme} 页面底色应为 token 值`);
+      assert.equal(actual.textMain, rgb(expect(scheme, 'textMain')), `${scheme} 主文字色应为 token 值`);
+      assert.equal(actual.rowPastBg, rgb(expect(scheme, 'rowPastBg')), `${scheme} 已结束行底色应为 token 值`);
+      assert.equal(actual.rowTodayBg, rgb(expect(scheme, 'rowTodayBg')), `${scheme} 今天行底色应为 token 值`);
+      assert.equal(actual.rowTomorrowBg, rgb(expect(scheme, 'rowTomorrowBg')), `${scheme} 明天行底色应为 token 值`);
+      assert.equal(actual.conflictBorder, rgb(expect(scheme, 'conflictBorder')), `${scheme} 冲突描边应为 token 值`);
+      assert.equal(actual.conflictBg, rgb(expect(scheme, 'conflictBg')), `${scheme} 冲突底色应为 token 值`);
+
+      // 下一次（≥2 天）与状态栏单独构造
+      // 最近一次要在 ≥2 天后才不会被「今天/明天」让位抑制
+      await page.evaluate(() => {
+        experiments = [{ date: '2026-11-18', period: '第3-4节', name: '下次实验', place: 'B', note: '' }];
+        recentOnly = false;
+        render();
+      });
+      await page.waitForTimeout(250);
+      const nextBg = await page.evaluate(() => {
+        const row = Array.from(document.querySelectorAll('tbody tr[data-idx]')).find(r => r.textContent.includes('下次实验'));
+        if (!row) return null;
+        const cell = row.querySelector('td.cell-mobile') || row.querySelector('td');
+        const parse = c => {
+          const m = String(c).match(/rgba?\(([\d.]+), ([\d.]+), ([\d.]+)(?:, ([\d.]+))?\)/);
+          return m ? { r: +m[1], g: +m[2], b: +m[3], a: m[4] === undefined ? 1 : +m[4] } : null;
+        };
+        const blend = (fg, bg) => ({ r: fg.r * fg.a + bg.r * (1 - fg.a), g: fg.g * fg.a + bg.g * (1 - fg.a), b: fg.b * fg.a + bg.b * (1 - fg.a), a: 1 });
+        let cur = cell;
+        const stack = [];
+        while (cur && cur !== document.documentElement) {
+          const c = parse(getComputedStyle(cur).backgroundColor);
+          if (c && c.a > 0) stack.push(c);
+          if (c && c.a >= 0.999) break;
+          cur = cur.parentElement;
+        }
+        let base = parse(getComputedStyle(document.body).backgroundColor) || { r: 255, g: 255, b: 255, a: 1 };
+        for (let i = stack.length - 1; i >= 0; i -= 1) base = blend(stack[i], base);
+        return `rgb(${Math.round(base.r)}, ${Math.round(base.g)}, ${Math.round(base.b)})`;
+      });
+      assert.equal(nextBg, rgb(expect(scheme, 'rowNextBg')), `${scheme} 下一次行底色应为 token 值`);
+
+      await page.evaluate(() => showStatus('ok', '测试状态栏'));
+      await page.waitForTimeout(120);
+      const status = await page.evaluate(() => {
+        const el = document.querySelector('.import-status.show');
+        return { bg: getComputedStyle(el).backgroundColor, fg: getComputedStyle(el).color };
+      });
+      assert.equal(status.bg, rgb(expect(scheme, 'statusOkBg')), `${scheme} 成功状态底色应为 token 值`);
+      assert.equal(status.fg, rgb(expect(scheme, 'statusOkText')), `${scheme} 成功状态文字应为 token 值`);
+      await ctx.close();
+    }
+  }
+  // F5：404 页也要能用（CSP 允许、有返回入口、无脚本错误）
+  {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const page = await ctx.newPage();
+    const errs = [];
+    page.on('pageerror', e => errs.push(e.message));
+    const url = pathToFileURL(path.join(root, '404.html')).href;
+    await page.goto(url);
+    await page.waitForTimeout(200);
+    const info = await page.evaluate(() => ({
+      title: document.title,
+      text: document.body.innerText.slice(0, 120),
+      back: !!document.querySelector('a[href="index.html"], a[href="./index.html"], a[href="/"]'),
+      overflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth
+    }));
+    assert.ok(info.text.length > 0, '404 页应有提示文字');
+    assert.ok(info.back, '404 页应提供返回入口');
+    assert.equal(info.overflowX, 0, '404 页不应横向溢出');
+    assert.deepEqual(errs, [], '404 页不应有脚本错误');
+    await ctx.close();
+  }
+
+  // 27. 兼容性：现代内核必须隐藏"浏览器过旧"提示条；<noscript> 兜底存在
+  {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 900 } });
+    const page = await ctx.newPage();
+    await page.goto(appUrl);
+    await page.waitForSelector('tbody tr[data-idx]');
+    const info = await page.evaluate(() => {
+      const banner = document.querySelector('.browser-warning');
+      const noscript = document.querySelector('noscript');
+      return {
+        bannerDisplay: banner ? getComputedStyle(banner).display : null,
+        bannerText: banner ? banner.textContent.trim().length : 0,
+        hasNoscript: !!noscript,
+        supportsCustomProps: CSS.supports('--css: variables')
+      };
+    });
+    assert.equal(info.supportsCustomProps, true, '现代内核应支持 CSS 变量（前置条件）');
+    assert.equal(info.bannerDisplay, 'none', '现代内核必须隐藏过旧浏览器提示条');
+    assert.ok(info.bannerText > 10, '提示条应有可读文案（给不支持变量的浏览器看）');
+    assert.equal(info.hasNoscript, true, '应有 <noscript> 兜底提示');
+    await ctx.close();
+  }
+
+  // 28. 两列布局下，同一行的普通卡与冲突卡必须横向对齐（边框厚度不能吃掉 1px）
+  {
+    const ctx = await browser.newContext({ viewport: { width: 700, height: 900 } });
+    const page = await ctx.newPage();
+    await page.clock.install({ time: new Date('2026-11-15T12:00:00') });
+    await page.addInitScript(() => {
+      localStorage.setItem('ghpages:zhizao2402:classdata:v1:Z1', JSON.stringify([
+        { date: '2026-11-16', period: '第1-2节', name: '普通实验', place: 'A101', note: '' },
+        { date: '2026-11-20', period: '第5-6节', name: '冲突甲', place: 'A104', note: '' },
+        { date: '2026-11-20', period: '第5-6节', name: '冲突乙', place: 'A105', note: '' }
+      ]));
+    });
+    await page.goto(`${appUrl}?class=Z1`);
+    await page.waitForSelector('tbody tr[data-idx]');
+    await page.evaluate(() => { recentOnly = false; render(); });
+    await page.waitForTimeout(500);
+    const geom = await page.evaluate(() => {
+      return [...document.querySelectorAll('tbody tr[data-idx]')].map(r => {
+        const td = r.querySelector('td.cell-mobile');
+        return {
+          conflict: r.classList.contains('row-conflict'),
+          top: Math.round(r.getBoundingClientRect().top * 10) / 10,
+          contentTop: td ? Math.round(td.getBoundingClientRect().top * 10) / 10 : null
+        };
+      });
+    });
+    const normal = geom.find(g => !g.conflict);
+    const conflicts = geom.filter(g => g.conflict);
+    assert.ok(normal && conflicts.length, '前置条件：需要普通卡与冲突卡');
+    const sideBySide = conflicts.find(c => c.top === normal.top);
+    assert.ok(sideBySide, '前置条件：普通卡与冲突卡应落在同一网格行');
+    assert.equal(sideBySide.contentTop, normal.contentTop, '同一行两张卡的文字必须横向对齐');
+    await ctx.close();
+  }
+

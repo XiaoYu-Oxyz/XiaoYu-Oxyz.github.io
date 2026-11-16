@@ -1,0 +1,234 @@
+  /* ---------- 深色模式 ----------
+     不逐条改 304 处 hex（那需要单独的机械化提交），只覆盖"面/字/边"三层：
+     页面底色、卡片/表格/弹窗表面、正文与次要文字、分隔线，以及五种状态色。 */
+  :root { color-scheme: light dark; }
+  @media (prefers-color-scheme: dark) {
+    /* ---- 深色语义层：同名别名换值 ---- */
+    :root {
+      --page-bg: #0d1117;
+      --text-main: #e6edf3;
+      --row-past-bg: #161b22;
+      --row-past-text: #8b949e;
+      --row-today-bg: #2a1517;
+      --row-today-border: #6b1f24;
+      --row-today-cell-bg: #3d1a1c;
+      --row-today-text: #ffb3b0;
+      --row-tomorrow-bg: #10241a;
+      --row-tomorrow-border: #1b4721;
+      --row-tomorrow-cell-bg: #12261a;
+      --row-tomorrow-text: #7ee2a8;
+      --row-next-bg: #0d2d4d;
+      --row-next-cell-bg: #0d2d4d;
+      --row-next-border: #1f6feb;
+      --row-conflict-border: #8a6100;
+      --row-conflict-bg: #1f1a10;
+      --row-conflict-peer-border: #a97400;
+      --row-conflict-peer-bg: #26200f;
+      --row-conflict-past-border: #6b5200;
+      --row-conflict-past-bg: #1a1710;
+      --status-ok-bg: #0f2d1a;
+      --status-ok-text: #56d364;
+      --status-ok-border: #1b4721;
+      --legend-today: #5c2a2e;
+      --legend-tomorrow: #1b4721;
+    }
+    body { background: var(--c-0d1117); color: var(--c-e6edf3); }
+    .wrap { background: var(--c-161b22); box-shadow: 0 2px 16px var(--c-rgb-0-0-0-55); }
+    h1, .m-name, .modal-head h2 { color: var(--c-e6edf3); }
+    .class-picker, .settings-row, .recent-filter, .clock, .legend, .data-updated,
+    .recent-count, .settings-hint, .group-label, .mode-note, .copy-hint { color: var(--c-8b949e); }
+    .class-picker select, .settings-row input[type="date"], .search-input,
+    .form-row input, .form-row input[type="text"], .form-row input[type="number"],
+    .form-row input[type="date"], .form-row select, .form-row textarea, .class-prompt-input,
+    .conflict-box select, .copy-fallback-text {
+      background: var(--c-0d1117); color: var(--c-e6edf3); border-color: var(--c-30363d);
+    }
+    /* 原生日期控件：强制用作者配色，并把日历图标反色，否则深色下仍是白块 */
+    input[type="date"] { color-scheme: dark; }
+    input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(.75); cursor: pointer; }
+    .actions-toggle, .ghost-btn, .export-choice, .target-card, .mode-card {
+      background: var(--c-000); color: var(--c-adbac7); border-color: var(--c-30363d);
+    }
+    .actions-toggle:hover, .ghost-btn:hover, .export-choice:hover { background: var(--c-000); border-color: var(--c-484f58); }
+    /* 操作面板按钮：一律"黑底 + 有色描边与文字"，不再用大面积彩色填充。
+       主操作（添加）用蓝色边字，危险动作（删除）用红色边字，其余中性灰。 */
+    .add-btn, .add-btn:hover, .add-btn:active,
+    .add-btn:disabled, .add-btn:disabled:hover {
+      background: var(--c-000); color: var(--c-58a6ff); border-color: var(--c-1f6feb);
+    }
+    .add-btn:hover { border-color: var(--c-388bfd); color: var(--c-79c0ff); }
+    .import-btn, .edit-btn, .ghost-btn, .delete-btn,
+    .import-btn:hover, .edit-btn:hover, .ghost-btn:hover, .delete-btn:hover,
+    .import-btn:disabled, .import-btn:disabled:hover,
+    .edit-btn:disabled, .edit-btn:disabled:hover,
+    .ghost-btn:disabled, .ghost-btn:disabled:hover,
+    .delete-btn:disabled, .delete-btn:disabled:hover {
+      background: var(--c-000); border-color: var(--c-30363d); color: var(--c-c9d1d9);
+    }
+    .import-btn:hover, .edit-btn:hover, .ghost-btn:hover, .delete-btn:hover { border-color: var(--c-484f58); }
+    .delete-btn, .delete-btn:disabled, .delete-btn:disabled:hover { color: var(--c-ff7b72); }
+    .edit-btn.active { background: var(--c-000); border-color: var(--c-1f6feb); color: var(--c-79c0ff); }
+    .edit-btn.active:hover { background: var(--c-000); border-color: var(--c-388bfd); color: var(--c-79c0ff); }
+    .delete-btn.active { background: var(--c-000); border-color: var(--c-f85149); color: var(--c-ff7b72); }
+    .delete-btn.active:hover { background: var(--c-000); border-color: var(--c-ff7b72); color: var(--c-ff7b72); }
+    /* 行内笔 / 圈杠按钮：同样黑底 + 有色描边（原来背景是 #fff，深色下是白方块） */
+    .mark-btn { background: var(--c-000); border-color: var(--c-da3633); color: var(--c-ff7b72); }
+    .mark-btn:hover { background: var(--c-14080a); border-color: var(--c-f85149); }
+    .edit-row-btn { background: var(--c-000); border-color: var(--c-1f6feb); color: var(--c-58a6ff); }
+    .edit-row-btn:hover { background: var(--c-060d18); border-color: var(--c-388bfd); }
+    /* 班级操作图标：::before 是那层白色圆角底，深色下必须换掉 */
+    .class-tool { color: var(--c-adbac7); }
+    .class-tool::before { background: var(--c-21262d); border-color: var(--c-30363d); }
+    .class-tool:hover::before { background: var(--c-30363d); border-color: var(--c-484f58); }
+    .class-tool:disabled { color: var(--c-6e7681); }
+    .class-tool:disabled::before { background: var(--c-161b22); }
+    .class-tool-danger { color: var(--c-ff7b72); }
+    .class-tool-danger::before { border-color: var(--c-6b1f24); }
+    .class-tool-danger:hover::before { background: var(--c-3d1a1c); border-color: var(--c-f85149); }
+    /* 本机数据 / 只读徽标 */
+    .mode-badge { background: var(--c-21262d); border-color: var(--c-30363d); color: var(--c-adbac7); }
+    .mode-badge.is-local { background: var(--c-2a2110); border-color: var(--c-4a3a10); color: var(--c-d4a72c); }
+    .mode-badge.is-readonly { background: var(--c-0d2d4d); border-color: var(--c-1f6feb); color: var(--c-79c0ff); }
+    /* 导出范围卡片 */
+    .export-scope { background: var(--c-0d1117); border-color: var(--c-30363d); }
+    .export-scope-title { color: var(--c-8b949e); }
+    .export-scope-option { color: var(--c-e6edf3); }
+    .action-panel { background: var(--c-12181f); border-color: var(--c-30363d); }
+    .action-group + .action-group { border-left-color: var(--c-30363d); }
+    thead th { background: var(--c-1c2128); color: var(--c-adbac7); border-bottom-color: var(--c-30363d); box-shadow: inset 0 -2px 0 var(--c-30363d); }
+    tbody td { border-bottom-color: var(--c-21262d); }
+    tbody tr { background: var(--c-161b22); border-color: var(--c-30363d); }
+    tbody tr.row-past td, tbody tr.row-past td.cell-mobile, tbody tr.row-past .m-name { color: var(--c-8b949e); }
+    tbody tr.row-today td { background: var(--c-3d1a1c); color: var(--c-ffb3b0); }
+    tbody tr.row-tomorrow td { background: var(--c-12261a); color: var(--c-7ee2a8); }
+    tbody tr.row-next td { background: var(--c-0d2d4d); }
+    tbody tr.note-row td { background: var(--c-12181f); color: var(--c-8b949e); }
+    tbody tr.note-row.row-next td { background: var(--row-next-cell-bg); }
+    .tag-past { background: var(--c-30363d); color: var(--c-adbac7); }
+    .modal, .restore-section, .confirm-detail, .import-skipped-list, .empty-row td { background: var(--c-161b22); color: var(--c-e6edf3); }
+    .modal-head, .modal-foot { border-color: var(--c-30363d); }
+    .import-status.ok { background: var(--status-ok-bg); color: var(--status-ok-text); border-color: var(--status-ok-border); }
+    .import-status.warn { background: var(--c-341a00); color: var(--c-e3b341); border-color: var(--c-5c4400); }
+    .import-status.error { background: var(--c-3d1a1c); color: var(--c-ff9492); border-color: var(--c-6b1f24); }
+    .search-hit { background: var(--c-6b4b00); color: var(--c-ffdf5d); }
+    .m-place, .m-line1, .m-note { color: var(--c-8b949e); }
+    /* 手机段的 `.cell-mobile .m-line1` 特异性 (0,2,0) 高过上面那行，
+       深色下日期行仍是 #57606a（2.71:1），这里用同等特异性压回去 */
+    td.cell-mobile .m-line1 { color: var(--c-adbac7); }
+    tbody tr.row-past td.cell-mobile .m-line1 { color: var(--c-8b949e); }
+    /* 时钟：`.clock-time` 原来只有浅色 #24292f，深色下几乎看不见（1.18:1） */
+    .clock { color: var(--c-8b949e); }
+    .clock b { color: var(--c-79c0ff); }
+    .clock-time { color: var(--c-e6edf3); }
+    .export-count { color: var(--c-8b949e); }
+    .saved-tip { color: var(--c-56d364); }
+    /* 页脚两个反馈入口：浅色 #57606a 在深色底 2.71:1 */
+    .diag-btn { color: var(--c-adbac7); }
+    .diag-btn:hover { color: var(--c-58a6ff); }
+    /* 导出方式卡里的说明文字（#57606a on #000 = 3.29） */
+    .export-choice span { color: var(--c-adbac7); }
+    .export-choice { color: var(--c-f0f6fc); }
+    /* 表单字段标签（#424a53 on #161b22 = 1.92） */
+    .form-row > label, .choice-body label { color: var(--c-adbac7); }
+    /* 课表视图：周标题与格子里的地点（#24292f / #57606a 在深色底几乎看不见） */
+    .week-label { color: var(--c-e6edf3); }
+    .wg-item span { color: var(--c-adbac7); }
+
+    /* ---- 卡片布局（手机 / 两列 / 横屏）的深色版 ----
+       手机段的 `tbody tr.row-past`/`.cell-mobile .m-name` 等规则特异性高于
+       这里的 `tbody tr`，不显式覆盖的话深色下会出现"浅底 + 浅字"（几乎不可读）。 */
+    tbody tr.row-past { background: var(--row-past-bg); border-color: var(--c-21262d); }
+    tbody tr.row-today { background: var(--row-today-bg); border-color: var(--row-today-border); }
+    tbody tr.row-tomorrow { background: var(--row-tomorrow-bg); border-color: var(--row-tomorrow-border); }
+    tbody tr.row-today td.cell-mobile { color: var(--c-ffb3b0); }
+    tbody tr.row-tomorrow td.cell-mobile { color: var(--c-7ee2a8); }
+    tbody tr.row-past td.cell-mobile { color: var(--c-8b949e); }
+    .cell-mobile .m-name { color: var(--c-e6edf3); }
+    tbody tr.row-past .cell-mobile .m-name { color: var(--c-8b949e); }
+    .cell-mobile .m-place { color: var(--c-8b949e); }
+    .cell-mobile .m-note { border-top-color: var(--c-21262d); color: var(--c-8b949e); }
+    /* 置灰 / 禁用态：浅色规则里写死了浅底，深色下必须逐个覆盖，否则编辑/删除模式下会冒出白块。
+       注意别在这里再写 background 彩色——按钮统一是"黑底 + 有色边框/文字"。
+       这里只兜底颜色，背景交给上面那组黑底规则（同样特异性 + 靠后，会赢）。
+       例外：禁用态的输入框/下拉框要压到更暗的 #161b22，表示"现在不能改"。 */
+    .class-picker select:disabled,
+    .form-row input:disabled, .form-row select:disabled, .form-row textarea:disabled {
+      background: var(--c-161b22); border-color: var(--c-30363d); color: var(--c-6e7681);
+    }
+    /* 单选/复选：浅色用 #0969da，深色下偏暗，换亮一档 */
+    input[type="radio"], input[type="checkbox"] { accent-color: var(--c-1f6feb); }
+    /* 删除模式里"已标记"的行：浅色是 #f7f8fa 浅底（深色下等于一块白板），
+       这里压回深底 + 灰字，并把标记按钮的绿换成深色版绿 */
+    tbody tr.row-marked td { background: transparent; color: var(--c-8b949e); }
+    tbody tr.row-marked td.cell-mark { background: transparent; }
+    tbody tr.row-marked .cell-mobile .m-name { color: var(--c-8b949e); }
+    .mark-btn[aria-pressed="true"], .mark-btn[aria-pressed="true"]:hover {
+      background: var(--c-000); border-color: var(--c-3fb950); color: var(--c-3fb950);
+    }
+    /* 状态栏里的「撤销」按钮：浅色是半透明白底，深色下会变成一块浅色药丸 */
+    .status-action { background: var(--c-rgb-255-255-255-12); color: inherit; }
+    .status-action:hover { background: var(--c-rgb-255-255-255-22); }
+    /* 导入弹窗的几块浅底：摘要、同名提示、选中的方式卡、推荐徽标 */
+    .import-summary { background: var(--c-0d1117); border-color: var(--c-30363d); color: var(--c-c9d1d9); }
+    .import-summary b { color: var(--c-58a6ff); }
+    .form-conflict, .import-conflict { background: var(--c-1f1a10); border-left-color: var(--c-8a6100); color: var(--c-d4a72c); }
+    .mode-card.selected { background: var(--c-0d2d4d); border-color: var(--c-1f6feb); }
+    .mode-card:hover { background: var(--c-161b22); }
+    .mode-card .mode-badge { background: var(--c-14351f); border-color: var(--c-1b4721); color: var(--c-7ee2a8); }
+    .import-skipped { color: var(--c-8b949e); }
+    /* 同名同时间提示盒（导入弹窗里的 conflict-box）：浅黄底 → 深琥珀底 */
+    .conflict-box { background: var(--c-1f1a10); border-color: var(--c-4a3a10); color: var(--c-d4a72c); }
+    .conflict-box select { background: var(--c-0d1117); border-color: var(--c-4a3a10); color: var(--c-c9d1d9); }
+    .import-skipped summary { color: var(--c-d4a72c); }
+    tbody tr.row-conflict { background: var(--row-conflict-bg); border-color: var(--c-8a6100); }
+    tbody tr.row-conflict.conflict-peer { background: var(--row-conflict-peer-bg); border-color: var(--row-conflict-peer-border); }
+    tbody tr.row-past.row-conflict { background: var(--row-conflict-past-bg); border-color: var(--row-conflict-past-border); }
+    /* 周分隔线：结构性信息，深色下同样不跟随今天/明天改色 */
+    tbody tr.week-start td.cell-mobile::before { background: var(--c-30363d); }
+    /* 图例色块与"下一次"徽标：浅色版在深色背景上像四个亮点 */
+    .legend .dot-today { background: var(--legend-today); }
+    .legend .dot-tomorrow { background: var(--legend-tomorrow); }
+    .legend .dot-past { background: var(--c-30363d); }
+    .legend .dot-conflict { background: var(--c-4a3a10); }
+    .legend .dot-next { background: var(--c-0d2d4d); }
+    .next-badge { background: var(--c-0d2d4d); border-color: var(--c-1f6feb66); color: var(--c-79c0ff); }
+    .tag-today { background: var(--c-5c2a2e); color: var(--c-ffb3b0); }
+    .tag-tomorrow { background: var(--c-14351f); color: var(--c-7ee2a8); }
+
+    /* 「下一次」的浅色底规则带两个 :not()，特异性高于本条之前的写法，
+       深色下会把白底刷到行上（文字仍是浅色 → 1.12:1 不可读）。这里用同样的选择器纠正。 */
+    tbody tr.row-next:not(.row-today):not(.row-tomorrow) td { background: var(--row-next-bg); }
+    tbody tr.row-next td:nth-child(2) { box-shadow: inset 3px 0 0 var(--c-58a6ff); }
+
+    /* 提示条与首次提示：原来只有浅色版，深色下是一块亮斑 */
+    .first-run { background: var(--c-12212f); border-color: var(--c-1f6feb66); color: var(--c-79c0ff); }
+    .first-run-close { background: var(--c-161b22); border-color: var(--c-1f6feb66); color: var(--c-79c0ff); }
+    /* 两条常驻警告：存储不可用（黄）与时区不一致（蓝）。CI 跑在 UTC，
+       时区那条每次都会显示——第 40 轮就是它把暗色浅块扫描顶红的。 */
+    .storage-warn { background: var(--c-341a00); border-color: var(--c-5c4400); color: var(--c-e3b341); }
+    .tz-warn { background: var(--c-12212f); border-color: var(--c-1f6feb66); color: var(--c-79c0ff); }
+    .cue-bar { background: var(--c-12212f); border-color: var(--c-1f6feb66); color: var(--c-79c0ff); }
+    .cue-bar.is-today { background: var(--c-2a1517); border-color: var(--c-6b1f24); color: var(--c-ffb3b0); }
+
+    /* 同周分隔线（桌面）、冲突标记列、跳转高亮、备注展开按钮 */
+    tbody tr.week-start > td { border-top-color: var(--c-30363d); }
+    tbody tr.row-conflict td.cell-mark { background: var(--c-3b2f12); }
+    tbody tr.row-conflict.row-past td.cell-mark { background: var(--c-2f2712); }
+    tbody tr.conflict-peer td.cell-mark { background: var(--c-4a3a10); }
+    .is-flash { outline-color: var(--c-a371f7); }
+  @media print { .is-flash { outline: none; } }
+    .m-note-toggle { color: var(--c-58a6ff); }
+    .import-dupe { color: var(--c-e3b341); }
+
+    /* 周视图（桌面）也补一套深色 */
+    .wg-cell { background: var(--c-161b22); border-color: var(--c-30363d); }
+    .wg-head { background: var(--c-1c2128); color: var(--c-adbac7); }
+    .wg-slot { background: var(--c-12181f); color: var(--c-8b949e); }
+    .wg-item.st-past { background: var(--c-21262d); color: var(--c-8b949e); }
+    .wg-item.st-today { background: var(--c-3d1a1c); color: var(--c-ffb3b0); }
+    .wg-item.st-tomorrow { background: var(--c-12261a); color: var(--c-7ee2a8); }
+    .wg-item.st-future { background: var(--c-161b22); color: var(--c-e6edf3); border-color: var(--c-30363d); }
+    .wg-item.st-next { background: var(--c-0d2d4d); box-shadow: inset 3px 0 0 var(--c-58a6ff); }
+    .wg-item.is-conflict { background: var(--c-3b2f12); color: var(--c-e3b341); box-shadow: inset 0 0 0 2px var(--c-9e6a03); }
+  }
+

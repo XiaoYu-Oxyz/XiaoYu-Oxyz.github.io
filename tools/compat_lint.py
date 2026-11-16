@@ -105,9 +105,13 @@ def main() -> int:
     problems = []
     js_text = (SRC / "app.js").read_text(encoding="utf-8") if (SRC / "app.js").exists() else ""
     problems += scan(SRC / "app.js", JS_RULES, js_text)
-    problems += scan(SRC / "app.css", CSS_RULES, js_text)
+    styles_dir = SRC / "styles"
+    css_files = sorted(styles_dir.glob("*.css")) if styles_dir.exists() else []
+    for css_file in css_files:
+        problems += scan(css_file, CSS_RULES, js_text)
     problems += scan(SRC / "index.template.html", CSS_RULES, js_text)
-    problems += check_sticky_prefix(SRC / "app.css")
+    for css_file in (sorted((SRC / "styles").glob("*.css")) if (SRC / "styles").exists() else []):
+        problems += check_sticky_prefix(css_file)
 
     if problems:
         for item in problems:

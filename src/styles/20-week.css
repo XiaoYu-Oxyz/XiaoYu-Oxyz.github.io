@@ -1,0 +1,283 @@
+  /* ---------- 周视图（桌面 demo）：≥1120px 才出现切换按钮 ---------- */
+  .view-switch { display: none; gap: 4px; align-items: center; }
+  .view-btn {
+    padding: 6px 10px; font-size: 12.5px; font-weight: 600; line-height: 1.4;
+    color: var(--c-57606a); background: var(--c-fff); border: 1px solid var(--c-d0d7de); border-radius: 8px;
+    cursor: pointer; font-family: inherit;
+  }
+  .view-btn[aria-pressed="true"] { color: var(--c-fff); background: var(--c-0969da); border-color: var(--c-0969da); }
+  @media (min-width: 1120px) { .view-switch { display: inline-flex; } }
+  .week-view { display: none; }
+  body.view-week .week-view { display: block; }
+  body.view-week .table-wrap { display: none; }
+  .week-toolbar { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
+  .week-label { font-size: 13px; font-weight: 700; color: var(--c-24292f); }
+  .week-grid {
+    display: grid; grid-template-columns: 44px repeat(7, minmax(0, 1fr));
+    grid-auto-rows: minmax(34px, auto); gap: 3px;
+  }
+  .wg-cell {
+    border: 2px solid var(--c-d8dee4); border-radius: 6px; padding: 2px 6px;
+    min-height: 34px; background: var(--c-fff); font-size: 12px; line-height: 1.45;
+  }
+  .wg-head {
+    background: var(--c-f0f3f6); font-weight: 700; color: var(--c-424a53); min-height: 0;
+    text-align: center; padding: 5px 4px;
+  }
+  .wg-head.is-today { background: var(--c-eaf3ff); color: var(--c-0757b8); }
+  /* 左上角留白：不要"节次"两个字，也不要一个空的灰块 */
+  .wg-corner { background: transparent; border-color: transparent; }
+  .wg-slot {
+    background: var(--c-f8fafc); font-weight: 700; color: var(--c-57606a); text-align: center;
+    display: flex; align-items: center; justify-content: center;
+    white-space: nowrap; font-size: 11.5px;
+  }
+  .week-grid > .wg-item,
+  .week-grid > .wg-stack { position: relative; z-index: 1; }
+  .wg-item {
+    margin: 2px; padding: 2px 6px;
+    border-radius: 6px; overflow: hidden; align-self: stretch;
+  }
+  .wg-item b { display: block; font-size: 11.5px; line-height: 1.25; }
+  .wg-item span { display: block; font-size: 10.5px; line-height: 1.25; color: var(--c-57606a); }
+  /* 节次超出上限被截断时的标记 */
+  .wg-clipped { position: absolute; right: 3px; bottom: 0; font-size: 12px; line-height: 1; color: var(--c-8a5306); }
+  /* 点空格添加实验 */
+  .wg-cell-add { cursor: pointer; transition: background .12s, border-color .12s; }
+  .wg-cell-add:hover { background: var(--c-f2f8ff); border-color: var(--c-b6d4fb); }
+  body.readonly .wg-cell-add { cursor: default; }
+  body.readonly .wg-cell-add:hover { background: var(--c-fff); border-color: var(--c-d8dee4); }
+  /* 点实验块编辑 / 删除模式下点块标记 */
+  .wg-clickable { cursor: pointer; }
+  .wg-clickable:hover { filter: brightness(.96); }
+  .wg-clickable:focus-visible { outline: 2px solid var(--c-0969da); outline-offset: 1px; }
+  .wg-item.wg-editing { border: 2px dashed var(--c-0969da); }
+  .wg-item.is-marked { outline: 3px solid var(--c-cf222e); outline-offset: -3px; }
+  .wg-item.is-marked::after {
+    content: '✕'; position: absolute; right: 4px; top: 1px;
+    font-size: 11px; line-height: 1; color: var(--c-cf222e); font-weight: 700;
+  }
+  /* 填充色取图例色：今天 / 明天 / 已结束 / 冲突 / 下一次 */
+  .wg-item.st-past { background: var(--c-eaeef2); color: var(--c-57606a); }
+  .wg-item.st-today { background: var(--c-ffd7d5); color: var(--c-a40e26); }
+  .wg-item.st-tomorrow { background: var(--c-d3f5d9); color: var(--c-1a7f37); }
+  .wg-item.st-future { background: var(--c-fff); color: var(--c-24292f); border: 1px solid var(--c-e1e6eb); }
+  /* "下一次"只加左侧蓝条；今天/明天保留自己的底色，不被蓝色覆盖 */
+  .wg-item.st-next { box-shadow: inset 3px 0 0 var(--c-0969da); }
+  .wg-item.st-next:not(.st-today):not(.st-tomorrow) { background: var(--c-eaf3ff); }
+  /* 冲突：整个格子都是琥珀色（覆盖状态底色） */
+  .wg-item.is-conflict { background: var(--c-ffe6a6); color: var(--c-7a4b00); box-shadow: inset 0 0 0 2px var(--c-b7791f); }
+  /* 同一天同一时段有多条时：横向分栏，每条仍按自己的节次高度定位 */
+  /* 容器本身不吃点击，否则堆垛覆盖到的空格就没法点出来添加了 */
+  .wg-stack { position: relative; display: block; margin: 2px; padding: 2px; pointer-events: none; }
+  .wg-stack > .wg-item { margin: 0; pointer-events: auto; }
+  .wg-in-stack { position: absolute; }
+  @media print {
+    body.view-week .table-wrap { display: block !important; }
+    .week-view { display: none !important; }
+  }
+  /* 诊断信息：纯静态页面没有后端日志，反馈问题时最缺环境信息 */
+  .diag-row { margin: 14px 0 0; text-align: right; }
+  .diag-btn {
+    /* 竖向留 4px：让按钮高度到 24px（WCAG 2.2 · 2.5.8 的最小指针目标），
+       横向仍是 4px，320px 下两个按钮并排不会挤爆 */
+    padding: 4px; border: 0; border-radius: 4px; background: none;
+    color: var(--c-57606a); font-family: inherit; font-size: 12px;
+    text-decoration: underline dotted; cursor: pointer;
+  }
+  .diag-btn:hover { color: var(--c-0969da); }
+  /* 两个反馈入口并排：反馈在左、诊断在右，中间留 10px（老浏览器没有 flex gap 也能分开） */
+  .diag-btn + .diag-btn { margin-left: 10px; }
+  /* 「本机数据 / 只读」徽标：把"改动只在这台设备上"显式说出来 */
+  .mode-badge {
+    display: inline-flex; align-items: center;
+    padding: 1px 9px; border-radius: 999px;
+    font-size: 11.5px; font-weight: 700; line-height: 1.7; white-space: nowrap;
+    border: 1px solid var(--c-d0d7de); background: var(--c-f6f8fa); color: var(--c-57606a);
+  }
+  .mode-badge.is-local { border-color: var(--c-f0d38a); background: var(--c-fff8e6); color: var(--c-7a4b00); }
+  .mode-badge.is-readonly { border-color: var(--c-b6d4fb); background: var(--c-eaf3ff); color: var(--c-0757b8); }
+  /* 只读链接（?mode=ro）：隐藏所有会写本机数据或改班级的入口 */
+  body.readonly .class-tools,
+  body.readonly .action-group-edit,
+  body.readonly #importBtn { display: none !important; }
+  /* 但「数据更新至」要留着——只读用户同样需要知道数据是哪天的 */
+  body.readonly .settings-row label,
+  body.readonly .settings-row .settings-hint { display: none !important; }
+  .data-updated { font-size: 11.5px; color: var(--c-6e7781); white-space: nowrap; margin-left: auto; }
+  .data-updated[hidden] { display: none !important; }
+  .import-btn {
+    padding: 8px 16px; font-size: 14px; font-weight: 600; line-height: 1.4;
+    color: var(--c-24292f); background: var(--c-fff); border: 1px solid var(--c-d0d7de); border-radius: 8px;
+    cursor: pointer; font-family: inherit; white-space: nowrap;
+    transition: background .15s, border-color .15s;
+  }
+  .import-btn:hover { border-color: var(--c-afb8c1); }
+  .import-btn:disabled { color: var(--c-8c959f); border-color: var(--c-d0d7de); cursor: not-allowed; }
+  .ghost-btn {
+    padding: 8px 14px; font-size: 13px; font-weight: 600; line-height: 1.4;
+    color: var(--c-57606a); background: var(--c-fff); border: 1px solid var(--c-d0d7de); border-radius: 8px;
+    cursor: pointer; font-family: inherit; white-space: nowrap;
+    transition: background .15s;
+  }
+  .ghost-btn:hover { border-color: var(--c-afb8c1); color: var(--c-24292f); }
+  .add-btn {
+    padding: 8px 16px; font-size: 14px; font-weight: 600; line-height: 1.4;
+    color: var(--c-0969da); background: var(--c-fff); border: 1px solid var(--c-0969da); border-radius: 8px;
+    cursor: pointer; font-family: inherit; white-space: nowrap;
+    transition: background .15s, border-color .15s;
+  }
+  .add-btn:hover { border-color: var(--c-0757b8); color: var(--c-0757b8); }
+  .add-btn:active { border-color: var(--c-0550ae); color: var(--c-0550ae); }
+
+  /* 第 1 周设置行 */
+  .settings-row {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    font-size: 13px; color: var(--c-57606a); margin: 0 0 12px;
+  }
+  .settings-row label { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+  .settings-row input[type="date"] {
+    font-family: inherit; font-size: 13px; color: var(--c-24292f);
+    padding: 5px 8px; border: 1px solid var(--c-d0d7de); border-radius: 6px;
+    background: var(--c-fff);
+  }
+  .settings-row input[type="date"]:focus {
+    border-color: var(--c-0969da);
+    box-shadow: 0 0 0 3px var(--c-rgb-9-105-218-35);
+  }
+  .settings-row input[type="date"]:focus:not(:focus-visible) { outline: none; }
+  .settings-hint { color: var(--c-6e7781); font-size: 12px; }
+
+  /* 状态提示 */
+  .import-status {
+    font-size: 13px; line-height: 1.7; margin: 0 0 14px;
+    padding: 9px 12px; border-radius: 8px; border: 1px solid transparent;
+    display: none; white-space: pre-line; word-break: break-word;
+  }
+  .import-status.show { display: block; }
+  .import-status.ok    { background: var(--status-ok-bg); color: var(--status-ok-text); border-color: var(--status-ok-border); }
+  .import-status.warn  { background: var(--c-fff8e1); color: var(--c-9a6700); border-color: var(--c-f0e0a8); }
+  .import-status.error { background: var(--c-ffe9e8); color: var(--c-a40e26); border-color: var(--c-ffc9c7); }
+  .import-skipped { margin-top: 7px; font-size: 12px; color: var(--c-57606a); }
+  .import-skipped summary { cursor: pointer; color: var(--c-9a6700); font-weight: 600; }
+  .import-skipped-list {
+    margin-top: 6px; max-height: 170px; overflow: auto; padding: 7px 9px;
+    background: var(--c-fffdf5); border: 1px solid var(--c-f0e0a8); border-radius: 7px;
+    line-height: 1.65; white-space: pre-wrap;
+  }
+  .import-skipped-item + .import-skipped-item { margin-top: 3px; }
+
+  .clock { font-size: 14px; color: var(--c-57606a); margin-bottom: 16px; }
+  .clock b { color: var(--c-0969da); }
+  /* 24 小时制时间：等宽数字，定时刷新时不会左右抖 */
+  .clock-time {
+    color: var(--c-24292f); font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .saved-tip { color: var(--c-1a7f37); }   /* 原 #2da44e 在白底上 3.22:1 */
+
+  .legend {
+    display: flex; gap: 20px; flex-wrap: wrap;
+    font-size: 13px; color: var(--c-57606a); margin-bottom: 14px;
+  }
+  .legend i {
+    display: inline-block; width: 13px; height: 13px; border-radius: 3px;
+    margin-right: 6px; vertical-align: -2px;
+  }
+  .dot-today    { background: var(--legend-today); border: 1px solid var(--c-e5484d); }
+  .dot-tomorrow { background: var(--legend-tomorrow); border: 1px solid var(--c-2da44e); }
+  .dot-past     { background: var(--c-eaeef2); border: 1px solid var(--c-d0d7de); }
+  .dot-conflict { background: var(--c-ffe6a6); border: 1px solid var(--c-b7791f); }
+  .dot-next     { background: var(--c-eaf3ff); border: 1px solid var(--c-0969da); }
+
+  /* 同一周的实验连成一组：换周处画一条横线。
+     分隔线只表达"换周"这一结构信息，不跟着今天/明天变红变绿——
+     状态由行底色和「今天 / 明天」标签表达，两种语义不混用。 */
+  tbody tr.week-start > td { border-top: 2px solid var(--c-d0d7de); }
+
+  /* Windows 高对比度：背景色会被系统抹平，改用边框/符号区分状态 */
+  @media (forced-colors: active) {
+    .legend i { border: 2px solid CanvasText; }
+    tbody tr.row-today td,
+    tbody tr.row-tomorrow td,
+    tbody tr.row-next td { border-top: 2px solid CanvasText; }
+    .row-today .tag::after { content: ' ●'; }
+    .row-tomorrow .tag::after { content: ' ▲'; }
+    .next-badge { border: 2px solid CanvasText; }
+    .mode-badge { border: 2px solid CanvasText; }
+    .cue-bar { border: 2px solid CanvasText; }
+    .wg-item.st-today,
+    .wg-item.st-tomorrow,
+    .wg-item.st-next,
+    .wg-item.st-past { border: 2px solid CanvasText; }
+    .wg-item.is-conflict { border: 3px solid CanvasText; box-shadow: none; }
+  }
+
+  .table-wrap { position: relative; overflow: visible; }
+  /* 冲突连线：绝对定位在表格容器里，z-index 低于卡片，所以线段只在行距/列距里露出来 */
+  .conflict-link-layer { position: absolute; top: 0; right: 0; bottom: 0; left: 0; z-index: 0; pointer-events: none; }
+  .conflict-link-layer svg { display: block; width: 100%; height: 100%; overflow: visible; }
+  .conflict-link-line { stroke: var(--row-conflict-border); stroke-width: 2; stroke-linecap: round; fill: none; }
+  /* 连线颜色必须与所在行的边框完全一致（peer / 已结束各用各自语义色） */
+  .conflict-link-line.is-peer { stroke: var(--row-conflict-peer-border); }
+  .conflict-link-line.is-past { stroke: var(--row-conflict-past-border); }
+  tbody { position: relative; z-index: 1; }
+  table { width: 100%; min-width: 860px; border-collapse: collapse; font-size: 14px; }
+  #scheduleTable:focus-visible { outline: 2px solid var(--c-0969da); outline-offset: 3px; }
+  #tbody tr:focus-visible { outline: 2px solid var(--c-0969da); outline-offset: -2px; }
+  /* 跳转/定位时别被吸顶表头盖住 */
+  #tbody tr { scroll-margin-top: 64px; }
+  thead th {
+    position: -webkit-sticky;
+    position: sticky; top: 0; z-index: 5;
+    background: var(--c-f0f3f6); text-align: left; padding: 11px 12px;
+    font-weight: 600; color: var(--c-424a53); white-space: nowrap;
+    border-bottom: 2px solid var(--c-d8dee4);
+    box-shadow: inset 0 -2px 0 var(--c-d8dee4), 0 2px 7px var(--c-rgb-36-41-47-08);
+  }
+  tbody td { padding: 11px 12px; border-bottom: 1px solid var(--c-eaeef2); }
+  /* 逐行悬停：用背景色而非 filter。filter 会给每个 td 建合成层，
+     在 border-collapse 下把共享边框画成不对称的 1px 缝，还会压暗"今天"的语义红。 */
+  @media (hover: hover) {
+    tbody tr:hover td { background-color: var(--c-f4f6f8); }
+    tbody tr.row-today:hover td { background-color: var(--c-ffdedc); }
+    tbody tr.row-tomorrow:hover td { background-color: var(--c-d9f5e0); }
+    tbody tr.row-past:hover td { background-color: var(--c-eef1f4); }
+    tbody tr.row-next:hover td { background-color: var(--c-e8f2ff); }
+    tbody tr.note-row:hover td { background-color: var(--c-f7f9fb); }
+  }
+  .cell-mobile { display: none; }
+
+  tbody tr.note-row td {
+    padding: 0 12px 9px 56px;
+    background: var(--c-fbfcfd);
+    color: var(--c-57606a);
+    font-size: 12.5px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  tbody tr.note-row:hover td { filter: none; }
+
+  /* "下一次"只加左侧蓝条，不覆盖今天/明天自己的底色 */
+  tbody tr.row-next:not(.row-today):not(.row-tomorrow) td { background: var(--row-next-bg); }
+  tbody tr.row-next td:nth-child(2) { box-shadow: inset 3px 0 0 var(--c-0969da); }
+  tbody tr.note-row.row-next td { background: var(--row-next-cell-bg); }
+  .next-badge {
+    display: inline-block; margin-left: 6px; padding: 1px 7px;
+    border: 1px solid var(--c-b6d6f8); border-radius: 10px;
+    background: var(--c-eaf3ff); color: var(--c-0757b8);
+    font-size: 11.5px; font-weight: 700; line-height: 1.6;
+    white-space: nowrap; vertical-align: 1px;
+  }
+
+  .row-today td {
+    background: var(--row-today-cell-bg); color: var(--row-today-text); font-weight: 700;
+    border-bottom-color: var(--c-ffc9c7);
+  }
+  .row-tomorrow td {
+    background: var(--row-tomorrow-cell-bg); color: var(--row-tomorrow-text); font-weight: 700;
+    border-bottom-color: var(--c-c3f0cd);
+  }
+  .row-past td { color: var(--row-past-text); }
+
