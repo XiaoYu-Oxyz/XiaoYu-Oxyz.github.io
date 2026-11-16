@@ -338,32 +338,65 @@ const { pathToFileURL, fileURLToPath, assert, fs, os, path, root, appUrl, browse
   console.log('\u00a75 复制兜底：强制剪贴板失败，出现只读文本框。');
 
   // 5. 复制兜底：强制剪贴板失败，出现只读文本框。
-  await page.evaluate(() => {
-    try {
-      Object.defineProperty(navigator, 'clipboard', {
-        configurable: true,
-        value: { writeText: () => Promise.reject(new Error('denied')) }
-      });
-    } catch (e) {}
-    document.execCommand = () => false;
-  });
+  //    旧写法在部分 Chromium 上 defineProperty(navigator,'clipboard') 失败（属性不可配置），
+  //    真实剪贴板写入成功 -> 兜底框永不出现 -> 30s 超时（这就是历史上的 flaky）。
+  //    现在：实例 + 原型双保险，并断言覆盖真的生效；等待改成明确的长轮询。
+  async function forceClipboardFailure(scope) {
+    const installed = await scope.evaluate(() => {
+      const fake = {
+        writeText: () => Promise.reject(new Error('denied')),
+        write: () => Promise.reject(new Error('denied'))
+      };
+      let ok = false;
+      try {
+        Object.defineProperty(navigator, 'clipboard', { configurable: true, value: fake });
+        ok = true;
+      } catch (error) {}
+      if (!ok) {
+        try {
+          Object.defineProperty(Object.getPrototypeOf(navigator), 'clipboard', {
+            configurable: true,
+            get: () => fake
+          });
+          ok = true;
+        } catch (error) {}
+      }
+      document.execCommand = () => false;
+      return ok;
+    });
+    assert.ok(installed, '无法覆盖 navigator.clipboard（实例与原型都不可配置）');
+    const probe = await scope.evaluate(() => navigator.clipboard.writeText('probe').then(() => 'resolved', () => 'rejected'));
+    assert.equal(probe, 'rejected', 'clipboard 覆盖未生效，真实写入仍然成功');
+  }
+
+  async function waitCopyMask(scope, visible) {
+    await poll(async () => (await scope.locator('#copyMask').isVisible()) === visible,
+      visible ? '复制兜底框应出现' : '复制兜底框应关闭', 10000);
+  }
+
+  await forceClipboardFailure(page);
+  await page.locator('#copyWeekBtn').scrollIntoViewIfNeeded();
   await page.locator('#copyWeekBtn').click();
-  await page.waitForSelector('#copyMask.show');
-  assert.match(await page.locator('#copyFallbackText').inputValue(), /实验课提醒/);
+  await waitCopyMask(page, true);
+  await poll(async () => /实验课提醒/.test(await page.locator('#copyFallbackText').inputValue()),
+    '兜底文本框应包含「实验课提醒」', 10000);
   await page.locator('#copyFallbackDone').click();
-  await waitVisible(page.locator('#copyMask'), false);
+  await waitCopyMask(page, false);
 
   // 5b. 纠错回路：剪贴板不可用时同样退化成只读文本框，
   //     内容必须能直接贴进群里（班级 + 页面 + 具体某一条 + 待补充项）。
+  await page.locator('#feedbackBtn').scrollIntoViewIfNeeded();
   await page.locator('#feedbackBtn').click();
-  await page.waitForSelector('#copyMask.show');
+  await waitCopyMask(page, true);
+  await poll(async () => /【CrseCue · 反馈】/.test(await page.locator('#copyFallbackText').inputValue()),
+    '兜底文本框应包含反馈模板', 10000);
   const feedbackText = await page.locator('#copyFallbackText').inputValue();
   assert.match(feedbackText, /【CrseCue · 反馈】/);
   assert.match(feedbackText, /班级：Z1/);
   assert.match(feedbackText, /我看到的是：\d{4}-\d{2}-\d{2}/);
   assert.match(feedbackText, /应该改为：/);
   await page.locator('#copyFallbackDone').click();
-  await waitVisible(page.locator('#copyMask'), false);
+  await waitCopyMask(page, false);
 
   console.log('\u00a76 跨标签页：另一个页面修改 Z1 week1，当前页自动同步。');
 
