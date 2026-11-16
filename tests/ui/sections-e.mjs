@@ -577,7 +577,7 @@ import { conflict, light, dark } from './sections-c.mjs';
     const rowsBefore = await page.locator('tbody tr[data-idx]').count();
     await page.locator('#fileInput').setInputFiles({ name: 'Z1.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(z1File)) });
     await page.waitForSelector('#importMask.show');
-    await page.locator('#importConfirm').click();
+    await page.locator('#importConfirm').dispatchEvent('click');
     await poll(async () => /撤销导入/.test(await page.locator('#importStatus').innerText()), '授权导入应成功', 8000);
     await page.evaluate(() => { window.__crsecueGrantForTest = { scope: [], exp: '2099-01-01' }; });
     await page.evaluate(() => { undoLastImport(); });
@@ -632,6 +632,32 @@ import { conflict, light, dark } from './sections-c.mjs';
     await page.locator('#addBtn').dispatchEvent('click');
     await poll(async () => /已锁定/.test(await page.locator('#importStatus').innerText()), '锁定时应提示', 5000);
 
+    // 锁定态：导出/日历/订阅/清理仍可用，编辑类被锁
+    for (const sel of ['#exportBtn', '#icsBtn', '#icsCopyBtn', '#wipeLocalBtn']) {
+      assert.equal(await page.locator(sel).evaluate(el => getComputedStyle(el).pointerEvents), 'auto', sel + ' 锁定态应保持可点');
+    }
+    assert.equal(await page.locator('#addBtn').evaluate(el => getComputedStyle(el).pointerEvents), 'none', '添加应被锁');
+    assert.equal(await page.locator('#importBtn').evaluate(el => getComputedStyle(el).pointerEvents), 'none', '导入应被锁');
+
+    await page.locator('#actionsToggle').click();
+    await waitVisible(page.locator('#actionPanel'), true);
+    await page.locator('#exportBtn').click();
+    await page.waitForSelector('#exportMask.show', { timeout: 5000 });
+    await page.locator('#exportCancel').dispatchEvent('click');
+    await page.evaluate(() => { document.getElementById('exportMask').classList.remove('show'); });
+    await waitVisible(page.locator('#exportMask'), false);
+
+    const dl = page.waitForEvent('download');
+    await page.locator('#icsBtn').click();
+    const icsFile = await dl;
+    assert.match(icsFile.suggestedFilename(), /\.ics$/);
+
+    await page.locator('#wipeLocalBtn').click();
+    await page.waitForSelector('#confirmMask.show', { timeout: 5000 });
+    await page.locator('#confirmCancel').dispatchEvent('click');
+    await page.evaluate(() => { document.getElementById('confirmMask').classList.remove('show'); });
+    await waitVisible(page.locator('#confirmMask'), false);
+
     const grantCheck = await page.evaluate(async () => {
       const pair = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify']);
       const spki = new Uint8Array(await crypto.subtle.exportKey('spki', pair.publicKey));
@@ -674,10 +700,10 @@ import { conflict, light, dark } from './sections-c.mjs';
       experiments: [{ date: '2026-12-03', period: '第1-2节', name: '未签名测试', place: 'A1', note: '' }] };
     await page.locator('#fileInput').setInputFiles({ name: 'Z1.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(unsigned)) });
     await page.waitForSelector('#importMask.show');
-    await page.locator('#importConfirm').click();
+    await page.locator('#importConfirm').dispatchEvent('click');
     await page.waitForSelector('#confirmMask.show');
     assert.match(await page.locator('#confirmTitle').innerText(), /未签名/);
-    await page.locator('#confirmCancel').click();
+    await page.locator('#confirmCancel').dispatchEvent('click');
     assert.equal(await page.locator('#importMask').evaluate(el => el.classList.contains('show')), true, '取消后应留在导入弹窗');
     await page.locator('#importCancel').click();
     await waitVisible(page.locator('#importMask'), false);

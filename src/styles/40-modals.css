@@ -143,8 +143,16 @@
     border: 1px solid var(--c-f0d38a); border-radius: 8px;
     background: var(--c-fff8e6); color: var(--c-7a4b00); font-size: 13px; line-height: 1.5;
   }
-  .edit-locked .action-panel button,
-  .edit-locked tbody button { opacity: .5; pointer-events: none; }
+  .edit-locked #addBtn,
+  .edit-locked #editModeBtn,
+  .edit-locked #deleteModeBtn,
+  .edit-locked #importBtn,
+  .edit-locked #modalSubmit,
+  .edit-locked #modalDelete,
+  .edit-locked #importConfirm,
+  .edit-locked #classPromptOk,
+  .edit-locked tbody .edit-row-btn,
+  .edit-locked tbody .mark-btn { opacity: .5; pointer-events: none; }
   .verify-modal { max-width: 560px; }
   .import-sign-note.ok {
     border-color: var(--row-tomorrow-border);
