@@ -53,6 +53,9 @@ jobs:
       - name: Compatibility lint (Chrome 60 / Safari 11.1 / iOS 12)
         run: python tools/compat_lint.py
 
+      - name: Verify sign page
+        run: python tools/build-sign-page.py --check
+
       - name: Build deployable HTML
         run: python tools/build.py
 
@@ -126,6 +129,13 @@ jobs:
           set -o pipefail
           mkdir -p test-results
           npm run test:ui:webkit 2>&1 | tee test-results/ui.log
+
+      - name: Sign page tests (Chromium)
+        if: matrix.browser == 'chromium'
+        run: |
+          set -o pipefail
+          mkdir -p test-results
+          npm run test:signpage 2>&1 | tee test-results/signpage.log
 
       - name: Logic tests (Chromium)
         if: matrix.browser == 'chromium'

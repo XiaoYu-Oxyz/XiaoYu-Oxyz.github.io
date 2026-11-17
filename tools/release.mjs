@@ -39,10 +39,12 @@ const ROOT = process.env.CRSECUE_REPO_ROOT
 const INCLUDE_DIRS = ['data', 'src', 'calendars', 'keys/publishers'];
 const INCLUDE_FILES = [
   'index.html',
+  'sign.html',
   'tools/build.py',
   'tools/verify.py',
   'tools/common.py',
   'tools/release.mjs',
+  'tools/build-sign-page.py',
   'keys/root.pub',
   'keys/data-admin.pub',
   'keys/ci-release.pub',

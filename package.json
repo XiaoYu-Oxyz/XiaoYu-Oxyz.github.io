@@ -19,7 +19,8 @@
     "test:sign": "node tests/sign-export.test.mjs",
     "test:drills": "node tests/security-drills.mjs",
     "test:grant": "node tests/sign-grant.test.mjs",
-    "test:publish": "node tests/publish-class.test.mjs"
+    "test:publish": "node tests/publish-class.test.mjs",
+    "test:signpage": "node tests/sign-page.test.mjs"
   },
   "devDependencies": {
     "playwright": "1.65.0"
