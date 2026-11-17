@@ -152,7 +152,11 @@ def event_uid(class_id, date_str, period, name):
 def ics_escape(value):
     text = "" if value is None else str(value)
     text = text.replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,")
-    return re.sub(r"\r?\n", "\\n", text)
+    # RFC 5545：TEXT 里的换行必须写成字面量 \n（两个字符）。
+    # 不能用 re.sub(..., "\\n", ...)：sub 的替换串会把 \n 再解释成真正换行，
+    # 等于没替换，最终 .ics 出现裸 LF（verify.py 会拦）。
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    return text.replace("\n", "\\n")
 
 
 def ics_fold(line):
