@@ -154,6 +154,15 @@ jobs:
           node tools/release.mjs sign --key "$RUNNER_TEMP/release.pem" --signer ci-release
           rm -f "$RUNNER_TEMP/release.pem"
           node tools/release.mjs verify
+          # 硬校验：产物必须已经包含本次数据与 release 号，避免提交“构建后还会变”的旧 index
+          if ! grep -q "release $N ·" index.html; then
+            echo "::error::index.html 里没有 release $N，构建顺序或数据未生效"
+            exit 1
+          fi
+          if git diff --quiet -- index.html; then
+            echo "::error::index.html 没有变化，说明本次数据没有进入构建产物"
+            exit 1
+          fi
 
       - name: Ensure only this class changed
         run: |
