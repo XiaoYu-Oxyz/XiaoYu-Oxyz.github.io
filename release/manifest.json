@@ -1,17 +1,17 @@
 {
   "schema": 1,
-  "release": 21,
-  "issuedAt": "2026-11-17T15:15:13.006Z",
-  "signer": "admin",
+  "release": 22,
+  "issuedAt": "2026-11-17T15:27:12.527Z",
+  "signer": "ci-release",
   "files": {
     "calendars/Z1.ics": "sha256:40fbb026e87b0895b940d98e35a3d95f16c00563a415e96db4c627c6255da09f",
-    "calendars/Z2.ics": "sha256:cdeeb1ac15d348cf27e6f144af8f6165a79f0368803ab1fc22ed078e982c255d",
+    "calendars/Z2.ics": "sha256:076383fa5e7cf1e3ed64df8e00f53cb70b97d3a562ea9ba7db7a61fad6f2a5de",
     "calendars/Z5.ics": "sha256:1698322d3345e606083fa7ff9dd5440564eade6cdfb464e1d5d09d3a1f027e22",
     "data/Z1.xlsx": "sha256:2ca6eb958bae78a363fc2cdf3a9a57fb19e8ea2d42bc46fdeea8ab9d0b721bc1",
-    "data/Z2.xlsx": "sha256:61cdc63d98ade58d088143e8bdb61b5095d623496edeab5c7804a5a20cede585",
+    "data/Z2.xlsx": "sha256:8da546216d47e2664d6a2625c4576aee004af1a784150039f9970adad87c31b5",
     "data/Z5.xlsx": "sha256:1f9a74fb208ef414480a0f851ea7d6b331996220651c045408d25b0e87c7d25a",
     "data/设置.json": "sha256:b58886cfdcaccd0804c03c745fb713167510189c97f9d2896cb0966a7d0994fc",
-    "index.html": "sha256:9d53cc2ff2d1ceb4da020e40be52fdff0b9cfd7cbee5a79603441747a4885093",
+    "index.html": "sha256:34e81360abb87ad703f4bced0a67da257def50653fbc2878b4e60f4579107c32",
     "keys/FINGERPRINT": "sha256:bb61169bfc12a9afff5659843d44735e606267c7bccba9bf81bf6cd2e057f5c5",
     "keys/ci-release.pub": "sha256:1282d9b321efd35c0915472746d0bf20ecc541b358dee6e2d6e93ed01d0cb30a",
     "keys/data-admin.pub": "sha256:1ea782a4dcc97f9736d31b5b9c6c15b16dff95bcaf006df710afc57a166d21e4",
@@ -42,6 +42,6 @@
     "tools/sign-publishers.mjs": "sha256:4d9481ead415c5227409d25ea22e9df92ac17e51463ccb805875b92e87200d86",
     "tools/verify.py": "sha256:9542f993ad4cf88cc653cc33c5f3b4f1a80f7f77eb4fb353e3509a3425f88205"
   },
-  "treeHash": "sha256:0a484ef663c85753229415d0bad0c8a7978297bf1f3a93fde586f20029989814",
-  "prev": "sha256:7280dafe679ba8e6e4180eff5cbdb884e696eb78bc3954c8573f7d8826245719"
+  "treeHash": "sha256:0175e31bf8a1ccaa5f5b5f303ee850448717b0bbecdb1ce2beb7c3cb9fc16262",
+  "prev": "sha256:276674b0c5c1e0f2b9e6c104a1200105b0e761c6ca5904735018c56407070000"
 }
