@@ -45,6 +45,7 @@ const INCLUDE_FILES = [
   'tools/release.mjs',
   'keys/root.pub',
   'keys/data-admin.pub',
+  'keys/ci-release.pub',
   'keys/roster.json',
   'keys/FINGERPRINT'
 ];

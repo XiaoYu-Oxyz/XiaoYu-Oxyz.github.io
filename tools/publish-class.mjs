@@ -13,7 +13,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { canon } from './release.mjs';
 
-const ROOT = process.cwd();
+const DEFAULT_ROOT = process.cwd();
+
+function rootOf(argv) {
+  return path.resolve(argOf(argv, '--root') || DEFAULT_ROOT);
+}
 const ROSTER = 'keys/publishers.json';
 const ROSTER_SIG = 'keys/publishers.sig';
 const ROOT_PUB = 'keys/root.pub';
@@ -34,7 +38,7 @@ function stripPublish(obj) {
   return copy;
 }
 
-export function loadPublishers(root = ROOT) {
+export function loadPublishers(root = DEFAULT_ROOT) {
   const roster = readJson(path.join(root, ROSTER));
   const sig = readJson(path.join(root, ROSTER_SIG));
   const rootPub = fs.readFileSync(path.join(root, ROOT_PUB), 'utf8');
@@ -64,8 +68,9 @@ function cmdSign(argv) {
   const classId = requireArg(argv, '--class');
   const keyPath = requireArg(argv, '--key');
   const inPath = requireArg(argv, '--in');
+  const root = rootOf(argv);
   const outPath = argOf(argv, '--out') || inPath.replace(/\.json$/i, '') + '.publish.json';
-  const roster = loadPublishers();
+  const roster = loadPublishers(root);
   const entry = publisherFor(roster, classId);
   if (!entry) throw new Error('名册里没有这个班的发布者：' + classId);
   const obj = readJson(inPath);
@@ -85,15 +90,16 @@ function cmdSign(argv) {
 
 function cmdVerify(argv) {
   const inPath = requireArg(argv, '--in');
+  const root = rootOf(argv);
   const obj = readJson(inPath);
   const meta = obj && obj._publish;
   if (!meta || meta.v !== 1 || !meta.sig) throw new Error('缺少 _publish 签名');
-  const roster = loadPublishers();
+  const roster = loadPublishers(root);
   const entry = publisherFor(roster, meta.class);
   if (!entry) throw new Error('名册里没有班级 ' + meta.class);
   if (entry.exp && entry.exp < new Date().toISOString().slice(0, 10)) throw new Error('班级发布授权已过期：' + entry.exp);
   if (meta.keyId && entry.keyId && meta.keyId !== entry.keyId) throw new Error('keyId 与名册不一致');
-  const pub = fs.readFileSync(argOf(argv, '--pub') || `keys/publishers/${meta.class}.pub`, 'utf8');
+  const pub = fs.readFileSync(path.resolve(root, argOf(argv, '--pub') || `keys/publishers/${meta.class}.pub`), 'utf8');
   const ok = ecVerify('sha256',
     Buffer.from(canon({ payload: stripPublish(obj), publish: { v: meta.v, class: meta.class, signer: meta.signer, keyId: meta.keyId, issuedAt: meta.issuedAt } }), 'utf8'),
     { key: createPublicKey(pub), dsaEncoding: 'ieee-p1363' },

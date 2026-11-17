@@ -1,23 +1,35 @@
 name: publish-class
 
-# 班级自助发布：Issue 打上 publish 标签 -> 验签 -> 构建 -> 自动 PR/合并。
-# 注意：当前仓库尚未实现 JSON→xlsx 转换器（见 docs/CLASS-PUBLISH.md §5），
-# 因此下面的 Convert 步骤会显式失败，避免"看起来能自动发布但实际没写数据"。
+# 班级自助发布（路线 2）：Issue 打 publish 标签 -> 验签 -> 转换 -> 构建 -> 用 CI 发布密钥签名
+# -> 开 PR 后停下，由管理员点 Merge。不自动合并、不 push main、不用 bot/PAT。
+#
+# Issue 正文里需要有一个 GitHub 附件链接（把 .publish.json 拖进正文即可）。
 on:
   issues:
     types: [labeled]
   workflow_dispatch:
+    inputs:
+      issue_number:
+        description: "要处理的 Issue 编号（正文含 .publish.json 附件）"
+        required: true
 
 permissions:
   contents: write
   pull-requests: write
   issues: write
 
+concurrency:
+  group: publish-class-${{ github.event.issue.number || inputs.issue_number }}
+  cancel-in-progress: false
+
 jobs:
   publish:
     if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'publish'
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      ISSUE: ${{ github.event.issue.number || inputs.issue_number }}
+      GH_TOKEN: ${{ github.token }}
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -37,43 +49,98 @@ jobs:
       - name: Install build dependency
         run: python -m pip install --disable-pip-version-check -r tools/requirements.txt
 
-      - name: Extract and verify publish file
-        env:
-          ISSUE_BODY: ${{ github.event.issue.body }}
+      - name: Extract attachment from issue
         run: |
-          URL=$(printf '%s' "$ISSUE_BODY" | grep -oE 'https://[^ )]+\.publish\.json' | head -n1)
-          [ -n "$URL" ] || { echo "::error::Issue 正文里没有 .publish.json 附件链接"; exit 1; }
-          curl -fsSL "$URL" -o publish.json
-          node tools/publish-class.mjs verify --in publish.json
+          gh issue view "$ISSUE" --json body -q .body > issue-body.txt
+          python - <<'PY'
+          import re
+          import sys
 
-      - name: Convert JSON to xlsx (NOT IMPLEMENTED)
+          text = open("issue-body.txt", encoding="utf-8").read()
+          urls = re.findall(
+              r"https://github\.com/[^\s)<]+/(?:user-attachments/assets|assets)/[^\s)<]+",
+              text,
+          )
+          if not urls:
+              print("::error::Issue 正文里没有找到附件。请把 .publish.json 拖进正文，再打 publish 标签。")
+              sys.exit(1)
+          open("publish-url.txt", "w", encoding="utf-8").write(urls[0])
+          print("附件：" + urls[0])
+          PY
+          curl -fsSL --retry 3 -o publish.json "$(cat publish-url.txt)"
+          python - <<'PY'
+          import json
+          import re
+          import sys
+
+          data = json.load(open("publish.json", encoding="utf-8"))
+          meta = data.get("_publish") or {}
+          cls = str(meta.get("class") or "")
+          if not re.fullmatch(r"[A-Za-z0-9_-]{1,32}", cls):
+              print("::error::JSON 缺少合法的 _publish.class")
+              sys.exit(1)
+          open("class.txt", "w", encoding="utf-8").write(cls)
+          print("班级：" + cls)
+          PY
+
+      - name: Verify class signature
+        run: node tools/publish-class.mjs verify --in publish.json
+
+      - name: Convert JSON to data/<class>.xlsx
         run: |
-          echo "::error::JSON→xlsx 转换器尚未实现，见 docs/CLASS-PUBLISH.md §5/§6"
-          exit 1
+          CLASS=$(cat class.txt)
+          python tools/publish-class-convert.py --in publish.json --out "data/$CLASS.xlsx" --class "$CLASS"
 
       - name: Build and sign release
         env:
           RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
         run: |
-          [ -n "$RELEASE_SIGNING_KEY" ] || { echo "::error::缺少 RELEASE_SIGNING_KEY secret（见 docs/CLASS-PUBLISH.md）"; exit 1; }
-          NEXT=$(( $(wc -l < release/log.jsonl) + 1 ))
-          python tools/build.py --release "$NEXT"
-          node tools/release.mjs manifest --release "$NEXT"
-          printf '%s' "$RELEASE_SIGNING_KEY" > /tmp/release.pem
-          chmod 600 /tmp/release.pem
-          node tools/release.mjs sign --key /tmp/release.pem
-          rm -f /tmp/release.pem
+          if [ -z "$RELEASE_SIGNING_KEY" ]; then
+            echo "::error::缺少 RELEASE_SIGNING_KEY secret。见 docs/CLASS-PUBLISH.md §2。"
+            exit 1
+          fi
+          N=$(node -e "const fs=require('fs');const l=fs.readFileSync('release/log.jsonl','utf8').trim().split('\\n').filter(Boolean);console.log(l.length?JSON.parse(l[l.length-1]).n+1:1)")
+          echo "NEXT_RELEASE=$N" >> "$GITHUB_ENV"
+          python tools/build.py --release "$N"
+          node tools/release.mjs manifest --release "$N"
+          printf '%s\n' "$RELEASE_SIGNING_KEY" > "$RUNNER_TEMP/release.pem"
+          node tools/release.mjs sign --key "$RUNNER_TEMP/release.pem"
+          rm -f "$RUNNER_TEMP/release.pem"
           node tools/release.mjs verify
 
-      - name: Create PR and auto-merge
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Ensure only this class changed
         run: |
+          CLASS=$(cat class.txt)
+          BAD=""
+          while IFS= read -r f; do
+            case "$f" in
+              data/$CLASS.xlsx|index.html|calendars/*|release/*) ;;
+              "") ;;
+              *) BAD="$BAD $f" ;;
+            esac
+          done < <(git status --porcelain | sed -E 's/^.. //')
+          if [ -n "$BAD" ]; then
+            echo "::error::不允许的文件改动：$BAD"
+            exit 1
+          fi
+
+      - name: Open pull request (no auto-merge)
+        run: |
+          CLASS=$(cat class.txt)
+          ROWS=$(python -c "import json;print(len(json.load(open('publish.json',encoding='utf-8'))['experiments']))")
+          BRANCH="publish/$CLASS-${{ github.run_id }}"
           git config user.name "crsecue-bot"
-          git config user.email "bot@users.noreply.github.com"
-          git checkout -b "publish/issue-${{ github.event.issue.number || github.run_id }}"
+          git config user.email "actions@users.noreply.github.com"
+          git checkout -b "$BRANCH"
           git add -A
-          git commit -m "publish: class data from issue #${{ github.event.issue.number }}"
-          git push -u origin HEAD
-          PR=$(gh pr create --fill --body "自动发布，来源 issue #${{ github.event.issue.number }}" | tail -n1)
-          gh pr merge "$PR" --squash --auto || gh pr comment "$PR" --body "自动合并失败：请管理员检查 ruleset bypass / PR 权限。"
+          git commit -m "feat(data): $CLASS 班级自助发布（Issue #$ISSUE）"
+          git push origin "$BRANCH"
+          BODY=$(printf '班级：%s\n条数：%s\n来源 Issue：#%s\n发布密钥：CI（RELEASE_SIGNING_KEY）\n\n管理员请检查后点 **Squash and merge**；本工作流不会自动合并。' "$CLASS" "$ROWS" "$ISSUE")
+          gh pr create --base main --head "$BRANCH" \
+            --title "feat(data): $CLASS 班级自助发布（Issue #$ISSUE）" \
+            --body "$BODY"
+          gh issue comment "$ISSUE" --body "已生成 PR（分支 $BRANCH），$ROWS 条，等待管理员合并。"
+
+      - name: Comment failure hint
+        if: failure()
+        run: gh issue comment "$ISSUE" --body "自动发布失败：请查看 Actions 运行日志（${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}）。常见原因：附件缺失、签名无效、班级未登记、缺少 RELEASE_SIGNING_KEY。" || true

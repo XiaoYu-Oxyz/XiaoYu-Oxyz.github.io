@@ -117,6 +117,7 @@ node tools/release.mjs verify
 | GitHub 账号被攻破 | 高 | 部分 | 硬件 2FA、禁止 bypass、离线签名仍拦发布 |
 | GitHub 平台 / CA 被攻破 | 中 | 否 | 外部锚点 + 独立验签器 |
 | 用户访问仿冒站 | 高（现实高发） | 否 | 官方短链/二维码、页面指纹、群公告教育 |
+| 班级自助发布（路线 2） | 中 | 部分 | 班级 P-256 私钥在班委；CI 发布密钥在 Actions secret；PR 仍需管理员 Merge；见 docs/CLASS-PUBLISH.md |
 | 浏览器 0day / 供应链 | 中 | 否 | CSP、Trusted Types、actions SHA 固定、Dependabot |
 | 点击劫持（meta CSP 限制） | 低 | 否 | 不建议嵌入；残余接受 |
 | 你本人恶意 | — | 否 | 超出技术方案 |
