@@ -97,3 +97,14 @@
 3. 新建 Issue → 拖附件 → 打 `publish`；
 4. 看 Actions：验签、转换、构建、签名、开 PR 是否全绿；
 5. 点 Merge，确认线上页脚 release 号递增、数据条数正确。
+
+## 班委签名页（sign.html）
+
+`https://xiaoyu-oxyz.github.io/sign.html`：单文件、零依赖、CSP 哈希保护，
+班委不装 Node 即可把导出的 JSON 签成 `Z1.publish.json`。
+签名格式与 `tools/publish-class.mjs sign` 完全一致（canonical JSON + P-256 raw r||s）。
+
+- 页面由 `tools/build-sign-page.py` 从 `keys/publishers.json` 生成；
+- 名册/公钥变更后必须重新生成并重签 release；
+- CI 用 `python tools/build-sign-page.py --check` 防止页面过期。
+
