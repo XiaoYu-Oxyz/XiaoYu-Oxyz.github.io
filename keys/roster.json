@@ -11,6 +11,16 @@
       ],
       "exp": "2027-06-30",
       "pubkey": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAt1IRHDWd8KMu6vRRV/lJNqvvSRnt+dztFcbTRJa+NhI=\n-----END PUBLIC KEY-----"
+    },
+    {
+      "id": "ci-release",
+      "role": "delegate",
+      "keyId": "delegate-ci-release",
+      "scope": [
+        "publish"
+      ],
+      "exp": "2027-06-30",
+      "pubkey": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAaN7iV+nO9B0/m7bN1RC4NA3G1coP2aWn4eJqkvxL1nA=\n-----END PUBLIC KEY-----"
     }
   ],
   "revoked": []

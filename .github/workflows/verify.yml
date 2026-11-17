@@ -62,6 +62,9 @@ jobs:
       - name: Release signature tests
         run: node tests/release.test.mjs
 
+      - name: Class publish tests
+        run: node tests/publish-class.test.mjs
+
       - name: Edit grant tests
         run: node tests/sign-grant.test.mjs
 

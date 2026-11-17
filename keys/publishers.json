@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "issuedAt": "2026-11-17",
+  "publishers": [
+    {
+      "class": "Z1",
+      "id": "Z1-publisher",
+      "keyId": "Z1-pub",
+      "pubkey": "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEhaTf584nQtaEwBjjDZQTt9eHeT+j\n5g9RXjrAz0YzxT6ENwMXFG8lDgAg/zmGzb0URbiGxNZI7EkafhLKkomyPQ==\n-----END PUBLIC KEY-----",
+      "exp": "2027-06-30"
+    }
+  ]
+}

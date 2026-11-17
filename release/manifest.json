@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "release": 15,
-  "issuedAt": "2026-11-16T15:15:56.809Z",
+  "release": 16,
+  "issuedAt": "2026-11-17T12:59:37.029Z",
   "signer": "admin",
   "files": {
     "calendars/Z1.ics": "sha256:40fbb026e87b0895b940d98e35a3d95f16c00563a415e96db4c627c6255da09f",
@@ -11,11 +11,12 @@
     "data/Z2.xlsx": "sha256:61cdc63d98ade58d088143e8bdb61b5095d623496edeab5c7804a5a20cede585",
     "data/Z5.xlsx": "sha256:1f9a74fb208ef414480a0f851ea7d6b331996220651c045408d25b0e87c7d25a",
     "data/设置.json": "sha256:b58886cfdcaccd0804c03c745fb713167510189c97f9d2896cb0966a7d0994fc",
-    "index.html": "sha256:104a17c324caa3153349328f7b4a7342311e40daea758bbe75b31d6ca25de9d0",
+    "index.html": "sha256:0ac4580be9fb957a993bd5d520f452d3b153187f5c2f6c84cb225ea1df1c0e83",
     "keys/FINGERPRINT": "sha256:bb61169bfc12a9afff5659843d44735e606267c7bccba9bf81bf6cd2e057f5c5",
+    "keys/ci-release.pub": "sha256:1282d9b321efd35c0915472746d0bf20ecc541b358dee6e2d6e93ed01d0cb30a",
     "keys/data-admin.pub": "sha256:1ea782a4dcc97f9736d31b5b9c6c15b16dff95bcaf006df710afc57a166d21e4",
     "keys/root.pub": "sha256:766117972d579f774776339defa2d0a3f91025fe1834105c4240158d9c2a5771",
-    "keys/roster.json": "sha256:75c71320a88f9e7550cddd53945f3c52611af72f9e14cc66f6ce5b1ec488da6f",
+    "keys/roster.json": "sha256:32df3433b3c60d80249a15bc2d806976ededdb075e80f6bee92cc030b251fc67",
     "src/app.js": "sha256:fea4dd4addd066bf51378d4231458cabc3b33a8476839c706e41fff1e63185b3",
     "src/index.template.html": "sha256:dcde755664caf350e64bad8132472775bc7d41e5657d4156183af26e3da3d907",
     "src/styles/00-tokens.css": "sha256:7f2e02f415baa83e780c0c61c7f7ae6c51cd129e7713e7662056c0a9e82a2d9c",
@@ -28,9 +29,9 @@
     "src/styles/70-compat.css": "sha256:8341640d12668a685b43e613d6cccd022a1c49b3281f5a278efa0a0a7bacc603",
     "tools/build.py": "sha256:22c00feb3a1048dbceba9fc44657a23df6f9c324b3ddd05c5ab840d349bb6724",
     "tools/common.py": "sha256:d0db2208722c8b463fe4ecca64f5e2cf2d8d2b3a239a4de7f065f524b4b3b2c9",
-    "tools/release.mjs": "sha256:86339eee72efb986e3cc2e9addf13a752812065895f32a5e51d270ead7723707",
+    "tools/release.mjs": "sha256:7c813ea78c6590e522110dae4169bc6030ce4dba872c4b4135a8575a50a499e0",
     "tools/verify.py": "sha256:9542f993ad4cf88cc653cc33c5f3b4f1a80f7f77eb4fb353e3509a3425f88205"
   },
-  "treeHash": "sha256:316f18a6e64ef45f94b4e450cec6d80091ad7aa45f0aa6aa69f2f2616f859fbc",
-  "prev": "sha256:aa516751c2b27d14960b24f7aa5fd41b4e2a5e86778e92db4c99c766392d9348"
+  "treeHash": "sha256:a24511e91cc4e4727bcb7f41c200575a07db1476511189f82d2c31b379fc8c98",
+  "prev": "sha256:6d18d564f9b910235a2707f4bc9ed42bf6bc7df7f5fd9610d78f1077c176cc18"
 }
