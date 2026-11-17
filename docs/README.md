@@ -11,6 +11,7 @@
 | [KEY-CEREMONY.md](KEY-CEREMONY.md) | 密钥生成/备份/轮换/撤销与受托人授权操作 |
 | [INCIDENT-RESPONSE.md](INCIDENT-RESPONSE.md) | 私钥泄露、账号被控、线上被改时的事故手册 |
 | [SIGNED-EXPORT.md](SIGNED-EXPORT.md) | 导出 JSON 的 P-256 签名、独立验证与受托人签名 |
+| [CLASS-COMMITTEE.md](CLASS-COMMITTEE.md) | 班委更新本班数据的一页纸步骤 |
 | [scripts.md](scripts.md) | 本地一键构建/检查/发布 |
 | [新学期.md](新学期.md) | 换学期数据的 4 步清单 |
 

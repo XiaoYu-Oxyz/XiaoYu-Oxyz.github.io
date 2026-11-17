@@ -23,6 +23,7 @@
 | [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) | 浏览器兼容底线（Chrome 60 / Safari 11.1 / iOS 12）与老设备退化项 |
 | [docs/CLASS-PUBLISH.md](docs/CLASS-PUBLISH.md) | 班级自助发布设计、风险与班委操作 |
 | [docs/SIGNED-EXPORT.md](docs/SIGNED-EXPORT.md) | 导出 JSON 的 P-256 签名与独立验证（CLI） |
+| [docs/CLASS-COMMITTEE.md](docs/CLASS-COMMITTEE.md) | 班委更新本班数据的一页纸步骤 |
 | [docs/SECURITY-PLAN.md](docs/SECURITY-PLAN.md) | 发布签名门禁、威胁模型、残余风险 |
 | [docs/KEY-CEREMONY.md](docs/KEY-CEREMONY.md) | 密钥生成/备份/轮换/撤销 |
 | [docs/INCIDENT-RESPONSE.md](docs/INCIDENT-RESPONSE.md) | 事故响应手册 |

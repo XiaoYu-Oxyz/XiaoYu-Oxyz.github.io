@@ -36,7 +36,7 @@ const ROOT = process.env.CRSECUE_REPO_ROOT
   ? path.resolve(process.env.CRSECUE_REPO_ROOT)
   : path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-const INCLUDE_DIRS = ['data', 'src', 'calendars'];
+const INCLUDE_DIRS = ['data', 'src', 'calendars', 'keys/publishers'];
 const INCLUDE_FILES = [
   'index.html',
   'tools/build.py',
@@ -47,7 +47,12 @@ const INCLUDE_FILES = [
   'keys/data-admin.pub',
   'keys/ci-release.pub',
   'keys/roster.json',
-  'keys/FINGERPRINT'
+  'keys/publishers.json',
+  'keys/publishers.sig',
+  'keys/FINGERPRINT',
+  'tools/publish-class.mjs',
+  'tools/sign-publishers.mjs',
+  'tools/publish-class-convert.py'
 ];
 const MANIFEST = 'release/manifest.json';
 const MANIFEST_SIG = 'release/manifest.sig';

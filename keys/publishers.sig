@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "signer": "admin",
+  "signer": "root",
   "keyId": "root",
   "alg": "ed25519",
-  "sig": "70fnaTAEDLSzlsTUCUqtfs+xt7h3t0UUpKSAqY5njfnX1PEwWo3WMHdYK+8jX6nh/1oRHCQMRFPjIYMNvYtSDw=="
+  "sig": "qtIp0EswFmkVakZ9FkOiE//sUcXF8ZVsrqYqgCd/TFd04nc4vPk3LIkhTYJdpKbCaw52jaNqWlH4iSvM1vCJBw=="
 }
