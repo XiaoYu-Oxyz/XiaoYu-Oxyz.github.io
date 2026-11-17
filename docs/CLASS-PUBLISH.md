@@ -28,7 +28,7 @@
 
 ## 2. 管理员一次性配置
 
-1. **标签**：Issues → Labels → 新建 `publish`。
+1. **标签**：Issues → Labels → 新建 `publish`（模板会引用它，必须先存在）。
 2. **允许 Actions 建 PR**：Settings → Actions → General → 勾选 *Allow GitHub Actions to create and approve pull requests*。
 3. **CI 发布密钥**（仓库外生成，已生成可跳过）：
    ```bash
@@ -56,17 +56,22 @@
      --key C:\Users\<班委>\.crsecue\Z1-publish.pem \
      --in Z1-数据-YYYY-MM-DD.json --out Z1.publish.json
    ```
-3. GitHub → Issues → New issue，标题 `[publish] Z1 数据更新`；
-4. 把 `Z1.publish.json` **拖进正文**（变成附件链接），加标签 `publish`；
-5. 等 1–2 分钟：CI 自动开 PR 并在 Issue 里回复；管理员点 **Merge** 后上线。
+3. GitHub → Issues → **New issue** → 选模板 **「班级数据发布」**（模板会自动加 `publish` 标签，不需要任何仓库权限）；
+4. 下拉选自己的班级，把 `Z1.publish.json` **拖进「签名文件」框**，等附件上传完成；
+5. 点 **Submit new issue**；
+6. 等 1–2 分钟：CI 自动开 PR 并在 Issue 里回复；管理员点 **Merge** 后上线。
+
+> 已成功处理过的 Issue 会带 `<!-- crsecue-publish:done -->` 评论标记，重复触发（opened + labeled）会被自动跳过。
+> 失败不会写该标记，修好后重新打 `publish` 标签即可重试。
 
 ## 4. CI 流程（`.github/workflows/publish-class.yml`）
 
-1. 触发：Issue 打 `publish` 标签（或手动 `workflow_dispatch` 填 Issue 号）；
+1. 触发：`issues: [opened, labeled]`——用模板新建（标签随创建自带，走 opened）或手动打 `publish` 标签（走 labeled）；也可 `workflow_dispatch` 填 Issue 号；
+   并发按 Issue 串行；已含 `crsecue-publish:done` 评论的 Issue 直接跳过；正文没有附件链接也跳过；
 2. `gh issue view` 读正文 → 正则找 `github.com/.../user-attachments/assets/...` 或 `/assets/...` 附件 → `curl` 下载；
 3. `node tools/publish-class.mjs verify --in publish.json`：根签名 → 班级公钥 → `_publish` 签名 → exp / keyId；
 4. `python tools/publish-class-convert.py`：JSON → `data/<班级>.xlsx`（只写“实验安排/班级信息”两个 sheet）；
-5. `python tools/build.py --release <next>` → `manifest` → 用 `RELEASE_SIGNING_KEY` 写临时文件 → `sign` → `verify`；
+5. `python tools/build.py --release <next>` → `manifest --signer ci-release` → 用 `RELEASE_SIGNING_KEY` 写临时文件 → `sign --signer ci-release` → `verify`（签名者必须是 roster 里的 `ci-release`，不能是 `admin`）；
 6. `git status` 校验只改了 `data/<班级>.xlsx`、`index.html`、`calendars/*`、`release/*`；
 7. 建分支 `publish/<班级>-<run_id>` → commit → push → `gh pr create`；
 8. Issue 回评论；失败时回评论并给出运行链接。

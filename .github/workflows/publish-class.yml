@@ -1,12 +1,17 @@
 name: publish-class
 
-# 班级自助发布（路线 2）：Issue 打 publish 标签 -> 验签 -> 转换 -> 构建 -> 用 CI 发布密钥签名
+# 班级自助发布（路线 2）：Issue 带 publish 标签 -> 验签 -> 转换 -> 构建 -> 用 CI 发布密钥签名
 # -> 开 PR 后停下，由管理员点 Merge。不自动合并、不 push main、不用 bot/PAT。
+#
+# 触发方式：
+#   - 用 Issue 模板「班级数据发布」新建 Issue（模板会自动加 publish 标签，无需任何仓库权限）
+#   - 或给已有 Issue 手动打 publish 标签
+#   - 或手动 workflow_dispatch 指定 Issue 编号
 #
 # Issue 正文里需要有一个 GitHub 附件链接（把 .publish.json 拖进正文即可）。
 on:
   issues:
-    types: [labeled]
+    types: [opened, labeled]
   workflow_dispatch:
     inputs:
       issue_number:
@@ -23,8 +28,48 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  guard:
+    name: guard
+    # 模板创建时自带 publish 标签，只会触发 opened；手动打标签触发 labeled。
+    if: github.event_name == 'workflow_dispatch' || (github.event.issue && contains(github.event.issue.labels.*.name, 'publish'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      ISSUE: ${{ github.event.issue.number || inputs.issue_number }}
+      GH_TOKEN: ${{ github.token }}
+    outputs:
+      run: ${{ steps.check.outputs.run }}
+    steps:
+      - name: Decide whether to publish
+        id: check
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # 同一 Issue 已经成功开过 PR：直接跳过，避免 opened + labeled 双触发重复发布
+          COMMENTS=$(gh issue view "$ISSUE" --json comments --jq '.comments[].body' || true)
+          if printf '%s' "$COMMENTS" | grep -q 'crsecue-publish:done'; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Issue #$ISSUE 已处理过（含 crsecue-publish:done 标记），跳过。"
+            exit 0
+          fi
+
+          # 没有附件就不继续（attachment URL 不含文件名，只能先看有没有上传）
+          BODY=$(gh issue view "$ISSUE" --json body --jq '.body' || true)
+          if ! printf '%s' "$BODY" | grep -Eq 'user-attachments/assets|github\.com/[^ )]+/assets/'; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Issue #$ISSUE 正文里没有附件，跳过。"
+            exit 0
+          fi
+
+          echo "run=true" >> "$GITHUB_OUTPUT"
+
   publish:
-    if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'publish'
+    name: publish
+    needs: guard
+    if: needs.guard.outputs.run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -51,45 +96,47 @@ jobs:
 
       - name: Extract attachment from issue
         run: |
-          gh issue view "$ISSUE" --json body -q .body > issue-body.txt
-          python - <<'PY'
+          # 所有中间文件都放 RUNNER_TEMP：仓库里只允许出现数据/构建产物，避免被
+          # "Ensure only this class changed" 误判为非法改动。
+          gh issue view "$ISSUE" --json body -q .body > "$RUNNER_TEMP/issue-body.txt"
+          python - "$RUNNER_TEMP/issue-body.txt" "$RUNNER_TEMP/publish-url.txt" <<'PY'
           import re
           import sys
 
-          text = open("issue-body.txt", encoding="utf-8").read()
+          text = open(sys.argv[1], encoding="utf-8").read()
           urls = re.findall(
               r"https://github\.com/[^\s)<]+/(?:user-attachments/assets|assets)/[^\s)<]+",
               text,
           )
           if not urls:
-              print("::error::Issue 正文里没有找到附件。请把 .publish.json 拖进正文，再打 publish 标签。")
+              print("::error::Issue 正文里没有找到附件。请把 .publish.json 拖进正文，再提交。")
               sys.exit(1)
-          open("publish-url.txt", "w", encoding="utf-8").write(urls[0])
+          open(sys.argv[2], "w", encoding="utf-8").write(urls[0])
           print("附件：" + urls[0])
           PY
-          curl -fsSL --retry 3 -o publish.json "$(cat publish-url.txt)"
-          python - <<'PY'
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/publish.json" "$(cat "$RUNNER_TEMP/publish-url.txt")"
+          python - "$RUNNER_TEMP/publish.json" "$RUNNER_TEMP/class.txt" <<'PY'
           import json
           import re
           import sys
 
-          data = json.load(open("publish.json", encoding="utf-8"))
+          data = json.load(open(sys.argv[1], encoding="utf-8"))
           meta = data.get("_publish") or {}
           cls = str(meta.get("class") or "")
           if not re.fullmatch(r"[A-Za-z0-9_-]{1,32}", cls):
               print("::error::JSON 缺少合法的 _publish.class")
               sys.exit(1)
-          open("class.txt", "w", encoding="utf-8").write(cls)
+          open(sys.argv[2], "w", encoding="utf-8").write(cls)
           print("班级：" + cls)
           PY
 
       - name: Verify class signature
-        run: node tools/publish-class.mjs verify --in publish.json
+        run: node tools/publish-class.mjs verify --in "$RUNNER_TEMP/publish.json"
 
       - name: Convert JSON to data/<class>.xlsx
         run: |
-          CLASS=$(cat class.txt)
-          python tools/publish-class-convert.py --in publish.json --out "data/$CLASS.xlsx" --class "$CLASS"
+          CLASS=$(cat "$RUNNER_TEMP/class.txt")
+          python tools/publish-class-convert.py --in "$RUNNER_TEMP/publish.json" --out "data/$CLASS.xlsx" --class "$CLASS"
 
       - name: Build and sign release
         env:
@@ -102,15 +149,15 @@ jobs:
           N=$(node -e "const fs=require('fs');const l=fs.readFileSync('release/log.jsonl','utf8').trim().split('\\n').filter(Boolean);console.log(l.length?JSON.parse(l[l.length-1]).n+1:1)")
           echo "NEXT_RELEASE=$N" >> "$GITHUB_ENV"
           python tools/build.py --release "$N"
-          node tools/release.mjs manifest --release "$N"
+          node tools/release.mjs manifest --release "$N" --signer ci-release
           printf '%s\n' "$RELEASE_SIGNING_KEY" > "$RUNNER_TEMP/release.pem"
-          node tools/release.mjs sign --key "$RUNNER_TEMP/release.pem"
+          node tools/release.mjs sign --key "$RUNNER_TEMP/release.pem" --signer ci-release
           rm -f "$RUNNER_TEMP/release.pem"
           node tools/release.mjs verify
 
       - name: Ensure only this class changed
         run: |
-          CLASS=$(cat class.txt)
+          CLASS=$(cat "$RUNNER_TEMP/class.txt")
           BAD=""
           while IFS= read -r f; do
             case "$f" in
@@ -126,8 +173,8 @@ jobs:
 
       - name: Open pull request (no auto-merge)
         run: |
-          CLASS=$(cat class.txt)
-          ROWS=$(python -c "import json;print(len(json.load(open('publish.json',encoding='utf-8'))['experiments']))")
+          CLASS=$(cat "$RUNNER_TEMP/class.txt")
+          ROWS=$(python -c "import json,sys;print(len(json.load(open(sys.argv[1],encoding='utf-8'))['experiments']))" "$RUNNER_TEMP/publish.json")
           BRANCH="publish/$CLASS-${{ github.run_id }}"
           git config user.name "crsecue-bot"
           git config user.email "actions@users.noreply.github.com"
@@ -136,11 +183,12 @@ jobs:
           git commit -m "feat(data): $CLASS 班级自助发布（Issue #$ISSUE）"
           git push origin "$BRANCH"
           BODY=$(printf '班级：%s\n条数：%s\n来源 Issue：#%s\n发布密钥：CI（RELEASE_SIGNING_KEY）\n\n管理员请检查后点 **Squash and merge**；本工作流不会自动合并。' "$CLASS" "$ROWS" "$ISSUE")
-          gh pr create --base main --head "$BRANCH" \
+          PR_URL=$(gh pr create --base main --head "$BRANCH" \
             --title "feat(data): $CLASS 班级自助发布（Issue #$ISSUE）" \
-            --body "$BODY"
-          gh issue comment "$ISSUE" --body "已生成 PR（分支 $BRANCH），$ROWS 条，等待管理员合并。"
+            --body "$BODY")
+          echo "PR_URL=$PR_URL" >> "$GITHUB_ENV"
+          gh issue comment "$ISSUE" --body "<!-- crsecue-publish:done --> 已生成 PR（$PR_URL），$ROWS 条，等待管理员合并。修复后要重试请重新打 publish 标签；成功标记存在时不会重复发布。"
 
       - name: Comment failure hint
         if: failure()
-        run: gh issue comment "$ISSUE" --body "自动发布失败：请查看 Actions 运行日志（${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}）。常见原因：附件缺失、签名无效、班级未登记、缺少 RELEASE_SIGNING_KEY。" || true
+        run: gh issue comment "$ISSUE" --body "自动发布失败：请查看 Actions 运行日志（${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}）。常见原因：附件缺失、签名无效、班级未登记、缺少 RELEASE_SIGNING_KEY。修复后重新打 publish 标签即可重试；只有成功开过 PR 的 Issue 才会被自动跳过。" || true
