@@ -60,10 +60,11 @@ node <工具目录>\tools\publish-class.mjs verify --in Z1.publish.json --root <
 
 ### 5. 上传到 GitHub Issue
 
-1. 打开管理员给你的 Issue 链接（每次更新新建一个 Issue）；
-2. 把 `Z1.publish.json` **拖进 Issue 正文输入框**，等附件上传完；
-3. 在右栏 **Labels** 选 **`publish`**；
-4. 不用点别的，等机器人。
+1. 打开仓库 **Issues → New issue**（每次更新新建一个）；
+2. 选模板 **「班级数据发布」**；
+3. 「班级」下拉选自己的班；
+4. 把 `Z1.publish.json` **拖进「签名文件」框**，等附件上传完；
+5. 点 **Submit new issue**（不用自己加标签，模板会自动加 `publish`）。
 
 ### 6. 等结果
 
@@ -80,7 +81,7 @@ node <工具目录>\tools\publish-class.mjs verify --in Z1.publish.json --root <
 | `名册里没有班级` | 公钥没登记 / 班级写错 | 找管理员 |
 | `授权已过期` | 超过 2027-06-30 | 找管理员换钥 |
 | `缺少 _publish 签名` | 传的是导出原文件，不是 `.publish.json` | 重新跑第 4 步 |
-| Issue 没反应 | 没打 `publish` 标签 / 附件没上传完 | 打标签、重新拖文件 |
+| Issue 没反应 | 没用「班级数据发布」模板 / 附件没上传完 | 重新用模板提交，等附件上传完再 Submit |
 | 管理员说没合并 | 正常，发布会等你点 Merge | 等管理员 |
 
 ## 三条铁律
@@ -99,7 +100,7 @@ node <工具目录>\tools\publish-class.mjs verify --in Z1.publish.json --root <
 4. 「页面导出的数据」选你从网站上导出的 `Z1-数据-*.json`；
 5. 点 **签名并生成文件**；
 6. 点绿色 **下载 Z1.publish.json**；
-7. 打开 GitHub **Issues → New issue**，把下载的文件拖进正文，右侧 Labels 选 `publish`，点 **Create**；
+7. 打开 GitHub **Issues → New issue**，选模板 **「班级数据发布」**，选班级，把文件拖进「签名文件」框，点 **Submit new issue**（标签自动加）；
 8. 等 1–3 分钟，会自动出现一个 PR；管理员合并后全班可见。
 
 > 私钥只在页面内存里参与签名，不会上传；但仍建议在可信电脑上操作。

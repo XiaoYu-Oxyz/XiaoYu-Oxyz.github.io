@@ -1,0 +1,35 @@
+name: 班级数据发布
+description: 上传用 sign.html 或 publish-class 签名后的 .publish.json（提交后会自动打 publish 标签）
+title: "[发布] "
+labels: ["publish"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        班级数据发布：提交后 GitHub 会自动打上 `publish` 标签，CI 自动验签并开 PR，管理员点 Merge 后上线。
+
+        **怎么生成 `.publish.json`？**
+        1. 打开 https://xiaoyu-oxyz.github.io/sign.html
+        2. 选自己的班级，拖入班级私钥（`Z1.pem`）和页面导出的数据（`Z1-数据-*.json`）
+        3. 点「签名并生成文件」，下载 `Z1.publish.json`
+
+        > 只上传 `.publish.json`，不要上传私钥；私钥泄露请立刻找管理员换钥。
+  - type: dropdown
+    id: class
+    attributes:
+      label: 班级
+      description: 只能选自己的班；选错会被 CI 拒绝
+      options:
+        - Z1
+        - Z2
+        - Z5
+    validations:
+      required: true
+  - type: textarea
+    id: file
+    attributes:
+      label: 签名文件
+      description: 把 `Z1.publish.json` 直接拖进这个框，等附件上传完成再提交
+      placeholder: 拖入 .publish.json（不要粘贴文本）
+    validations:
+      required: true
