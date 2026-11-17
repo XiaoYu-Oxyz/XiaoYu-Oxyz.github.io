@@ -49,7 +49,7 @@ jobs:
           fi
 
           # 同一 Issue 已经成功开过 PR：直接跳过，避免 opened + labeled 双触发重复发布
-          COMMENTS=$(gh issue view "$ISSUE" --json comments --jq '.comments[].body' || true)
+          COMMENTS=$(gh issue view "$ISSUE" --repo "$GITHUB_REPOSITORY" --json comments --jq '.comments[].body' || true)
           if printf '%s' "$COMMENTS" | grep -q 'crsecue-publish:done'; then
             echo "run=false" >> "$GITHUB_OUTPUT"
             echo "::notice::Issue #$ISSUE 已处理过（含 crsecue-publish:done 标记），跳过。"
@@ -57,7 +57,7 @@ jobs:
           fi
 
           # 没有附件就不继续（attachment URL 不含文件名，只能先看有没有上传）
-          BODY=$(gh issue view "$ISSUE" --json body --jq '.body' || true)
+          BODY=$(gh issue view "$ISSUE" --repo "$GITHUB_REPOSITORY" --json body --jq '.body' || true)
           if ! printf '%s' "$BODY" | grep -Eq 'user-attachments/(assets|files)|github\.com/[^ )]+/(assets|files)/'; then
             echo "run=false" >> "$GITHUB_OUTPUT"
             echo "::notice::Issue #$ISSUE 正文里没有附件，跳过。"
