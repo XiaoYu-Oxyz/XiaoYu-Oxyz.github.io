@@ -1,0 +1,79 @@
+name: publish-class
+
+# 班级自助发布：Issue 打上 publish 标签 -> 验签 -> 构建 -> 自动 PR/合并。
+# 注意：当前仓库尚未实现 JSON→xlsx 转换器（见 docs/CLASS-PUBLISH.md §5），
+# 因此下面的 Convert 步骤会显式失败，避免"看起来能自动发布但实际没写数据"。
+on:
+  issues:
+    types: [labeled]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  publish:
+    if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'publish'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "20"
+
+      - name: Install build dependency
+        run: python -m pip install --disable-pip-version-check -r tools/requirements.txt
+
+      - name: Extract and verify publish file
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: |
+          URL=$(printf '%s' "$ISSUE_BODY" | grep -oE 'https://[^ )]+\.publish\.json' | head -n1)
+          [ -n "$URL" ] || { echo "::error::Issue 正文里没有 .publish.json 附件链接"; exit 1; }
+          curl -fsSL "$URL" -o publish.json
+          node tools/publish-class.mjs verify --in publish.json
+
+      - name: Convert JSON to xlsx (NOT IMPLEMENTED)
+        run: |
+          echo "::error::JSON→xlsx 转换器尚未实现，见 docs/CLASS-PUBLISH.md §5/§6"
+          exit 1
+
+      - name: Build and sign release
+        env:
+          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
+        run: |
+          [ -n "$RELEASE_SIGNING_KEY" ] || { echo "::error::缺少 RELEASE_SIGNING_KEY secret（见 docs/CLASS-PUBLISH.md）"; exit 1; }
+          NEXT=$(( $(wc -l < release/log.jsonl) + 1 ))
+          python tools/build.py --release "$NEXT"
+          node tools/release.mjs manifest --release "$NEXT"
+          printf '%s' "$RELEASE_SIGNING_KEY" > /tmp/release.pem
+          chmod 600 /tmp/release.pem
+          node tools/release.mjs sign --key /tmp/release.pem
+          rm -f /tmp/release.pem
+          node tools/release.mjs verify
+
+      - name: Create PR and auto-merge
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "crsecue-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git checkout -b "publish/issue-${{ github.event.issue.number || github.run_id }}"
+          git add -A
+          git commit -m "publish: class data from issue #${{ github.event.issue.number }}"
+          git push -u origin HEAD
+          PR=$(gh pr create --fill --body "自动发布，来源 issue #${{ github.event.issue.number }}" | tail -n1)
+          gh pr merge "$PR" --squash --auto || gh pr comment "$PR" --body "自动合并失败：请管理员检查 ruleset bypass / PR 权限。"

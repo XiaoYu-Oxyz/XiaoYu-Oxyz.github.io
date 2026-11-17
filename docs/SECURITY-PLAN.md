@@ -128,3 +128,12 @@ node tools/release.mjs verify
 | P0（已完成 2026-11-16） | 签名工具 + 名册 + manifest + CI 门禁 + CODEOWNERS + 负向测试 + 文档 + 每日哨兵 | `node tools/release.mjs verify` 通过；篡改任一受保护文件 CI 红 |
 | P1 | 托管人流程、撤销/轮换演练（已完成）、Actions OIDC 部署（已完成）、每日哨兵 + 失败自动开 Issue（已完成）、运行时导入验签（已完成）；域名 TXT 因无域名暂缓 | 受托人提交 → 你批准 → 上线；线上被改次日告警（哨兵每日 03:17 UTC） |
 | P2 | 独立验签器、DNS 锚点、Sigstore 可选、硬件密钥 ceremony | 同学可自行验证收到的文件 |
+
+## 10. 班级自助发布（方案 B）的残余风险
+
+- 班委私钥泄露 → 该班可被任意改并发上线；
+- `RELEASE_SIGNING_KEY` 放在 Actions secret → 云端持有发布能力；
+- 自动合并需要对 bot 放开分支保护 bypass → 保护强度下降；
+- 无人工逐次批准，审计依赖 PR/Issue/Actions 三方记录。
+- 当前状态见 [CLASS-PUBLISH.md](CLASS-PUBLISH.md) §5：转换器与自动合并尚未端到端验证。
+
