@@ -98,7 +98,7 @@ jobs:
         run: |
           # 所有中间文件都放 RUNNER_TEMP：仓库里只允许出现数据/构建产物，避免被
           # "Ensure only this class changed" 误判为非法改动。
-          gh issue view "$ISSUE" --json body -q .body > "$RUNNER_TEMP/issue-body.txt"
+          gh issue view "$ISSUE" --repo "$GITHUB_REPOSITORY" --json body -q .body > "$RUNNER_TEMP/issue-body.txt"
           python - "$RUNNER_TEMP/issue-body.txt" "$RUNNER_TEMP/publish-url.txt" <<'PY'
           import re
           import sys
@@ -183,12 +183,12 @@ jobs:
           git commit -m "feat(data): $CLASS 班级自助发布（Issue #$ISSUE）"
           git push origin "$BRANCH"
           BODY=$(printf '班级：%s\n条数：%s\n来源 Issue：#%s\n发布密钥：CI（RELEASE_SIGNING_KEY）\n\n管理员请检查后点 **Squash and merge**；本工作流不会自动合并。' "$CLASS" "$ROWS" "$ISSUE")
-          PR_URL=$(gh pr create --base main --head "$BRANCH" \
+          PR_URL=$(gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$BRANCH" \
             --title "feat(data): $CLASS 班级自助发布（Issue #$ISSUE）" \
             --body "$BODY")
           echo "PR_URL=$PR_URL" >> "$GITHUB_ENV"
-          gh issue comment "$ISSUE" --body "<!-- crsecue-publish:done --> 已生成 PR（$PR_URL），$ROWS 条，等待管理员合并。修复后要重试请重新打 publish 标签；成功标记存在时不会重复发布。"
+          gh issue comment "$ISSUE" --repo "$GITHUB_REPOSITORY" --body "<!-- crsecue-publish:done --> 已生成 PR（$PR_URL），$ROWS 条，等待管理员合并。修复后要重试请重新打 publish 标签；成功标记存在时不会重复发布。"
 
       - name: Comment failure hint
         if: failure()
-        run: gh issue comment "$ISSUE" --body "自动发布失败：请查看 Actions 运行日志（${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}）。常见原因：附件缺失、签名无效、班级未登记、缺少 RELEASE_SIGNING_KEY。修复后重新打 publish 标签即可重试；只有成功开过 PR 的 Issue 才会被自动跳过。" || true
+        run: gh issue comment "$ISSUE" --repo "$GITHUB_REPOSITORY" --body "自动发布失败：请查看 Actions 运行日志（${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}）。常见原因：附件缺失、签名无效、班级未登记、缺少 RELEASE_SIGNING_KEY。修复后重新打 publish 标签即可重试；只有成功开过 PR 的 Issue 才会被自动跳过。" || true

@@ -190,3 +190,29 @@ class IcsUidStabilityTests(unittest.TestCase):
 if __name__ == "__main__":
     unittest.main()
 
+
+class IcsTextEscapingTests(unittest.TestCase):
+    """RFC 5545 TEXT 里的换行必须是字面量 \\n，产物里不能出现裸 LF。"""
+
+    def make_ics(self, note):
+        return BUILD.build_ics_text(
+            "Z1",
+            [{"date": "2026-12-03", "period": "第3-4节", "name": "实验", "place": "A101", "note": note}],
+            "20261120T000000Z",
+            None,
+        )
+
+    def assert_no_bare_lf(self, text):
+        bare = text.count("\n") - text.count("\r\n")
+        self.assertEqual(bare, 0, "ICS 里出现裸 LF：%r" % text[:120])
+
+    def test_note_newline_is_escaped(self):
+        text = self.make_ics("机械楼东侧\n小楼梯上2楼")
+        self.assert_no_bare_lf(text)
+        self.assertIn("\\n", text)
+
+    def test_note_crlf_is_escaped(self):
+        text = self.make_ics("第一行\r\n第二行")
+        self.assert_no_bare_lf(text)
+        self.assertIn("\\n", text)
+
