@@ -58,7 +58,7 @@ jobs:
 
           # 没有附件就不继续（attachment URL 不含文件名，只能先看有没有上传）
           BODY=$(gh issue view "$ISSUE" --json body --jq '.body' || true)
-          if ! printf '%s' "$BODY" | grep -Eq 'user-attachments/assets|github\.com/[^ )]+/assets/'; then
+          if ! printf '%s' "$BODY" | grep -Eq 'user-attachments/(assets|files)|github\.com/[^ )]+/(assets|files)/'; then
             echo "run=false" >> "$GITHUB_OUTPUT"
             echo "::notice::Issue #$ISSUE 正文里没有附件，跳过。"
             exit 0
@@ -105,7 +105,7 @@ jobs:
 
           text = open(sys.argv[1], encoding="utf-8").read()
           urls = re.findall(
-              r"https://github\.com/[^\s)<]+/(?:user-attachments/assets|assets)/[^\s)<]+",
+              r"https://github\.com/[^\s)<]+/(?:user-attachments/(?:assets|files)|(?:assets|files))/[^\s)<]+",
               text,
           )
           if not urls:
