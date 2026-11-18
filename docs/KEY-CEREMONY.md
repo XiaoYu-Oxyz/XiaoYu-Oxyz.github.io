@@ -30,8 +30,8 @@ node tools/release.mjs roster-init \
 
 ```bash
 # 0) 先算这一版的 release 号：日志最后一条 +1（第一次是 1）
-# 1) 按这个号构建（页脚会显示它；不带 --release 时读当前 manifest 的号，用于 CI 复现）
-python tools/build.py --release 2
+# 1) 构建（页脚不再显示 release 号，--release 可省略；release 号在 manifest/log 里）
+python tools/build.py
 python tools/verify.py
 
 # 2) 生成清单（必须用同一个号，否则清单里的 index.html 哈希对不上）

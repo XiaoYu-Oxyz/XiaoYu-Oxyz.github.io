@@ -667,21 +667,26 @@ def resolve_updated_at(settings):
 
 
 def release_badge(override=None):
-    """页脚发布信息：release 号 + 签名者 + 根指纹短码（数据全部来自仓库内已签名的文件）。"""
+    """页脚发布信息：签名者 + 根指纹短码。
+
+    不再输出 release 号：index.html 会被 release 清单签名，而清单自己又带 release 号，
+    两边各自计数时只要有一处顺序不一致，就会出现 index=22 / manifest=23 的死循环。
+    release 号保留在 release/log.jsonl 与 manifest 里，供审计用。
+    """
     fp_file = BASE / "keys" / "FINGERPRINT"
     fingerprint = fp_file.read_text(encoding="utf-8").strip() if fp_file.exists() else ""
     short = " ".join(fingerprint.split()[:4]) if fingerprint else "未固定"
-    release = override
-    signer = None
+    signer = "admin"
     manifest = BASE / "release" / "manifest.json"
-    if release is None and manifest.exists():
+    if manifest.exists():
         try:
             data = json.loads(manifest.read_text(encoding="utf-8"))
-            release = data.get("release")
-            signer = data.get("signer")
+            signer = data.get("signer") or "admin"
         except (ValueError, OSError):
-            release = None
-    text = ("release %s · %s · %s" % (release, signer or "admin", short)) if release else ("未签名构建 · %s" % short)
+            signer = "admin"
+    text = "%s · %s" % (signer, short)
+    if not manifest.exists():
+        text = "未签名构建 · %s" % short
     return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
