@@ -4,6 +4,13 @@ const { pathToFileURL, fileURLToPath, assert, fs, os, path, root, appUrl, browse
   // 13. 冲突（卡片布局）：2px 方角描边 + 同组最短连线，不靠文字表达。
   const confCtx = await browser.newContext({ viewport: { width: 800, height: 900 } });
   const confPage = await confCtx.newPage();
+  // 不依赖默认 Z2 数据里恰好有冲突：注入两条同一天同节次的实验，保证 §13 稳定
+  await confPage.addInitScript(() => {
+    localStorage.setItem('ghpages:zhizao2402:classdata:v1:Z2', JSON.stringify([
+      { date: '2026-11-20', period: '第5-6节', name: '冲突甲', place: 'A104', note: '' },
+      { date: '2026-11-20', period: '第5-6节', name: '冲突乙', place: 'A105', note: '' }
+    ]));
+  });
   await confPage.goto(`${appUrl}?class=Z2`);
   await confPage.waitForSelector('#tbody tr');
   await confPage.waitForTimeout(350);
