@@ -93,6 +93,8 @@ jobs:
     name: ui smoke (${{ matrix.browser }})
     needs: build
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.65.0-jammy
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -108,17 +110,16 @@ jobs:
           node-version: "20"
           cache: npm
 
-      - name: Install UI test dependency
-        run: |
-          npm ci --ignore-scripts
-          npx playwright install --with-deps ${{ matrix.browser }}
-          # 无 CJK 字体时中文会渲染成豆腐块，字体度量与真机差很远：
-          # 首屏高度、换行、宽度断言都会跟着漂移。
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends fonts-noto-cjk
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
 
-      # 失败时 GitHub 的日志需要登录才能看；把每个测试的输出 tee 到文件，
-      # 后面统一转成 ::error:: 注解（公开可读）方便排查。
+      - name: Install CJK font (no apt)
+        run: |
+          mkdir -p "$HOME/.local/share/fonts"
+          curl -fsSL -o "$HOME/.local/share/fonts/NotoSansCJKsc-Regular.otf" \
+            https://github.com/notofonts/noto-cjk/raw/main/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Regular.otf
+          fc-cache -f
+
       - name: UI smoke (Chromium)
         if: matrix.browser == 'chromium'
         run: |
@@ -215,6 +216,8 @@ jobs:
     name: visual smoke (${{ matrix.browser }})
     needs: build
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.65.0-jammy
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -230,17 +233,15 @@ jobs:
           node-version: "20"
           cache: npm
 
-      - name: Install UI test dependency
-        run: |
-          npm ci --no-audit --no-fund
-          if [ "${{ matrix.browser }}" = "webkit" ]; then
-            npx playwright install --with-deps webkit
-          else
-            npx playwright install --with-deps chromium
-          fi
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
 
-      - name: Install CJK fonts
-        run: sudo apt-get update && sudo apt-get install -y fonts-noto-cjk
+      - name: Install CJK font (no apt)
+        run: |
+          mkdir -p "$HOME/.local/share/fonts"
+          curl -fsSL -o "$HOME/.local/share/fonts/NotoSansCJKsc-Regular.otf" \
+            https://github.com/notofonts/noto-cjk/raw/main/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Regular.otf
+          fc-cache -f
 
       - name: Visual smoke (${{ matrix.browser }})
         run: |
