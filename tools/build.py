@@ -276,7 +276,18 @@ def build_ics_text(class_id, experiments, stamp, times=None):
         "METHOD:PUBLISH",
         "X-WR-CALNAME:" + ics_escape("实验课 " + class_id),
         "X-WR-TIMEZONE:Asia/Shanghai",
+        # 订阅端刷新提示：支持这两个字段的客户端按 1 小时拉取；不支持则忽略。
+        # 不要设更短（客户端会忽略，且会给 Pages/CDN 带来无意义请求）。
+        "REFRESH-INTERVAL;VALUE=DURATION:PT1H",
+        "X-PUBLISHED-TTL:PT1H",
     ] + ICS_TZ_BLOCK
+
+    # 稳定序列号：数据不变 → 同一 SEQUENCE；updatedAt 变化 → 递增，客户端才会更新事件。
+    try:
+        updated_day = date(int(stamp[0:4]), int(stamp[4:6]), int(stamp[6:8]))
+        sequence = max(0, (updated_day - date(2026, 1, 1)).days)
+    except (ValueError, IndexError):
+        sequence = 0
 
     for item in sorted(experiments, key=lambda e: e["date"]):
         ymd = item["date"].replace("-", "")
@@ -284,6 +295,8 @@ def build_ics_text(class_id, experiments, stamp, times=None):
         lines.append("BEGIN:VEVENT")
         lines.append("UID:" + event_uid(class_id, item["date"], item["period"], item["name"]))
         lines.append("DTSTAMP:" + stamp)
+        lines.append("LAST-MODIFIED:" + stamp)
+        lines.append("SEQUENCE:" + str(sequence))
         if slot:
             start, end = slot
             lines.append("DTSTART;TZID=Asia/Shanghai:%sT%s%s00" % (ymd, start[:2], start[3:]))

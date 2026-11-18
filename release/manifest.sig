@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "signer": "ci-release",
-  "keyId": "delegate-ci-release",
+  "signer": "admin",
+  "keyId": "root-2026-11",
   "alg": "ed25519",
-  "sig": "h8Eyql5vwqq2AImrIwldtv1n3PskD8xd2oDSnUStRlwr3vn1ER+K2JTBJhYxUZj6GkRQK93n+9kKA1PwL7RCCg=="
+  "sig": "1Yff0LQlWDbet5ME7deu+fxnrlHHb9TffYpox2a6eBWs7rDgkzMFY+yMPXCnHQTIVFNDKGSWiHuhWNn+imKODQ=="
 }
