@@ -14,7 +14,8 @@ permissions:
 # 同一分支的新提交直接取消上一次运行，省额度也避免"旧提交红、新提交绿"的错觉。
 concurrency:
   group: verify-${{ github.ref }}
-  cancel-in-progress: true
+  # 只取消同一 PR 的旧运行；main 上的运行不互相取消，避免打断部署相关校验。
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
@@ -93,7 +94,7 @@ jobs:
     name: ui smoke (${{ matrix.browser }})
     needs: build
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -107,6 +108,32 @@ jobs:
         with:
           node-version: "20"
           cache: npm
+
+      # 浏览器二进制可重建，缓存 ~/.cache/ms-playwright；key 跟 lockfile 走，miss 时行为与原先一致。
+      - name: Cache Playwright browsers
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.2.3
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ matrix.browser }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      # webkit 的系统依赖由 apt 安装，每次十几分钟；只缓存 deb 包（不缓存 lists），并保留已下载的包。
+      - name: Make apt cache writable
+        run: sudo chown -R "$USER" /var/cache/apt/archives
+
+      - name: Cache apt archives
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.2.3
+        with:
+          path: /var/cache/apt/archives
+          key: ${{ runner.os }}-apt-${{ matrix.browser }}-${{ hashFiles('.github/workflows/verify.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-apt-
+
+      - name: Keep downloaded apt packages
+        run: |
+          sudo rm -f /etc/apt/apt.conf.d/docker-clean
+          echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' | sudo tee /etc/apt/apt.conf.d/keep-cache
 
       - name: Install UI test dependency
         run: |
@@ -215,7 +242,7 @@ jobs:
     name: visual smoke (${{ matrix.browser }})
     needs: build
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -229,6 +256,30 @@ jobs:
         with:
           node-version: "20"
           cache: npm
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.2.3
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ matrix.browser }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      - name: Make apt cache writable
+        run: sudo chown -R "$USER" /var/cache/apt/archives
+
+      - name: Cache apt archives
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.2.3
+        with:
+          path: /var/cache/apt/archives
+          key: ${{ runner.os }}-apt-${{ matrix.browser }}-${{ hashFiles('.github/workflows/verify.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-apt-
+
+      - name: Keep downloaded apt packages
+        run: |
+          sudo rm -f /etc/apt/apt.conf.d/docker-clean
+          echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' | sudo tee /etc/apt/apt.conf.d/keep-cache
 
       - name: Install UI test dependency
         run: |
