@@ -53,6 +53,7 @@ const INCLUDE_FILES = [
   'keys/publishers.sig',
   'keys/FINGERPRINT',
   'tools/publish-class.mjs',
+  'tools/publish_class_ci.py',
   'tools/sign-publishers.mjs',
   'tools/publish-class-convert.py'
 ];
