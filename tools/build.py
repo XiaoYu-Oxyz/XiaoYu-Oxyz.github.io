@@ -684,7 +684,8 @@ def release_badge(override=None):
             signer = data.get("signer") or "admin"
         except (ValueError, OSError):
             signer = "admin"
-    text = "%s · %s" % (signer, short)
+    # 只写静态指纹：不依赖 signer/release，构建前后 manifest 变化不会影响页脚
+    text = "指纹 %s" % short
     if not manifest.exists():
         text = "未签名构建 · %s" % short
     return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
