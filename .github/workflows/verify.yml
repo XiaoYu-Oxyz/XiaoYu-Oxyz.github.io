@@ -68,6 +68,9 @@ jobs:
       - name: Class publish tests
         run: node tests/publish-class.test.mjs
 
+      - name: New class tests
+        run: node --test tests/new-class.test.mjs
+
       - name: Edit grant tests
         run: node tests/sign-grant.test.mjs
 

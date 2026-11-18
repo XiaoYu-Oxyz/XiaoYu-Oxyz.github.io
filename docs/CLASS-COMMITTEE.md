@@ -106,3 +106,4 @@ node <工具目录>\tools\publish-class.mjs verify --in Z1.publish.json --root <
 > 私钥只在页面内存里参与签名，不会上传；但仍建议在可信电脑上操作。
 > 如果提示"私钥与所选班级不匹配"，说明拿错了班的 pem。
 
+> 新班级同样适用：先由超级管理员按 [NEW-CLASS.md](NEW-CLASS.md) 上线并生成密钥。

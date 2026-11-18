@@ -3656,7 +3656,10 @@ async function verifyEditGrant(grant, trustedKeys) {
 
 function grantAllowsClass(grant, classId) {
   const target = classId || selectedClass;
-  return Boolean(grant && Array.isArray(grant.scope) && grant.scope.includes(target));
+  if (!grant || !Array.isArray(grant.scope) || !target) return false;
+  // 通配授权：超级管理员可改任意班级，包括尚未创建的新班
+  if (grant.scope.includes('*')) return true;
+  return grant.scope.includes(target);
 }
 
 // 同步按当前班级刷新锁定 UI（不验签，只查内存里已验证的 grant）

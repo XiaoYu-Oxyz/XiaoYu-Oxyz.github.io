@@ -55,7 +55,8 @@ const INCLUDE_FILES = [
   'tools/publish-class.mjs',
   'tools/publish_class_ci.py',
   'tools/sign-publishers.mjs',
-  'tools/publish-class-convert.py'
+  'tools/publish-class-convert.py',
+  'tools/new-class.mjs'
 ];
 const MANIFEST = 'release/manifest.json';
 const MANIFEST_SIG = 'release/manifest.sig';
