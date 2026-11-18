@@ -216,3 +216,32 @@ class IcsTextEscapingTests(unittest.TestCase):
         self.assert_no_bare_lf(text)
         self.assertIn("\\n", text)
 
+
+class IcsRefreshHintTests(unittest.TestCase):
+    """订阅刷新提示 + 稳定 LAST-MODIFIED/SEQUENCE。"""
+
+    EVENT = [{"date": "2026-12-03", "period": "第3-4节", "name": "实验", "place": "A101", "note": ""}]
+
+    def make(self, stamp):
+        return BUILD.build_ics_text("Z1", self.EVENT, stamp, None)
+
+    def test_calendar_has_hourly_hints_once(self):
+        text = self.make("20261120T000000Z")
+        self.assertEqual(text.count("REFRESH-INTERVAL;VALUE=DURATION:PT1H"), 1)
+        self.assertEqual(text.count("X-PUBLISHED-TTL:PT1H"), 1)
+
+    def test_each_event_has_last_modified_and_sequence(self):
+        text = self.make("20261120T000000Z")
+        self.assertEqual(text.count("LAST-MODIFIED:20261120T000000Z"), 1)
+        self.assertEqual(text.count("SEQUENCE:"), 1)
+
+    def test_same_stamp_is_stable(self):
+        self.assertEqual(self.make("20261120T000000Z"), self.make("20261120T000000Z"))
+
+    def test_sequence_changes_when_updated_at_changes(self):
+        a = self.make("20261120T000000Z")
+        b = self.make("20261201T000000Z")
+        self.assertIn("LAST-MODIFIED:20261201T000000Z", b)
+        self.assertNotIn("SEQUENCE:" + a.split("SEQUENCE:")[1].split("\r\n")[0], b)
+        self.assertNotEqual(a, b)
+
