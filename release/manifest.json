@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "release": 21,
-  "issuedAt": "2026-11-17T15:15:13.006Z",
+  "release": 22,
+  "issuedAt": "2026-11-18T04:38:32.504Z",
   "signer": "admin",
   "files": {
     "calendars/Z1.ics": "sha256:40fbb026e87b0895b940d98e35a3d95f16c00563a415e96db4c627c6255da09f",
@@ -11,7 +11,7 @@
     "data/Z2.xlsx": "sha256:61cdc63d98ade58d088143e8bdb61b5095d623496edeab5c7804a5a20cede585",
     "data/Z5.xlsx": "sha256:1f9a74fb208ef414480a0f851ea7d6b331996220651c045408d25b0e87c7d25a",
     "data/设置.json": "sha256:b58886cfdcaccd0804c03c745fb713167510189c97f9d2896cb0966a7d0994fc",
-    "index.html": "sha256:9d53cc2ff2d1ceb4da020e40be52fdff0b9cfd7cbee5a79603441747a4885093",
+    "index.html": "sha256:22ec960654d3b7ccfaec429482030d810e1690be644047bbbdd2003d6fcfa030",
     "keys/FINGERPRINT": "sha256:bb61169bfc12a9afff5659843d44735e606267c7bccba9bf81bf6cd2e057f5c5",
     "keys/ci-release.pub": "sha256:1282d9b321efd35c0915472746d0bf20ecc541b358dee6e2d6e93ed01d0cb30a",
     "keys/data-admin.pub": "sha256:1ea782a4dcc97f9736d31b5b9c6c15b16dff95bcaf006df710afc57a166d21e4",
@@ -38,10 +38,11 @@
     "tools/common.py": "sha256:d0db2208722c8b463fe4ecca64f5e2cf2d8d2b3a239a4de7f065f524b4b3b2c9",
     "tools/publish-class-convert.py": "sha256:f027dffd2593118e665ded9a0609929561c9df9511e0e56655189d3fddc5b643",
     "tools/publish-class.mjs": "sha256:8b6487bec39bf0e932b55bd07cd5b993b1a537c74600adf8da6e6731add01507",
-    "tools/release.mjs": "sha256:31c516ac5c44538314d9efd8921df9dd7664f20ac22ae04649ea6de3f55743a4",
+    "tools/publish_class_ci.py": "sha256:5a48072caa27e03d13f3c461b3c41149a721f84344524875e94fe61e6e3261a1",
+    "tools/release.mjs": "sha256:859847029ceb96c5b03c6190796364e340c395c05005d8df4547261c0d0b3577",
     "tools/sign-publishers.mjs": "sha256:4d9481ead415c5227409d25ea22e9df92ac17e51463ccb805875b92e87200d86",
     "tools/verify.py": "sha256:9542f993ad4cf88cc653cc33c5f3b4f1a80f7f77eb4fb353e3509a3425f88205"
   },
-  "treeHash": "sha256:0a484ef663c85753229415d0bad0c8a7978297bf1f3a93fde586f20029989814",
-  "prev": "sha256:7280dafe679ba8e6e4180eff5cbdb884e696eb78bc3954c8573f7d8826245719"
+  "treeHash": "sha256:b2f42b71693578758477a23944dcdfc4ff0645e386193934f25ee5bc1a0a0690",
+  "prev": "sha256:276674b0c5c1e0f2b9e6c104a1200105b0e761c6ca5904735018c56407070000"
 }
