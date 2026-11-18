@@ -101,7 +101,7 @@
 2. 用示例 Z1 私钥签一个 `Z1.publish.json`；
 3. 新建 Issue → 拖附件 → 打 `publish`；
 4. 看 Actions：验签、转换、构建、签名、开 PR 是否全绿；
-5. 点 Merge，确认线上页脚 release 号递增、数据条数正确。
+5. 点 Merge，确认线上数据条数正确、页脚签名者/指纹正常（页脚不再显示 release 号）。
 
 ## 班委签名页（sign.html）
 
