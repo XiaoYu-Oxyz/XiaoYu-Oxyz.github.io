@@ -24,6 +24,7 @@
 | [docs/CLASS-PUBLISH.md](docs/CLASS-PUBLISH.md) | 班级自助发布设计、风险与班委操作 |
 | [docs/SIGNED-EXPORT.md](docs/SIGNED-EXPORT.md) | 导出 JSON 的 P-256 签名与独立验证（CLI） |
 | [docs/CLASS-COMMITTEE.md](docs/CLASS-COMMITTEE.md) | 班委更新本班数据的一页纸步骤 |
+| [docs/NEW-CLASS.md](docs/NEW-CLASS.md) | 超级管理员新建班级并上线（含班委密钥） |
 | [docs/SECURITY-PLAN.md](docs/SECURITY-PLAN.md) | 发布签名门禁、威胁模型、残余风险 |
 | [docs/KEY-CEREMONY.md](docs/KEY-CEREMONY.md) | 密钥生成/备份/轮换/撤销 |
 | [docs/INCIDENT-RESPONSE.md](docs/INCIDENT-RESPONSE.md) | 事故响应手册 |

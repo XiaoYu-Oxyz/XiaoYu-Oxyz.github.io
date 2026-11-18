@@ -733,4 +733,43 @@ import { conflict, light, dark } from './sections-c.mjs';
     assert.equal(layout.overflowX, 0);
     assert.equal(layout.visible, true);
     await small.close();
+  
+  // 34. 通配授权：超级管理员可新建班级；普通授权新建被拒
+  {
+    const ctx = await browser.newContext({ viewport: { width: 900, height: 800 } });
+    const page = await ctx.newPage();
+    await page.goto(appUrl);
+    await page.waitForSelector('tbody tr');
+    await page.evaluate(async () => {
+      // 保持自动化默认解锁（锁定态会拦 #classPromptOk 的点击，走不到授权判断）
+      window.__crsecueTestLock = false;
+      window.__crsecueGrantForTest = { scope: ['*'], exp: '2099-01-01' };
+      await window.__crsecueRefreshEditLock();
+    });
+    assert.equal(await page.evaluate(() => window.__crsecueCanEditClass('Z6')), true, '通配授权应允许新班');
+    await page.locator('#newClassBtn').click();
+    await page.waitForSelector('#classMask.show');
+    await page.locator('#classPromptInput').fill('Z6');
+    await page.locator('#classPromptOk').dispatchEvent('click');
+    await page.waitForSelector('#classMask.show', { timeout: 5000 }).catch(() => {});
+    await poll(async () => (await page.locator('#classSelect').inputValue()) === 'Z6', '应切到 Z6', 5000);
+    assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('ghpages:zhizao2402:extra-classes:v1') || '[]').includes('Z6')), true);
+
+    await page.reload();
+    await page.waitForSelector('tbody tr');
+    await poll(async () => (await page.locator('#classSelect').inputValue()) === 'Z6', '刷新后仍在 Z6', 5000);
+
+    await page.evaluate(() => {
+      window.__crsecueGrantForTest = { scope: ['Z2'], exp: '2099-01-01' };
+    });
+    await page.locator('#newClassBtn').click();
+    await page.waitForSelector('#classMask.show');
+    await page.locator('#classPromptInput').fill('Z9');
+    await page.locator('#classPromptOk').dispatchEvent('click');
+    await poll(async () => /不在编辑授权范围/.test(await page.locator('#importStatus').innerText()), '普通授权应拒绝建班', 5000);
+    assert.equal(await page.evaluate(() => [...document.querySelectorAll('#classSelect option')].some(o => o.value === 'Z9')), false);
+    await page.evaluate(() => { window.__crsecueTestLock = false; window.__crsecueGrantForTest = null; });
+    await ctx.close();
   }
+
+}

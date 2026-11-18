@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "release": 28,
-  "issuedAt": "2026-11-18T09:25:24.772Z",
+  "release": 31,
+  "issuedAt": "2026-11-18T09:49:41.915Z",
   "signer": "admin",
   "files": {
     "calendars/Z1.ics": "sha256:41e5dba1e7681f293d46d8347298c37da908c0d4dabc966b3c80d115f11d55ec",
@@ -11,7 +11,7 @@
     "data/Z2.xlsx": "sha256:dbd07fd3a1953ba9a66e7e3d7894d9f4bdba67037612a2ce82113dc617056702",
     "data/Z5.xlsx": "sha256:1f9a74fb208ef414480a0f851ea7d6b331996220651c045408d25b0e87c7d25a",
     "data/设置.json": "sha256:b58886cfdcaccd0804c03c745fb713167510189c97f9d2896cb0966a7d0994fc",
-    "index.html": "sha256:d8327e5c821a3f6bb15dd366c27fb5b6af2c429f47776371e8ed8ca9e4fc17c4",
+    "index.html": "sha256:a06b68a00785481369d5319942f6e34264e183bf7223b483e603e0399d4fdf06",
     "keys/FINGERPRINT": "sha256:bb61169bfc12a9afff5659843d44735e606267c7bccba9bf81bf6cd2e057f5c5",
     "keys/ci-release.pub": "sha256:1282d9b321efd35c0915472746d0bf20ecc541b358dee6e2d6e93ed01d0cb30a",
     "keys/data-admin.pub": "sha256:1ea782a4dcc97f9736d31b5b9c6c15b16dff95bcaf006df710afc57a166d21e4",
@@ -23,7 +23,7 @@
     "keys/root.pub": "sha256:766117972d579f774776339defa2d0a3f91025fe1834105c4240158d9c2a5771",
     "keys/roster.json": "sha256:32df3433b3c60d80249a15bc2d806976ededdb075e80f6bee92cc030b251fc67",
     "sign.html": "sha256:ad6c62cdbf75e67d5c812c5f288ccc7e9e1e85de3a419b3e4b3a85f1e143240a",
-    "src/app.js": "sha256:fea4dd4addd066bf51378d4231458cabc3b33a8476839c706e41fff1e63185b3",
+    "src/app.js": "sha256:92563dbf5915d1928fc044951e5bf690ddf8f31df4a17e26c608b1195ebf4f20",
     "src/index.template.html": "sha256:8f9e4a51c5f3f8d2aa70f6fdf13a0068e111ec5a75626cc56f75b01cd49fa700",
     "src/styles/00-tokens.css": "sha256:7f2e02f415baa83e780c0c61c7f7ae6c51cd129e7713e7662056c0a9e82a2d9c",
     "src/styles/10-base.css": "sha256:85d2ec96d410b2e8c601b8cb64a08e3871a501dab92e678f5e56ecd524bccd6e",
@@ -36,13 +36,14 @@
     "tools/build-sign-page.py": "sha256:f89c8d80cc27b1aee44f23cdbb7a13a3ed599e8ebac8abf354486dec1903a71a",
     "tools/build.py": "sha256:9975969e46f6fb32af17dff8519fe7c5fa35f86a70fe91f588df5b26f7089095",
     "tools/common.py": "sha256:d0db2208722c8b463fe4ecca64f5e2cf2d8d2b3a239a4de7f065f524b4b3b2c9",
+    "tools/new-class.mjs": "sha256:bcf66e030c95122c79e0a0dc64a39a8c7536f25168fc78fb49c1d827441e4bd0",
     "tools/publish-class-convert.py": "sha256:f027dffd2593118e665ded9a0609929561c9df9511e0e56655189d3fddc5b643",
     "tools/publish-class.mjs": "sha256:8b6487bec39bf0e932b55bd07cd5b993b1a537c74600adf8da6e6731add01507",
     "tools/publish_class_ci.py": "sha256:24486e9e7da5d29ffbd43b4103cb787738640668ff9a7db725eef3077b54bbc4",
-    "tools/release.mjs": "sha256:859847029ceb96c5b03c6190796364e340c395c05005d8df4547261c0d0b3577",
+    "tools/release.mjs": "sha256:15200359b3de1c3c8a01f76b376912812a5c6887f5d3fdf834c33399d6505531",
     "tools/sign-publishers.mjs": "sha256:4d9481ead415c5227409d25ea22e9df92ac17e51463ccb805875b92e87200d86",
     "tools/verify.py": "sha256:9542f993ad4cf88cc653cc33c5f3b4f1a80f7f77eb4fb353e3509a3425f88205"
   },
-  "treeHash": "sha256:d86fd200a3e44e9e096a126536e5092ba4f728646f1d8f96bef93df3a3ee432d",
-  "prev": "sha256:0acd872cd8b6d16960e04b54c43cdcf2ecc9452dc0e55ebd253fc111b299527f"
+  "treeHash": "sha256:0c422611c7a5c3325132ed2f810a7aa37e5a5e17f3ad8fa90d42f61af9dd27aa",
+  "prev": "sha256:3b8f806b412037854f86067bf0b74c43cefcec27fe399f850d509c3295ca0ae1"
 }
