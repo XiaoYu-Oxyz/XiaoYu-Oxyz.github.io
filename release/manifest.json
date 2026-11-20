@@ -1,17 +1,19 @@
 {
   "schema": 1,
-  "release": 32,
-  "issuedAt": "2026-11-20T06:12:19.644Z",
-  "signer": "admin",
+  "release": 33,
+  "issuedAt": "2026-11-20T06:52:44.366Z",
+  "signer": "ci-release",
   "files": {
     "calendars/Z1.ics": "sha256:41e5dba1e7681f293d46d8347298c37da908c0d4dabc966b3c80d115f11d55ec",
     "calendars/Z2.ics": "sha256:4938f88449625bf420afcabae9894ceb81294204c8fd6f4c9d3256ac3a724cbc",
     "calendars/Z5.ics": "sha256:e3b237813946002bf8dc261456c168ce648d644f20b2d675dc2496ac81c8220d",
+    "calendars/test.ics": "sha256:947be927e4c9d0a471b78895309da7ee8db0ea10c9175418e1ab7ee3c24744eb",
     "data/Z1.xlsx": "sha256:2ca6eb958bae78a363fc2cdf3a9a57fb19e8ea2d42bc46fdeea8ab9d0b721bc1",
     "data/Z2.xlsx": "sha256:dbd07fd3a1953ba9a66e7e3d7894d9f4bdba67037612a2ce82113dc617056702",
     "data/Z5.xlsx": "sha256:1f9a74fb208ef414480a0f851ea7d6b331996220651c045408d25b0e87c7d25a",
+    "data/test.xlsx": "sha256:d7030a780899e0e1292f9d8070b51e65abdee71857a5cce74fe9b1a7bb26cc70",
     "data/设置.json": "sha256:b58886cfdcaccd0804c03c745fb713167510189c97f9d2896cb0966a7d0994fc",
-    "index.html": "sha256:b3461a349413c1753f86f845f136c618137e24960b2c214468df4b87ed6d6f84",
+    "index.html": "sha256:76cc0915c10f2a0ff0c3d0dca474e84a2e30df7fcea640adcba2c33815682169",
     "keys/FINGERPRINT": "sha256:bb61169bfc12a9afff5659843d44735e606267c7bccba9bf81bf6cd2e057f5c5",
     "keys/ci-release.pub": "sha256:1282d9b321efd35c0915472746d0bf20ecc541b358dee6e2d6e93ed01d0cb30a",
     "keys/data-admin.pub": "sha256:1ea782a4dcc97f9736d31b5b9c6c15b16dff95bcaf006df710afc57a166d21e4",
@@ -44,6 +46,6 @@
     "tools/sign-publishers.mjs": "sha256:4d9481ead415c5227409d25ea22e9df92ac17e51463ccb805875b92e87200d86",
     "tools/verify.py": "sha256:9542f993ad4cf88cc653cc33c5f3b4f1a80f7f77eb4fb353e3509a3425f88205"
   },
-  "treeHash": "sha256:b59e9e2a676fd163525429f3d5ef030d227ac6d3b87a4ddbf2860dabca134359",
-  "prev": "sha256:44a0583b83cd93e8f707e286c234bd7757825ca4b344bc5cd3df129779a26de2"
+  "treeHash": "sha256:a4e5fcffad822efd9ccd1cf2120a00b658a5ab334ebbf5753b51ff570e22134f",
+  "prev": "sha256:5f0e7d30be766fdf915c4d75bc8b5d961ac5c4a483f2c1c6620b8430ebabd6fe"
 }
