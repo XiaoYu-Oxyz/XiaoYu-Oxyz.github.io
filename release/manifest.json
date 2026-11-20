@@ -1,17 +1,19 @@
 {
   "schema": 1,
-  "release": 31,
-  "issuedAt": "2026-11-18T09:49:41.915Z",
-  "signer": "admin",
+  "release": 32,
+  "issuedAt": "2026-11-20T06:07:20.665Z",
+  "signer": "ci-release",
   "files": {
     "calendars/Z1.ics": "sha256:41e5dba1e7681f293d46d8347298c37da908c0d4dabc966b3c80d115f11d55ec",
     "calendars/Z2.ics": "sha256:4938f88449625bf420afcabae9894ceb81294204c8fd6f4c9d3256ac3a724cbc",
     "calendars/Z5.ics": "sha256:e3b237813946002bf8dc261456c168ce648d644f20b2d675dc2496ac81c8220d",
+    "calendars/test.ics": "sha256:947be927e4c9d0a471b78895309da7ee8db0ea10c9175418e1ab7ee3c24744eb",
     "data/Z1.xlsx": "sha256:2ca6eb958bae78a363fc2cdf3a9a57fb19e8ea2d42bc46fdeea8ab9d0b721bc1",
     "data/Z2.xlsx": "sha256:dbd07fd3a1953ba9a66e7e3d7894d9f4bdba67037612a2ce82113dc617056702",
     "data/Z5.xlsx": "sha256:1f9a74fb208ef414480a0f851ea7d6b331996220651c045408d25b0e87c7d25a",
+    "data/test.xlsx": "sha256:d7030a780899e0e1292f9d8070b51e65abdee71857a5cce74fe9b1a7bb26cc70",
     "data/设置.json": "sha256:b58886cfdcaccd0804c03c745fb713167510189c97f9d2896cb0966a7d0994fc",
-    "index.html": "sha256:a06b68a00785481369d5319942f6e34264e183bf7223b483e603e0399d4fdf06",
+    "index.html": "sha256:797e31be2b3f5eb2f532b8ac1da6d172aedac1a662018345f1c16c5a025293f4",
     "keys/FINGERPRINT": "sha256:bb61169bfc12a9afff5659843d44735e606267c7bccba9bf81bf6cd2e057f5c5",
     "keys/ci-release.pub": "sha256:1282d9b321efd35c0915472746d0bf20ecc541b358dee6e2d6e93ed01d0cb30a",
     "keys/data-admin.pub": "sha256:1ea782a4dcc97f9736d31b5b9c6c15b16dff95bcaf006df710afc57a166d21e4",
@@ -44,6 +46,6 @@
     "tools/sign-publishers.mjs": "sha256:4d9481ead415c5227409d25ea22e9df92ac17e51463ccb805875b92e87200d86",
     "tools/verify.py": "sha256:9542f993ad4cf88cc653cc33c5f3b4f1a80f7f77eb4fb353e3509a3425f88205"
   },
-  "treeHash": "sha256:0c422611c7a5c3325132ed2f810a7aa37e5a5e17f3ad8fa90d42f61af9dd27aa",
-  "prev": "sha256:3b8f806b412037854f86067bf0b74c43cefcec27fe399f850d509c3295ca0ae1"
+  "treeHash": "sha256:c10b012be6b6426b54414705748a021fbfec87d854b7ceb4addc8241beb1286e",
+  "prev": "sha256:44a0583b83cd93e8f707e286c234bd7757825ca4b344bc5cd3df129779a26de2"
 }
