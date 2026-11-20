@@ -18,7 +18,34 @@
 
 ---
 
-## 二、把新班放进仓库（B）
+## 二、零命令行上线（推荐给不想用命令的人）
+
+前置（一次性，管理员）：
+
+1. Issues → Labels 新建标签 **`new-class`**（模板引用它，没有标签会提交失败）；
+2. 确认已配置 Actions secret `RELEASE_SIGNING_KEY`；
+3. Settings → Actions 勾选 *Allow GitHub Actions to create and approve pull requests*。
+
+操作：
+
+1. 页面里新建并加好数据；
+2. 操作 → 导出 → **xlsx**；
+3. 打开 [新建班级 Issue 模板](https://github.com/XiaoYu-Oxyz/XiaoYu-Oxyz.github.io/issues/new?template=new-class.yml)：
+   - 「班级 id」填 `test`；
+   - 把 xlsx 拖进「班级数据（xlsx）」框，等出现附件链接；
+   - 勾选确认 → **Submit new issue**；
+4. 等 1–3 分钟，CI 会：
+   - 检查提交者是仓库所有者/成员（否则直接拒绝并评论）；
+   - 下载并校验 xlsx（≤2MB、有效、表头、≤5000 条）；
+   - 写入 `data/<id>.xlsx`、构建、用 CI 密钥签名；
+   - 自动开 PR（**不自动合并**）；
+5. 检查 PR 的 `Files changed` 只有本班文件，点 **Squash and merge**。
+
+> 安全边界：只有 OWNER/MEMBER/COLLABORATOR 能触发；陌生人提交会被拒绝。已存在的班级请用「班级数据发布」模板，不要用这个。
+
+---
+
+## 三、命令行上线（B）
 
 1. 在新班页面：操作 → 导出 → **xlsx**；
 2. 把导出的文件放进仓库：
@@ -41,7 +68,7 @@
 
 ---
 
-## 三、可选：让 Z6 班委自助发布
+## 四、可选：让 Z6 班委自助发布
 
 1. 生成班级密钥：
    ```powershell
@@ -75,7 +102,7 @@
 
 ---
 
-## 四、回滚
+## 五、回滚
 
 - 删除 `data/Z6.xlsx`；
 - 从 `keys/publishers.json` 移除 Z6，重签名册；
@@ -86,7 +113,7 @@
 
 ---
 
-## 五、限制
+## 六、限制
 
 - 班级 id 不能含中文、空格、斜杠；
 - 新建班级只是空班，没有实验；
