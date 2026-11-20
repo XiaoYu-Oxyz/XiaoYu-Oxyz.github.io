@@ -35,18 +35,28 @@ const { pathToFileURL, fileURLToPath, assert, fs, os, path, root, appUrl, browse
   await waitValue(builtPage.locator('#classSelect'), 'Z1');
 
   // 删除到没有班级：允许空状态，并可撤销最后一次隐藏。
-  for (const id of ['Z1', 'Z2', 'Z5']) {
+  // 不写死班级列表：页面里可能有任意新增班级（如 test），动态删到空。
+  const deletedIds = [];
+  let guard = 0;
+  while (true) {
+    const ids = await builtPage.$$eval('#classSelect option', (opts) => opts.map((o) => o.value).filter(Boolean));
+    if (!ids.length) break;
+    const current = ids[0];
+    await builtPage.selectOption('#classSelect', current);
     await builtPage.locator('#deleteClassBtn').click();
     await builtPage.waitForSelector('#confirmMask.show');
     await builtPage.locator('#confirmOk').click();
     await settle(builtPage);
+    deletedIds.push(current);
+    if (++guard > 50) throw new Error('删除班级循环未收敛');
   }
+  assert.ok(deletedIds.length >= 3, '应至少删除内置班级');
   assert.equal(await builtPage.locator('#classSelect').inputValue(), '');
   assert.match(await builtPage.locator('#classSelect').innerText(), /无班级/);
   assert.equal(await builtPage.locator('#recentCount').innerText(), '显示 0 / 共 0');
   assert.equal(await builtPage.locator('#addBtn').isDisabled(), true);
   await clickUndo(builtPage);
-  await waitValue(builtPage.locator('#classSelect'), 'Z5');
+  await waitValue(builtPage.locator('#classSelect'), deletedIds[deletedIds.length - 1]);
 
   // 重命名不能占用已隐藏的内置班名称。
   await builtPage.locator('#newClassBtn').click();
