@@ -1,0 +1,268 @@
+name: new-class
+
+# 零命令行新建班级：
+#   Issue 模板「新建班级」→ 校验提交者身份 → 下载 xlsx → 入库 → 构建/签名 → 开 PR
+# 不自动合并、不 push main；只有管理员/仓库成员可触发。
+#
+# 前置条件（一次性）：
+#   - 仓库存在标签 `new-class`（Issues → Labels 新建）；
+#   - Actions secret `RELEASE_SIGNING_KEY`（CI 发布密钥）；
+#   - Settings → Actions 允许 Actions 创建 PR。
+on:
+  issues:
+    types: [opened, labeled]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: "要处理的 Issue 编号（正文含班级 id 与 xlsx 附件）"
+        required: true
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: new-class-${{ github.event.issue.number || inputs.issue_number }}
+  cancel-in-progress: false
+
+jobs:
+  guard:
+    name: guard
+    if: github.event_name == 'workflow_dispatch' || (github.event.issue && contains(github.event.issue.labels.*.name, 'new-class'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      ISSUE: ${{ github.event.issue.number || inputs.issue_number }}
+      GH_TOKEN: ${{ github.token }}
+    outputs:
+      run: ${{ steps.check.outputs.run }}
+      class: ${{ steps.check.outputs.class }}
+    steps:
+      - name: Decide whether to publish
+        id: check
+        run: |
+          set -euo pipefail
+          echo "run=false" >> "$GITHUB_OUTPUT"
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "::notice::workflow_dispatch 跳过身份校验（仅管理员可手动触发）。"
+          else
+            # 只允许仓库所有者/成员/协作者；模板自带标签意味着任何人都会触发，必须在这里拒绝。
+            ASSOC=$(gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE" --jq '.author_association' 2>/dev/null || echo "")
+            case "$ASSOC" in
+              OWNER|MEMBER|COLLABORATOR) ;;
+              *)
+                echo "::error::只有仓库管理员/成员可以使用新建班级模板（当前：${ASSOC:-unknown}）。"
+                gh issue comment "$ISSUE" --repo "$GITHUB_REPOSITORY" --body "已拒绝：只有仓库管理员/成员可以新建班级。如需新增班级，请联系管理员。" || true
+                exit 0
+                ;;
+            esac
+          fi
+
+          # 已成功开过 PR 的 Issue 不重复处理（opened + labeled 双触发）
+          COMMENTS=$(gh issue view "$ISSUE" --repo "$GITHUB_REPOSITORY" --json comments --jq '.comments[].body' || true)
+          if printf '%s' "$COMMENTS" | grep -q 'crsecue-newclass:done'; then
+            echo "::notice::Issue #$ISSUE 已处理过，跳过。"
+            exit 0
+          fi
+
+          gh issue view "$ISSUE" --repo "$GITHUB_REPOSITORY" --json body -q .body > "$RUNNER_TEMP/issue-body.txt"
+          python3 - "$RUNNER_TEMP/issue-body.txt" "$RUNNER_TEMP/class.txt" <<'PY'
+          import re
+          import sys
+
+          text = open(sys.argv[1], encoding="utf-8").read()
+          m = re.search(r"^###\s*班级(?:\s*id)?\s*\n+\s*([A-Za-z][A-Za-z0-9_-]{0,15})\s*$", text, re.M)
+          if not m:
+              print("::error::没有找到合法的班级 id（在「班级 id」一栏填写，字母开头，最多 16 位）。")
+              sys.exit(1)
+          cls = m.group(1)
+          open(sys.argv[2], "w", encoding="utf-8").write(cls)
+          print("班级：" + cls)
+          PY
+
+          # 必须有附件；真正的扩展名/大小校验在下载后做
+          if ! printf '%s' "$(cat "$RUNNER_TEMP/issue-body.txt")" | grep -Eq 'user-attachments/(assets|files)|github\.com/[^ )]+/(assets|files)/'; then
+            echo "::error::正文里没有 xlsx 附件。把文件拖进「班级数据（xlsx）」框再提交。"
+            gh issue comment "$ISSUE" --repo "$GITHUB_REPOSITORY" --body "已拒绝：正文里没有 xlsx 附件。请编辑 Issue，把页面导出的 .xlsx 拖进文件框。" || true
+            exit 0
+          fi
+
+          echo "class=$(cat "$RUNNER_TEMP/class.txt")" >> "$GITHUB_OUTPUT"
+          echo "run=true" >> "$GITHUB_OUTPUT"
+
+  publish:
+    name: publish
+    needs: guard
+    if: needs.guard.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ISSUE: ${{ github.event.issue.number || inputs.issue_number }}
+      CLASS: ${{ needs.guard.outputs.class }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "20"
+
+      - name: Install build dependency
+        run: python -m pip install --disable-pip-version-check -r tools/requirements.txt
+
+      - name: Download and validate xlsx
+        run: |
+          set -euo pipefail
+          gh issue view "$ISSUE" --repo "$GITHUB_REPOSITORY" --json body -q .body > "$RUNNER_TEMP/issue-body.txt"
+          python3 - "$RUNNER_TEMP/issue-body.txt" "$RUNNER_TEMP/xlsx-url.txt" <<'PY'
+          import re
+          import sys
+
+          text = open(sys.argv[1], encoding="utf-8").read()
+          urls = re.findall(
+              r"https://github\.com/[^\s)<]+/(?:user-attachments/(?:assets|files)|(?:assets|files))/[^\s)<]+",
+              text,
+          )
+          if not urls:
+              print("::error::Issue 正文里没有找到附件链接。")
+              sys.exit(1)
+          url = urls[0]
+          if not url.startswith("https://github.com/") or "/user-attachments/" not in url:
+              print("::error::附件地址不是 GitHub user-attachments：" + url)
+              sys.exit(1)
+          open(sys.argv[2], "w", encoding="utf-8").write(url)
+          PY
+
+          URL=$(cat "$RUNNER_TEMP/xlsx-url.txt")
+          curl -fsSL --retry 3 --max-filesize 2097152 -o "$RUNNER_TEMP/class.xlsx" "$URL"
+          SIZE=$(stat -c%s "$RUNNER_TEMP/class.xlsx")
+          if [ "$SIZE" -gt 2097152 ]; then
+            echo "::error::xlsx 超过 2MB 上限（$SIZE 字节）。"
+            exit 1
+          fi
+
+          python3 - "$RUNNER_TEMP/class.xlsx" "$RUNNER_TEMP/rows.txt" <<'PY'
+          import sys
+          import zipfile
+
+          import openpyxl
+
+          path = sys.argv[1]
+          if not zipfile.is_zipfile(path):
+              print("::error::附件不是有效的 xlsx（不是 zip 容器）。")
+              sys.exit(1)
+          with zipfile.ZipFile(path) as zf:
+              total = sum(info.file_size for info in zf.infolist())
+              if total > 20 * 1024 * 1024:
+                  print("::error::xlsx 解压后过大，已拒绝。")
+                  sys.exit(1)
+          wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+          if "实验安排" not in wb.sheetnames:
+              print("::error::xlsx 缺少「实验安排」工作表。")
+              sys.exit(1)
+          ws = wb["实验安排"]
+          rows = 0
+          header = None
+          for values in ws.iter_rows(values_only=True):
+              if header is None:
+                  header = [str(v or "").strip() for v in values]
+                  for need in ("日期", "节次", "实验名称", "实验地点"):
+                      if need not in header:
+                          print("::error::表头缺少「%s」列。" % need)
+                          sys.exit(1)
+                  continue
+              if not any(v not in (None, "") for v in values):
+                  continue
+              rows += 1
+              if rows > 5000:
+                  print("::error::实验条数超过 5000 上限。")
+                  sys.exit(1)
+          if rows == 0:
+              print("::error::xlsx 里没有实验数据。")
+              sys.exit(1)
+          open(sys.argv[2], "w", encoding="utf-8").write(str(rows))
+          print("xlsx 校验通过：%d 条" % rows)
+          PY
+
+      - name: Add class data
+        run: |
+          set -euo pipefail
+          if [ -f "data/$CLASS.xlsx" ]; then
+            echo "::error::data/$CLASS.xlsx 已存在。已存在的班级请用「班级数据发布」模板，不要用新建班级。"
+            exit 1
+          fi
+          node tools/new-class.mjs add --class "$CLASS" --from "$RUNNER_TEMP/class.xlsx"
+
+      - name: Build and sign release
+        env:
+          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "$RELEASE_SIGNING_KEY" ]; then
+            echo "::error::缺少 RELEASE_SIGNING_KEY secret。见 docs/CLASS-PUBLISH.md §2。"
+            exit 1
+          fi
+          python tools/build.py
+          node tools/release.mjs manifest --signer ci-release
+          printf '%s\n' "$RELEASE_SIGNING_KEY" > "$RUNNER_TEMP/release.pem"
+          node tools/release.mjs sign --key "$RUNNER_TEMP/release.pem" --signer ci-release
+          rm -f "$RUNNER_TEMP/release.pem"
+          node tools/release.mjs verify
+          python tools/build.py --check
+
+      - name: Ensure only this class changed
+        run: |
+          set -euo pipefail
+          BAD=""
+          while IFS= read -r f; do
+            case "$f" in
+              data/$CLASS.xlsx|index.html|calendars/*|release/*) ;;
+              "") ;;
+              *) BAD="$BAD $f" ;;
+            esac
+          done < <(git status --porcelain | sed -E 's/^.. //')
+          if [ -n "$BAD" ]; then
+            echo "::error::不允许的文件改动：$BAD"
+            exit 1
+          fi
+          # 必须且只能新增 data/$CLASS.xlsx（不允许顺手改别的班）
+          DATA_LINES=$(git status --porcelain -- data | wc -l)
+          if [ "$DATA_LINES" -ne 1 ] || ! git status --porcelain -- "data/$CLASS.xlsx" | grep -Eq '^(A|\?\?)'; then
+            echo "::error::data/ 下应当只新增 data/$CLASS.xlsx。"
+            git status --porcelain -- data
+            exit 1
+          fi
+
+      - name: Open pull request (no auto-merge)
+        run: |
+          set -euo pipefail
+          ROWS=$(cat "$RUNNER_TEMP/rows.txt")
+          BRANCH="new-class/$CLASS-${{ github.run_id }}"
+          git config user.name "crsecue-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add -A
+          git commit -m "feat(data): 新班级 $CLASS（Issue #$ISSUE）"
+          git push origin "$BRANCH"
+          BODY=$(printf '新班级：%s\n条数：%s\n来源 Issue：#%s\n发布签名：CI（ci-release）\n\n管理员请检查后点 **Squash and merge**；本工作流不会自动合并。' "$CLASS" "$ROWS" "$ISSUE")
+          PR_URL=$(gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$BRANCH" \
+            --title "feat(data): 新班级 $CLASS（Issue #$ISSUE）" \
+            --body "$BODY")
+          gh issue comment "$ISSUE" --repo "$GITHUB_REPOSITORY" --body "<!-- crsecue-newclass:done --> 已生成 PR（$PR_URL），$ROWS 条，等待管理员合并。成功标记存在时不会重复执行。"
+          echo "PR_URL=$PR_URL" >> "$GITHUB_ENV"
+
+      - name: Comment failure hint
+        if: failure()
+        run: |
+          gh issue comment "$ISSUE" --repo "$GITHUB_REPOSITORY" --body "自动建班失败：请查看 Actions 运行日志（${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}）。常见原因：附件不是 xlsx、班级 id 不合法、data/ 下已存在同名班级、缺少 RELEASE_SIGNING_KEY。修复后重新提交或重新打 new-class 标签。" || true
