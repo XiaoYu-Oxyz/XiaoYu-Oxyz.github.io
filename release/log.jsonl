@@ -29,3 +29,4 @@
 {"n":29,"prev":"sha256:43214ffb5d1bf60bd4f6c0a79c92adbe743d1abc4aa3ac79bf78f57dd91c3988","manifestSha":"sha256:a1e03dd927fabe66e8742e3af486dab008bea3f2199b203a3a6eebdce11c0621","signer":"admin","issuedAt":"2026-11-18T09:44:23.339Z"}
 {"n":30,"prev":"sha256:a1e03dd927fabe66e8742e3af486dab008bea3f2199b203a3a6eebdce11c0621","manifestSha":"sha256:3b8f806b412037854f86067bf0b74c43cefcec27fe399f850d509c3295ca0ae1","signer":"admin","issuedAt":"2026-11-18T09:49:33.835Z"}
 {"n":31,"prev":"sha256:3b8f806b412037854f86067bf0b74c43cefcec27fe399f850d509c3295ca0ae1","manifestSha":"sha256:44a0583b83cd93e8f707e286c234bd7757825ca4b344bc5cd3df129779a26de2","signer":"admin","issuedAt":"2026-11-18T09:49:41.915Z"}
+{"n":32,"prev":"sha256:44a0583b83cd93e8f707e286c234bd7757825ca4b344bc5cd3df129779a26de2","manifestSha":"sha256:8b641c943152dcc2bb0b43c560d5ea9c43901ee6d9692d8797ecc0053606054e","signer":"admin","issuedAt":"2026-11-20T06:10:28.900Z"}

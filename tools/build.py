@@ -357,7 +357,8 @@ def natural_key(name):
     for part in re.split(r"(\d+)", name):
         if not part:
             continue
-        key.append((0, int(part)) if part.isdigit() else (1, part.casefold()))
+        # 大写开头（Z1/Z2/Z5…）排在自定义小写班级之前，保证默认班级稳定为 Z1
+        key.append((0, int(part)) if part.isdigit() else (1, 0 if part[0].isupper() else 1, part.casefold()))
     return tuple(key)
 
 
