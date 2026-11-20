@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-klY9v1kV0ZKPwESVHlv2kN348x30oX4mxgixGV6/TyA='; script-src-elem 'sha256-klY9v1kV0ZKPwESVHlv2kN348x30oX4mxgixGV6/TyA='; script-src-attr 'none'; style-src 'sha256-P/I2OMrobasibJSRDSIYPQVX19yuh9MYk9YKJdwFbA8='; style-src-elem 'sha256-P/I2OMrobasibJSRDSIYPQVX19yuh9MYk9YKJdwFbA8='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-kuyVlfFM0k30hw+No8JIVQWt5+J8JULwARDjul991lM='; script-src-elem 'sha256-kuyVlfFM0k30hw+No8JIVQWt5+J8JULwARDjul991lM='; script-src-attr 'none'; style-src 'sha256-P/I2OMrobasibJSRDSIYPQVX19yuh9MYk9YKJdwFbA8='; style-src-elem 'sha256-P/I2OMrobasibJSRDSIYPQVX19yuh9MYk9YKJdwFbA8='; style-src-attr 'none'; img-src 'none'; font-src 'none'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; manifest-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types xlsx-xml">
 <meta name="referrer" content="no-referrer">
 <title>CrseCue</title>
 <style>
@@ -2599,6 +2599,8 @@ function readSelectedClass() {
     const saved = localStorage.getItem(CLASS_SELECTED_KEY);
     if (saved && classIds.includes(saved)) return saved;
   } catch (e) {}
+  // 默认班固定为 Z1（存在时），与班级排序无关；新增 Z0/A1/test 等都不会改变默认视图
+  if (classIds.includes('Z1')) return 'Z1';
   return classIds[0] || '';
 }
 

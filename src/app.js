@@ -302,6 +302,8 @@ function readSelectedClass() {
     const saved = localStorage.getItem(CLASS_SELECTED_KEY);
     if (saved && classIds.includes(saved)) return saved;
   } catch (e) {}
+  // 默认班固定为 Z1（存在时），与班级排序无关；新增 Z0/A1/test 等都不会改变默认视图
+  if (classIds.includes('Z1')) return 'Z1';
   return classIds[0] || '';
 }
 
